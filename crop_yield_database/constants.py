@@ -20,3 +20,12 @@ NAMED_QUERY_DIR = f'{CONFIG_DIR}/named_queries'
 #
 DEFAULT_QUERY_CONFIG = 'v1'
 DEFAULT_SPECTRAL_INDEX_CONFIG = 'v1'
+DEFAULT_LOCATION = 'US'
+DEFAULT_TIMEOUT = 30
+
+
+#
+# GCP
+#
+URI_PREFIX = 'gs://'
+URL_PREFIX = 'https://storage.googleapis.com/'

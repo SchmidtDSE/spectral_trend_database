@@ -3,7 +3,7 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Optional, Union
+from typing import Optional, Union, Any
 import re
 import pandas as pd
 from google.cloud import bigquery as bq
@@ -12,22 +12,16 @@ import crop_yield_database.utils as utils
 
 
 #
-# CONSTANTS
-#
-QUERY_REQUIRED = '__query_required'
-
-
-#
 # METHODS
 #
 def named_sql(
         name: str,
-        config: Union[dict, str] = c.DEFAULT_QUERY_CONFIG,
+        config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
         **values) -> str:
     """ generate sql command from config file
 
-    Usage:
+    Usage: TODO
 
     Args:
         name (str): name of preconfigured config file
@@ -44,6 +38,7 @@ def named_sql(
     """
     if isinstance(config, str):
         config = utils.read_yaml(f'{c.NAMED_QUERY_DIR}/{config}.yaml')
+    assert isinstance(config, dict)
     project = config.get('project')
     dataset = config.get('dataset')
     if dataset:
@@ -77,9 +72,9 @@ def named_sql(
 
 def run(
         name: Optional[str] = None,
-        config: Union[dict, str] = c.DEFAULT_QUERY_CONFIG,
+        config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
-        sql: str = QUERY_REQUIRED,
+        sql: Optional[str] = None,
         print_sql: bool = False,
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
@@ -111,8 +106,7 @@ def run(
         client = bq.Client(project=project)
     if name:
         sql = named_sql(name=name, config=config, limit=limit, **values)
-    if sql == QUERY_REQUIRED:
-        raise ValueError('crop_yield_database.query.run: name query or explict sql required')
+    assert sql is not None
     if print_sql:
         print(f'crop_yield_database.query.run: {sql}')
     return client.query(sql).to_dataframe()

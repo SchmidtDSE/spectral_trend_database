@@ -3,6 +3,7 @@
 License:
     BSD, see LICENSE.md
 """
+from typing import Any
 import pandas as pd
 import xarray as xr
 import yaml
@@ -11,17 +12,28 @@ import yaml
 #
 # I/O
 #
-def read_yaml(path: str) -> dict:
-    """ read yaml file
+def read_yaml(path: str, *key_path: str) -> Any:
+    """ Reads (and optionally extracts part of) yaml file
+
+    Usage:
+
+    ```python
+    data = read_yaml(path)
+    data_with_key_path = read_yaml(path,'a','b','c')
+    data['a']['b']['c'] == data_with_key_path # ==> True
+    ```
 
     Args:
         path (str): path to yaml file
+        *key_path (*str): key-path to extract
 
     Returns:
         a dictionary for extracted yaml
     """
     with open(path, 'rb') as file:
         obj = yaml.safe_load(file)
+    for k in key_path:
+        obj = obj[k]
     return obj
 
 

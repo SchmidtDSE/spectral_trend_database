@@ -7,13 +7,7 @@ from typing import Optional, Union
 import re
 from google.cloud import storage  # type: ignore
 from google.cloud import bigquery as bq
-
-
-#
-# CONSTANTS
-#
-URI_PREFIX = 'gs://'
-URL_PREFIX = 'https://storage.googleapis.com/'
+import crop_yield_database.constants as c
 
 
 #
@@ -22,7 +16,7 @@ URL_PREFIX = 'https://storage.googleapis.com/'
 def process_gcs_path(
         path: str,
         *args: str,
-        prefix: str = URI_PREFIX,
+        prefix: str = c.URI_PREFIX,
         bucket: Optional[str] = None) -> tuple[str, str]:
     """ process gcs path
 
@@ -38,9 +32,9 @@ def process_gcs_path(
     Args:
         path (str): file-path may or may not include scheme
         *args (str): ordered additional parts to path (see Usage above)
-        prefix (str = URI_PREFIX):
+        prefix (str = c.URI_PREFIX):
             if exists strip prefix from begining of string. For
-            URIs use `gcp.URI_PREFIX`, for URLs us `gcp.URL_PREFIX`.
+            URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.
 
     Returns:
         (tuple) name of gcs bucket, gcs filename-prefix
@@ -62,7 +56,7 @@ def gcs_list(
         *args: str,
         bucket: Optional[str] = None,
         search: Optional[str] = None,
-        prefix: str = URI_PREFIX,
+        prefix: Optional[str] = c.URI_PREFIX,
         project: Optional[str] = None,
         client: Optional[storage.Client] = None) -> list[str]:
     """ list cloud storage objects
@@ -71,9 +65,9 @@ def gcs_list(
         path (str): file-path may or may not include scheme
         *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)
         search (Optional[str] = None): only return paths containing <search>
-        prefix (str = URI_PREFIX):
+        prefix (str = c.URI_PREFIX):
             if exists add prefix to begining of string. For
-            URIs use `gcp.URI_PREFIX`, for URLs us `gcp.URL_PREFIX`.
+            URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.
         project (Optional[str] = None): gcp project name
         client Optional[bq.Client] = None):
             instance of bigquery client
@@ -100,7 +94,7 @@ def upload_file(
         *args: str,
         bucket_name: Optional[str] = None,
         search: Optional[str] = None,
-        prefix: str = URI_PREFIX,
+        prefix: Optional[str] = c.URI_PREFIX,
         project: Optional[str] = None,
         client: Optional[storage.Client] = None) -> str:
     """ list cloud storage objects
@@ -110,9 +104,9 @@ def upload_file(
         path (str): destination gcp file-path may or may not include scheme
         *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)
         search (Optional[str] = None): only return paths containing <search>
-        prefix (str = URI_PREFIX):
+        prefix (str = c.URI_PREFIX):
             if exists add prefix to begining of string. For
-            URIs use `gcp.URI_PREFIX`, for URLs us `gcp.URL_PREFIX`.
+            URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.
         project (Optional[str] = None): gcp project name
         client Optional[bq.Client] = None):
             instance of bigquery client
@@ -124,7 +118,7 @@ def upload_file(
     if client is None:
         client = storage.Client(project=project)
     bucket_name, path = process_gcs_path(path, *args, bucket=bucket_name)
-    dest = f'{URI_PREFIX}{bucket_name}/{path}'
+    dest = f'{c.URI_PREFIX}{bucket_name}/{path}'
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(path)
     blob.upload_from_filename(src)
@@ -136,10 +130,10 @@ def upload_file(
 #
 def load_or_create_dataset(
         name: str,
-        location: str = 'US',
+        location: str = c.DEFAULT_LOCATION,
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
-        timeout: int = 30) -> bq.Dataset:
+        timeout: int = c.DEFAULT_TIMEOUT) -> bq.Dataset:
     """ load or create bigquery dataset
 
     Args:
@@ -176,7 +170,7 @@ def create_table_from_json(
         return_table: bool = False,
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
-        timeout: int = 30) -> Union[bq.Table, None]:
+        timeout: int = c.DEFAULT_TIMEOUT) -> Union[bq.Table, None]:
     """ create table from (line deliminated) json
 
     Note: list valued columns failed if they contained NaNs. Substitue NaNs
