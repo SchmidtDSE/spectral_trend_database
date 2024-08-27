@@ -17,6 +17,20 @@ NAMED_QUERY_DIR = f'{CONFIG_DIR}/named_queries'
 
 
 #
+# DATA
+#
+LSAT_BANDS = [
+    'blue',
+    'green',
+    'red',
+    'nir',
+    'swir1',
+    'swir2'
+]
+NAN_VALUE = -99999
+
+
+#
 # DEFAULTS
 #
 DEFAULT_QUERY_CONFIG = 'v1'

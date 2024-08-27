@@ -1,10 +1,15 @@
 import numpy as np
 import xarray as xr
+from pprint import pprint
 from IPython.display import display
 import spectral_trend_database.constants as c
 from spectral_trend_database import utils
 import spectral_trend_database.query as query
 import spectral_trend_database.gcp as gcp
+import spectral_trend_database.spectral as spectral
+
+scfig = spectral.index_config()
+pprint(scfig)
 
 
 LSAT_BANDS = [

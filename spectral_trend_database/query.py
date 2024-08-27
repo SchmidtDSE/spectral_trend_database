@@ -22,7 +22,7 @@ def named_sql(
     """ generate sql command from config file
 
     Consider the named queries config file:
-    
+
     ```yaml
     # config/named_queries/example.yaml
     project: dse-regenag
@@ -41,27 +41,27 @@ def named_sql(
     ```
 
     - The gcp project and dataset are set using the `project`/`dataset` values.
-    - The `defaults` dict gives default values to add to each query (if the query) doesn't 
-      explicitly provide them. For example the above yaml says to always use a 
+    - The `defaults` dict gives default values to add to each query (if the query) doesn't
+      explicitly provide them. For example the above yaml says to always use a
       LEFT join, however if in one of the named `queries` (see below) contains `how: RIGHT`
       a RIGHT join will be used instead.  Similarly this will by default use
-      `SELECT * ...`, but if a query contains `select: a, b, c` the query will be 
+      `SELECT * ...`, but if a query contains `select: a, b, c` the query will be
       `SELECT a, b, c ...`.
-    - `queries` is a dictionary with all the named queries. We start my adding creating a 
-      select statement 'SELECT {select} FROM {table}', where "{}" indicate the value 
-      subtracted from the named-query dict or the defaults dict. Then we sequentially loop 
+    - `queries` is a dictionary with all the named queries. We start my adding creating a
+      select statement 'SELECT {select} FROM {table}', where "{}" indicate the value
+      subtracted from the named-query dict or the defaults dict. Then we sequentially loop
       over the join list using the {table} and {join} values.
 
-    Examples: 
+    Examples:
 
         `named_sql('scym_raw_all')` will output
-        
+
         ```sql
         SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
         LEFT JOIN `dse-regenag.BiomassTrends.SCYM_YIELD` USING (sample_id)
-        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED` USING (sample_id, year) 
+        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED` USING (sample_id, year)
         ```
-        
+
         We can also add a `where` key:
 
         ``` yaml
@@ -86,7 +86,7 @@ def named_sql(
         WHERE `dse-regenag.BiomassTrends.SCYM_YIELD`.year = 1999
         ```
 
-        More intresting is 
+        More intresting is
 
         ``` yaml
           scym_raw_for_year:
@@ -100,7 +100,7 @@ def named_sql(
               table: SCYM_YIELD
         ```
 
-        now `named_sql('scym_raw_for_year')` will throw an error because the value 
+        now `named_sql('scym_raw_for_year')` will throw an error because the value
         is not specified. However, you can pass a keyword value for the `year`
         to the `named_sql` method.
 
@@ -117,7 +117,9 @@ def named_sql(
         name (str): name of preconfigured config file
         config (Union[str,dict]=c.DEFAULT_QUERY_CONFIG):
             configuration dictionary containg sql-config with key <name>
-            if (str) loads yaml file with at '<project-root>/config/<config>.yaml'
+            if (str):
+                if re.search(r'(yaml|yml)$', <config>) loads yaml file with at <path config>
+                else loads yaml at '<project-root>/config/named_queries/<config>.yaml'
         limit (int=None):
             if exits add "LIMIT <limit>" to end of SQL call
         **values:
@@ -127,7 +129,9 @@ def named_sql(
         (str) sql command
     """
     if isinstance(config, str):
-        config = utils.read_yaml(f'{c.NAMED_QUERY_DIR}/{config}.yaml')
+        if not re.search(r'(yaml|yml)$', config):
+            config = f'{c.NAMED_QUERY_DIR}/{config}.yaml'
+        config = utils.read_yaml(config)
     assert isinstance(config, dict)
     project = config.get('project')
     dataset = config.get('dataset')
@@ -171,14 +175,16 @@ def run(
         **values) -> pd.DataFrame:
     """ queries bigquery
 
-    Executes a bigquery query either through an explicit sql string, using the 
-    `sql` arg, or by creating a sql-string using the `named_sql` method above. 
+    Executes a bigquery query either through an explicit sql string, using the
+    `sql` arg, or by creating a sql-string using the `named_sql` method above.
 
     Args:
         name (str): name of preconfigured config file
         config (Union[str,dict]=c.DEFAULT_QUERY_CONFIG):
             configuration dictionary containg sql-config with key <name>
-            if (str) loads yaml file with at '<project-root>/config/<config>.yaml'
+            if (str):
+                if re.search(r'(yaml|yml)$', <config>) loads yaml file with at <path config>
+                else loads yaml at '<project-root>/config/named_queries/<config>.yaml'
         limit (int=None):
             if exits add "LIMIT <limit>" to end of SQL call
         sql (str=None): if <name> not provided, explicit sql command to use in query

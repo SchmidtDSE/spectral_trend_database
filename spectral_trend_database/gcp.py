@@ -8,6 +8,7 @@ import re
 from google.cloud import storage  # type: ignore
 from google.cloud import bigquery as bq
 import spectral_trend_database.constants as c
+from spectral_trend_database import utils
 
 
 #

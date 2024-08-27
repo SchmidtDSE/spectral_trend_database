@@ -70,7 +70,7 @@ def pandas_to_xr(
 #
 # PRINTING/LOGGING
 #
-def message(value: Any, *args: str, level: str='info'):
+def message(value: Any, *args: str, level: str = 'info'):
     assert level in c.INFO_TYPES
     msg = f'[{level}] {c.ROOT_MODULE}'
     for arg in args:
