@@ -9,7 +9,7 @@ from pathlib import Path
 #
 # PATHS/PROJECT
 #
-ROOT_MODULE = 'crop_yield_database'
+ROOT_MODULE = 'spectral_trend_database'
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_DIR = f'{ROOT_DIR}/config'
 SPECTRAL_INDEX_DIR = f'{CONFIG_DIR}/spectral_indices'

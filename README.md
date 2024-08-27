@@ -1,9 +1,4 @@
-####  PROJECT NAME TBD
-
-TODO!!!!!!!!!
-
-TRYING FIX UNDERSTAND <a> | None type handling import Optional
-
+####  SPECTRAL TREND DATABASE
 
 MODULES AND SCRIPTS TO:
 

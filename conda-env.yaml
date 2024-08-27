@@ -1,4 +1,4 @@
-name: crop_yield_database
+name: spectral_trend_database
 channels:
   - conda-forge
   - apple

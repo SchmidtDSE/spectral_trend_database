@@ -7,7 +7,7 @@ from typing import Optional, Union
 import re
 from google.cloud import storage  # type: ignore
 from google.cloud import bigquery as bq
-import crop_yield_database.constants as c
+import spectral_trend_database.constants as c
 
 
 #
@@ -48,7 +48,7 @@ def process_gcs_path(
         path = '/'.join(parts)
         return bucket, path
     else:
-        raise ValueError('crop_yield_database.gcp.process_gcs_path: path is empty')
+        raise ValueError('spectral_trend_database.gcp.process_gcs_path: path is empty')
 
 
 def gcs_list(

@@ -1,10 +1,10 @@
 import numpy as np
 import xarray as xr
 from IPython.display import display
-import crop_yield_database.constants as c
-from crop_yield_database import utils
-import crop_yield_database.query as query
-import crop_yield_database.gcp as gcp
+import spectral_trend_database.constants as c
+from spectral_trend_database import utils
+import spectral_trend_database.query as query
+import spectral_trend_database.gcp as gcp
 
 
 LSAT_BANDS = [

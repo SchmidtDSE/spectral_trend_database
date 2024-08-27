@@ -3,12 +3,12 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "crop_yield_database"
+name = "spectral_trend_database"
 version = "0.0.1"
 readme = "README.md"
 dependencies = []
 
 [tool.setuptools]
 packages = [
-	"crop_yield_database"
+	"spectral_trend_database"
 ]

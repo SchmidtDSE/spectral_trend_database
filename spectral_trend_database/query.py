@@ -7,8 +7,8 @@ from typing import Optional, Union, Any
 import re
 import pandas as pd
 from google.cloud import bigquery as bq
-import crop_yield_database.constants as c
-import crop_yield_database.utils as utils
+import spectral_trend_database.constants as c
+import spectral_trend_database.utils as utils
 
 
 #

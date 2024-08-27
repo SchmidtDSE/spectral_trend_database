@@ -7,7 +7,7 @@ from typing import Any, Union
 import pandas as pd
 import xarray as xr
 import yaml
-import crop_yield_database.constants as c
+import spectral_trend_database.constants as c
 
 
 #
