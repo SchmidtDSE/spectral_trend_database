@@ -1,0 +1,5 @@
+table: test
+indices:
+  ndvi: (nir - red) / (nir + red)
+  savi: 1.5 * (nir - red) / (nir + red + 0.5)
+  tdvi: 1.5 * (nir - red) / sqrt(nir**2 + red + 0.5)

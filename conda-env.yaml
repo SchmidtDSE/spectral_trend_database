@@ -1,0 +1,52 @@
+name: crop_yield_database
+channels:
+  - conda-forge
+  - apple
+
+dependencies:
+  # base
+  - python=3.10
+  - pip
+  - pycodestyle
+  - mypy
+  - pandas-stubs
+  - types-PyYAML
+  - ipykernel
+  - jupyterlab
+  - numpy
+  - pandas
+  - scipy
+  - xarray
+  - matplotlib
+  - seaborn
+  - click
+  - pytables
+  - pandas-gbq
+  - gcsfs
+  # geo
+  - geojson
+  - shapely
+  - geopandas
+  - affine
+  - rasterio
+  - rioxarray
+  - earthengine-api
+  - twine
+  - mystmd
+  - jupyterlab-myst
+  - altair-all
+  - vega_datasets
+  # -------------------
+  - xarray-datatree
+  - zarr
+  # experimental vis
+  - hvplot
+  - bokeh
+  - shiny
+  - plotly
+  - ipywidgets
+  - jupyter-dash
+  - pip:
+    - python-geohash
+    - xee
+    - build

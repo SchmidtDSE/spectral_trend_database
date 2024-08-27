@@ -1,0 +1,16 @@
+dataset: BiomassTrends
+defaults:
+  how: LEFT
+  select: '*'
+  using: sample_id
+project: dse-regenag
+queries:
+  scym_raw:
+    join:
+    - table: SCYM_YIELD
+    - table: LANDSAT_RAW_MASKED
+      using: sample_id, year
+    table: SAMPLE_POINTS
+    where:
+    - key: year
+      table: SCYM_YIELD
