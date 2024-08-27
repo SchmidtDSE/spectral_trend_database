@@ -22,14 +22,12 @@ QUERY_REQUIRED = '__query_required'
 #
 def named_sql(
         name: str,
-        config_name: Optional[str] = c.DEFAULT_QUERY_CONFIG,
-        config: Optional[dict] = None,
+        config: Union[dict, str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
         **values) -> str:
     """ generate sql command from config file
 
     Usage:
-
 
     Args:
         name (str): name of preconfigured config file
@@ -44,8 +42,8 @@ def named_sql(
     Returns:
         (str) sql command
     """
-    if not config:
-        config = utils.read_yaml(f'{c.NAMED_QUERY_DIR}/{config_name}.yaml')
+    if isinstance(config, str):
+        config = utils.read_yaml(f'{c.NAMED_QUERY_DIR}/{config}.yaml')
     project = config.get('project')
     dataset = config.get('dataset')
     if dataset:
@@ -79,10 +77,9 @@ def named_sql(
 
 def run(
         name: Optional[str] = None,
-        config_name: Optional[str] = c.DEFAULT_QUERY_CONFIG,
-        config: Optional[dict] = None,
+        config: Union[dict, str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
-        sql: Optional[str] = None,
+        sql: str = QUERY_REQUIRED,
         print_sql: bool = False,
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
@@ -113,11 +110,9 @@ def run(
     if client is None:
         client = bq.Client(project=project)
     if name:
-        query = named_sql(name=name, config_name=config_name, limit=limit, **values)
-    else:
-        query = sql or QUERY_REQUIRED
-    if query == QUERY_REQUIRED:
+        sql = named_sql(name=name, config=config, limit=limit, **values)
+    if sql == QUERY_REQUIRED:
         raise ValueError('crop_yield_database.query.run: name query or explict sql required')
     if print_sql:
-        print(f'crop_yield_database.query.run: {query}')
-    return client.query(query).to_dataframe()
+        print(f'crop_yield_database.query.run: {sql}')
+    return client.query(sql).to_dataframe()
