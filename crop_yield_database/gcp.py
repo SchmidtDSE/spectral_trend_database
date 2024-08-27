@@ -152,13 +152,15 @@ def load_or_create_dataset(
         client = bq.Client(project=project)
     try:
         dataset = client.get_dataset(name)
-        print(f'DATASET {name} EXSITS')
+        msg = f'DATASET {name} EXSITS'
+        utils.message(msg, 'gcp', 'load_or_create_dataset')
     except:
         dataset_id = f'{client.project}.{name}'
         dataset = bq.Dataset(dataset_id)
         dataset.location = location
         dataset = client.create_dataset(dataset, timeout=timeout)
-        print("Created dataset {}.{}".format(client.project, dataset.dataset_id))
+        msg = "Created dataset {}.{}".format(client.project, dataset.dataset_id)
+        utils.message(msg, 'gcp', 'load_or_create_dataset')
     return dataset
 
 

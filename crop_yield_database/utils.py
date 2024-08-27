@@ -3,10 +3,11 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Any
+from typing import Any, Union
 import pandas as pd
 import xarray as xr
 import yaml
+import crop_yield_database.constants as c
 
 
 #
@@ -28,7 +29,7 @@ def read_yaml(path: str, *key_path: str) -> Any:
         *key_path (*str): key-path to extract
 
     Returns:
-        a dictionary for extracted yaml
+        dictionary, or data extracted, from yaml file
     """
     with open(path, 'rb') as file:
         obj = yaml.safe_load(file)
@@ -64,3 +65,15 @@ def pandas_to_xr(
     attrs = {v: row[v] for v in row.keys() if v not in exclude}
     data_var_dict = {v: ([coord], row[v]) for v in data_vars}
     return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, row[coord])}, attrs=attrs)
+
+
+#
+# PRINTING/LOGGING
+#
+def message(value: Any, *args: str, level: str='info'):
+    assert level in c.INFO_TYPES
+    msg = f'[{level}] {c.ROOT_MODULE}'
+    for arg in args:
+        msg += f'.{arg}'
+    msg += f': {value}'
+    print(msg)

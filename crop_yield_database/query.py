@@ -21,7 +21,97 @@ def named_sql(
         **values) -> str:
     """ generate sql command from config file
 
-    Usage: TODO
+    Consider the named queries config file:
+    
+    ```yaml
+    # config/named_queries/example.yaml
+    project: dse-regenag
+    dataset: BiomassTrends
+    defaults:
+      how: LEFT
+      select: '*'
+      using: sample_id
+    queries:
+      scym_raw_all:
+        table: SAMPLE_POINTS
+        join:
+          - table: SCYM_YIELD
+          - table: LANDSAT_RAW_MASKED
+            using: sample_id, year
+    ```
+
+    - The gcp project and dataset are set using the `project`/`dataset` values.
+    - The `defaults` dict gives default values to add to each query (if the query) doesn't 
+      explicitly provide them. For example the above yaml says to always use a 
+      LEFT join, however if in one of the named `queries` (see below) contains `how: RIGHT`
+      a RIGHT join will be used instead.  Similarly this will by default use
+      `SELECT * ...`, but if a query contains `select: a, b, c` the query will be 
+      `SELECT a, b, c ...`.
+    - `queries` is a dictionary with all the named queries. We start my adding creating a 
+      select statement 'SELECT {select} FROM {table}', where "{}" indicate the value 
+      subtracted from the named-query dict or the defaults dict. Then we sequentially loop 
+      over the join list using the {table} and {join} values.
+
+    Examples: 
+
+        `named_sql('scym_raw_all')` will output
+        
+        ```sql
+        SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
+        LEFT JOIN `dse-regenag.BiomassTrends.SCYM_YIELD` USING (sample_id)
+        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED` USING (sample_id, year) 
+        ```
+        
+        We can also add a `where` key:
+
+        ``` yaml
+          scym_raw_for_1999:
+            table: SAMPLE_POINTS
+            join:
+              - table: SCYM_YIELD
+              - table: LANDSAT_RAW_MASKED
+                using: sample_id, year
+            where:
+            - key: year
+              table: SCYM_YIELD
+              value = 1999
+        ```
+
+        now `named_sql('scym_raw_for_1999')` will output
+
+        ```sql
+        SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
+        LEFT JOIN `dse-regenag.BiomassTrends.SCYM_YIELD` USING (sample_id)
+        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED` USING (sample_id, year)
+        WHERE `dse-regenag.BiomassTrends.SCYM_YIELD`.year = 1999
+        ```
+
+        More intresting is 
+
+        ``` yaml
+          scym_raw_for_year:
+            table: SAMPLE_POINTS
+            join:
+              - table: SCYM_YIELD
+              - table: LANDSAT_RAW_MASKED
+                using: sample_id, year
+            where:
+            - key: year
+              table: SCYM_YIELD
+        ```
+
+        now `named_sql('scym_raw_for_year')` will throw an error because the value 
+        is not specified. However, you can pass a keyword value for the `year`
+        to the `named_sql` method.
+
+        `named_sql('scym_raw_for_year', year=2020)` will output
+
+        ```sql
+        SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
+        LEFT JOIN `dse-regenag.BiomassTrends.SCYM_YIELD` USING (sample_id)
+        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED` USING (sample_id, year)
+        WHERE `dse-regenag.BiomassTrends.SCYM_YIELD`.year = 2020
+        ```
 
     Args:
         name (str): name of preconfigured config file
@@ -81,7 +171,8 @@ def run(
         **values) -> pd.DataFrame:
     """ queries bigquery
 
-    Usage: TODO
+    Executes a bigquery query either through an explicit sql string, using the 
+    `sql` arg, or by creating a sql-string using the `named_sql` method above. 
 
     Args:
         name (str): name of preconfigured config file
@@ -108,5 +199,5 @@ def run(
         sql = named_sql(name=name, config=config, limit=limit, **values)
     assert sql is not None
     if print_sql:
-        print(f'crop_yield_database.query.run: {sql}')
+        utils.message(sql, 'query', 'run')
     return client.query(sql).to_dataframe()

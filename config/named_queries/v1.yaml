@@ -1,9 +1,9 @@
+project: dse-regenag
 dataset: BiomassTrends
 defaults:
   how: LEFT
   select: '*'
   using: sample_id
-project: dse-regenag
 queries:
   scym_raw:
     join:

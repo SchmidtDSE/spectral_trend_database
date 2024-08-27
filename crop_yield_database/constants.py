@@ -7,8 +7,9 @@ from pathlib import Path
 
 
 #
-# PATHS
+# PATHS/PROJECT
 #
+ROOT_MODULE = 'crop_yield_database'
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_DIR = f'{ROOT_DIR}/config'
 SPECTRAL_INDEX_DIR = f'{CONFIG_DIR}/spectral_indices'
@@ -29,3 +30,9 @@ DEFAULT_TIMEOUT = 30
 #
 URI_PREFIX = 'gs://'
 URL_PREFIX = 'https://storage.googleapis.com/'
+
+
+#
+# PRINTING/LOGGING
+#
+INFO_TYPES = ['info', 'warning', 'error']
