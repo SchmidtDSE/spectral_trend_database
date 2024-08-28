@@ -2,15 +2,15 @@
 
 MODULES AND SCRIPTS TO:
 
-1. export landsat/s2/yield sample data from GEE [will return to this]
-2. preprocess and put into BQ [will return to this]
+1. export landsat/s2/yield sample data from GEE
+2. preprocess and put into BQ
 
 3. add raw spectral index data
 	- configuration set up
 	- nice cli
-4. smooth indices and bands [TUESDAY]
+4. smooth indices and bands
 
-5. compute features: [THURSDAY]
+5. compute features:
 	- feats in early detection for cover crops
 	- green (or wet or soil ... days)
 	- other

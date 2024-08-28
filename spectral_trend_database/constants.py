@@ -1,5 +1,9 @@
 """ project paths/constants
 
+NOTE: 
+    constants (excluding "FIXED" constants) can be overwritten 
+    using yaml file at `config/user.yaml`
+
 License:
     BSD, see LICENSE.md
 """
@@ -7,11 +11,20 @@ from pathlib import Path
 
 
 #
-# PATHS/PROJECT
+# FIXED (do not overwrite with `config/user.yaml`)
 #
 ROOT_MODULE = 'spectral_trend_database'
-ROOT_DIR = Path(__file__).resolve().parent.parent
-CONFIG_DIR = f'{ROOT_DIR}/config'
+INFO_TYPES = ['info', 'warning', 'error']
+
+
+#
+# PATHS/PROJECT
+#
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+PARENT_DIR = PROJECT_DIR.parent
+DATA_DIR = f'{PARENT_DIR}/data'
+CONFIG_DIR = f'{PROJECT_DIR}/config'
+USER_CONFIG_PATH = f'{PROJECT_DIR}/config/user.yaml'
 SPECTRAL_INDEX_DIR = f'{CONFIG_DIR}/spectral_indices'
 NAMED_QUERY_DIR = f'{CONFIG_DIR}/named_queries'
 
@@ -44,9 +57,3 @@ DEFAULT_TIMEOUT = 30
 #
 URI_PREFIX = 'gs://'
 URL_PREFIX = 'https://storage.googleapis.com/'
-
-
-#
-# PRINTING/LOGGING
-#
-INFO_TYPES = ['info', 'warning', 'error']

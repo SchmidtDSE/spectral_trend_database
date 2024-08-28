@@ -4,16 +4,17 @@ License:
     BSD, see LICENSE.md
 """
 from typing import Any, Union
+from pathlib import Path
 import pandas as pd
 import xarray as xr
 import yaml
-import spectral_trend_database.constants as c
+from spectral_trend_database import constants
 
 
 #
 # I/O
 #
-def read_yaml(path: str, *key_path: str) -> Any:
+def read_yaml(path: str, *key_path: str, safe: bool=False) -> Any:
     """ Reads (and optionally extracts part of) yaml file
 
     Usage:
@@ -31,11 +32,12 @@ def read_yaml(path: str, *key_path: str) -> Any:
     Returns:
         dictionary, or data extracted, from yaml file
     """
-    with open(path, 'rb') as file:
-        obj = yaml.safe_load(file)
-    for k in key_path:
-        obj = obj[k]
-    return obj
+    if not safe or Path(path).is_file():
+        with open(path, 'rb') as file:
+            obj = yaml.safe_load(file)
+        for k in key_path:
+            obj = obj[k]
+        return obj
 
 
 #
@@ -71,8 +73,8 @@ def pandas_to_xr(
 # PRINTING/LOGGING
 #
 def message(value: Any, *args: str, level: str = 'info'):
-    assert level in c.INFO_TYPES
-    msg = f'[{level}] {c.ROOT_MODULE}'
+    assert level in constants.INFO_TYPES
+    msg = f'[{level}] {constants.ROOT_MODULE}'
     for arg in args:
         msg += f'.{arg}'
     msg += f': {value}'
