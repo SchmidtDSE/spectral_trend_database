@@ -14,7 +14,7 @@ from spectral_trend_database import constants
 #
 # I/O
 #
-def read_yaml(path: str, *key_path: str, safe: bool=False) -> Any:
+def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
     """ Reads (and optionally extracts part of) yaml file
 
     Usage:

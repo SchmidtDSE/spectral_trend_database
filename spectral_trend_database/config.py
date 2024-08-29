@@ -1,22 +1,22 @@
 """ config hander
 
 DESCRIPTION:
-	provides an interface to access constants
-	defined in `spectral_trend_database/constants.py` or
-	user config defined in `config/user.yaml`. 
+    provides an interface to access constants
+    defined in `spectral_trend_database/constants.py` or
+    user config defined in `config/user.yaml`.
 
-	values can be accessed through `c.get(key, default)` if default is 
-	required. otherwise use dot-notaion (c.key) or superscript (c[key])
+    values can be accessed through `c.get(key, default)` if default is
+    required. otherwise use dot-notaion (c.key) or superscript (c[key])
 
-	note: the user config overwrites the constants.
+    note: the user config overwrites the constants.
 
 USAGE:
-	```python
-	from spectral_trend_database.config import config as c
+    ```python
+    from spectral_trend_database.config import config as c
 
-	print(c.some_key_in_user_config_yaml)
-	print(c.some_constant_in_spectral_trend_database_constants)
-	```
+    print(c.some_key_in_user_config_yaml)
+    print(c.some_constant_in_spectral_trend_database_constants)
+    ```
 
 License:
     BSD, see LICENSE.md
@@ -30,7 +30,7 @@ from spectral_trend_database import utils
 
 
 #
-# CONSTANTS 
+# CONSTANTS
 #
 _NOT_FOUND = '__NOT_FOUND'
 _KEY_ERROR = 'ERROR: "{}" not in config or constants'
@@ -41,31 +41,27 @@ _KEY_ERROR = 'ERROR: "{}" not in config or constants'
 #
 class ConfigHandler(UserDict):
 
+    def __init__(self, path: str, constants: ModuleType = constants):
+        self.constants = constants
+        self.config = utils.read_yaml(path, safe=True) or {}
 
-	def __init__(self, path: str, constants: ModuleType = constants):
-		self.constants = constants
-		self.config = utils.read_yaml(path, safe=True) or {}
+    def get(self, key: str, default: Any = None):
+        value = self.config.get(key, _NOT_FOUND)
+        if value == _NOT_FOUND:
+            try:
+                value = getattr(self.constants, key)
+            except:
+                value = default
+        return value
 
+    def __getitem__(self, key):
+        value = self.get(key, _NOT_FOUND)
+        if value == _NOT_FOUND:
+            raise KeyError(_KEY_ERROR.format(key))
+        return value
 
-	def get(self, key: str, default: Any=None):
-		value = self.config.get(key, _NOT_FOUND)
-		if value == _NOT_FOUND:
-			try:
-				value = getattr(self.constants, key)
-			except:
-				value = default
-		return value
-
-
-	def __getitem__(self, key):
-		value = self.get(key, _NOT_FOUND)
-		if value == _NOT_FOUND:
-			raise KeyError(_KEY_ERROR.format(key))
-		return value
-
-
-	def __getattr__(self, key):
-		return self.__getitem__(key)
+    def __getattr__(self, key):
+        return self.__getitem__(key)
 
 
 config = ConfigHandler(constants.USER_CONFIG_PATH)

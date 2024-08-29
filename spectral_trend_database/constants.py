@@ -1,7 +1,7 @@
 """ project paths/constants
 
-NOTE: 
-    constants (excluding "FIXED" constants) can be overwritten 
+NOTE:
+    constants (excluding "FIXED" constants) can be overwritten
     using yaml file at `config/user.yaml`
 
 License:
@@ -22,7 +22,6 @@ INFO_TYPES = ['info', 'warning', 'error']
 #
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 PARENT_DIR = PROJECT_DIR.parent
-DATA_DIR = f'{PARENT_DIR}/data'
 CONFIG_DIR = f'{PROJECT_DIR}/config'
 USER_CONFIG_PATH = f'{PROJECT_DIR}/config/user.yaml'
 SPECTRAL_INDEX_DIR = f'{CONFIG_DIR}/spectral_indices'
