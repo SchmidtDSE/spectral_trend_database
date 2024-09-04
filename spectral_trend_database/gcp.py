@@ -5,6 +5,8 @@ License:
 """
 from typing import Optional, Union
 import re
+from pathlib import Path
+import pandas as pd
 from google.cloud import storage  # type: ignore
 from google.cloud import bigquery as bq
 from spectral_trend_database.config import config as c
@@ -40,9 +42,11 @@ def process_gcs_path(
     Returns:
         (tuple) name of gcs bucket, gcs filename-prefix
     """
+    if prefix:
+        path = re.sub(f'^{prefix}', '', path)
     parts = path.split('/')
     if not bucket:
-        bucket = re.sub(f'^{prefix}', '', parts[0])
+        bucket = parts[0]
         parts = parts[1:]
     parts = parts + list(args)
     if parts:
@@ -98,7 +102,7 @@ def upload_file(
         prefix: Optional[str] = c.URI_PREFIX,
         project: Optional[str] = None,
         client: Optional[storage.Client] = None) -> str:
-    """ list cloud storage objects
+    """ upload file to cloud storage
 
     Args:
         src: (str): local source file-path
@@ -119,10 +123,48 @@ def upload_file(
     if client is None:
         client = storage.Client(project=project)
     bucket_name, path = process_gcs_path(path, *args, bucket=bucket_name)
-    dest = f'{c.URI_PREFIX}{bucket_name}/{path}'
+    dest_uri = f'{c.URI_PREFIX}{bucket_name}/{path}'
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(path)
     blob.upload_from_filename(src)
+    return dest_uri
+
+
+def save_ld_json(
+        df: pd.DataFrame,
+        local_dest: str,
+        gcs_dest: Optional[str] = None,
+        gcs_bucket: Optional[str] = None,
+        dry_run: bool = True,
+        create_dirs: bool = True) -> Union[str, None]:
+    """ save dataframe locally and (optionally) to GCS as line-deliminated JSON
+
+    Args:
+        df (pd.DataFrame): source dataframe
+        local_dest (str): local dest
+        gcs_dest (Optional[str]): if exists export to gcs
+        gcs_bucket (Optional[str]): gcs_bucket (only usde if gcs-dest exists)
+        dry_run (bool = True): if true print message but don't save
+        create_dirs (bool = True): if true create local parent dirs if needed
+
+    Returns:
+        if not dry_run return destination uri if <gcs_dest> is passed,
+        otherwise return the <local_dest>.
+    """
+    print(f'save [{df.shape}]:')
+    if dry_run:
+        print('- local:', local_dest, '(dry-run)')
+        print('- gcs:', gcs_dest, '(dry-run)')
+        dest = None
+    else:
+        print('- local:', local_dest)
+        if create_dirs:
+            Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
+        df.to_json(local_dest, orient='records', lines=True)
+        dest = local_dest
+        if gcs_dest:
+            print('- gcs:', gcs_dest)
+            dest = upload_file(local_dest, gcs_dest)
     return dest
 
 

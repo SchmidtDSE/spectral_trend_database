@@ -89,6 +89,7 @@ def add_index_arrays(
     data = data.copy()
     data[coord] = data[coord].apply(lambda d: d.astype('datetime64[ns]'))
     if indices is None:
+        assert isinstance(name, str)
         indices = index_config(name)
     index_cols = list(indices.keys())
 

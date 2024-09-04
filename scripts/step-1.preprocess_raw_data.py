@@ -16,12 +16,12 @@ steps:
     5. Convert band-value array-strings to arrays and ensure band-values are not None
     6. require `c.MIN_REQUIRED_YEARS` per geohash
     7. Add County/State Data
-    8. Save local and GCS results as line-deliminated JSO
+    8. Save local and GCS results as line-deliminated JSON
 
 outputs:
 
-    local: c.ROOT_DIR/c.LOCAL_DATA_DIR/c.DEST_LOCAL_FOLDER/c.DEST_NAME
-    gcs: gs://c.GCS_BUCKET/c.GCS_ROOT_FOLDER/c.DEST_GCS_FOLDER/c.DEST_NAME
+    local: c.ROOT_DIR/c.LOCAL_DATA_DIR/c.DEST_LOCAL_FOLDER/c.DEST_BIOMASS_YIELD_NAME
+    gcs: gs://c.GCS_BUCKET/c.GCS_ROOT_FOLDER/c.DEST_GCS_FOLDER/c.DEST_BIOMASS_YIELD_NAME
 
 License:
     BSD, see LICENSE.md
@@ -41,6 +41,7 @@ from spectral_trend_database import paths
 # CONSTANTS
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
+DEV_NB_SAMPLES = False  # TODO: CONFIG OR CML ARG
 SEARCH = c.SEARCH  # TODO: CONFIG OR CML ARG
 COUNTY_ID = 'GEOID'
 LL = ['lon', 'lat']
@@ -91,7 +92,7 @@ def process_arr_string(value):
     try:
         v = re.sub('\n', '', value)
         v = re.sub('nan', 'np.nan', v)
-        v = re.sub(r'[ \t]+', '', v)
+        v = re.sub(r'[ \t]+', ', ', v)
         v = re.sub(r'\[,', '[', v)
         v = re.sub(r'\,]', ']', v)
         return np.array(eval(v))
@@ -129,6 +130,8 @@ URLS = gcp.gcs_list(
     prefix=c.URL_PREFIX)
 print(f'- {len(URLS)} found')
 df = pd.concat([load_crop_csv(u) for u in URLS])
+if DEV_NB_SAMPLES:
+    df = df.sample(DEV_NB_SAMPLES)
 print(f'- raw shape: {df.shape}')
 
 
@@ -171,19 +174,16 @@ df = merge_county_data(df, us_gdf)
 print(f'merge-county shape:', df.shape)
 
 
-# 8. Save local and GCS results as line-deliminated JSO
-local_dest = paths.local(c.DEST_NAME)
-gcs_dest = paths.gcs(c.DEST_NAME)
-print(c.DEST_NAME, local_dest, gcs_dest)
-print(f'save [{df.shape}]:')
-if DRY_RUN:
-    print('- local:', local_dest, '(dry-run)')
-else:
-    print('- local:', local_dest)
-    df.to_json(local_dest, orient='records', lines=True)
-if DRY_RUN:
-    print('- gcs:', gcs_dest, '(dry-run)')
-else:
-    print('- gcs:', gcs_dest)
-    gcp.upload_file(local_dest, c.GCS_BUCKET, gcs_dest)
+# 8. Save local and GCS results as line-deliminated JSON
+local_dest = paths.local(
+    c.DEST_LOCAL_FOLDER,
+    c.DEST_BIOMASS_YIELD_NAME)
+gcs_dest = paths.gcs(
+    c.DEST_GCS_FOLDER,
+    c.DEST_BIOMASS_YIELD_NAME)
+uri = gcp.save_ld_json(
+    df,
+    local_dest=local_dest,
+    gcs_dest=gcs_dest,
+    dry_run=DRY_RUN)
 print('[complete]\n\n')
