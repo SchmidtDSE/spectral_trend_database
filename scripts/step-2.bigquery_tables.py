@@ -111,7 +111,7 @@ print('save table datasets to gcs:')
 TABLE_CONFIGS: list = []
 TABLE_CONFIGS.append(save_data_columns(
     df,
-    name='samples',
+    name='sample_points',
     cols=SAMPLE_COLS,
     unique_on='sample_id',
     sort='sample_id'))
