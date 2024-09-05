@@ -35,6 +35,7 @@ import geohash  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
+from spectral_trend_database import utils
 
 
 #
@@ -77,15 +78,9 @@ def get_geohash(row, precision):
         precision=precision)
 
 
-def replace_none(values):
-    values = np.array(values).astype(float)
-    values[np.isnan(values)] = c.NAN_VALUE
-    return values
-
-
 def process_band(value):
     values = process_arr_string(value)
-    return replace_none(values)
+    return utils.nan_to_safe_nan(values)
 
 
 def process_arr_string(value):

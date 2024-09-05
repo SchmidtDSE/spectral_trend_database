@@ -14,6 +14,24 @@ from spectral_trend_database import utils
 #
 # METHODS
 #
+def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list['str']:
+    """ list of queries in config file
+
+    Args:
+        - config (Union[str,dict]=c.DEFAULT_QUERY_CONFIG):
+            configuration dictionary containg sql-config with key <name>
+            if (str):
+                if re.search(r'(yaml|yml)$', <config>) loads yaml file with at <path config>
+                else loads yaml at '<project-root>/config/named_queries/<config>.yaml'
+    """
+    if isinstance(config, str):
+        if not re.search(r'(yaml|yml)$', config):
+            config = f'{c.NAMED_QUERY_DIR}/{config}.yaml'
+        config = utils.read_yaml(config)
+    assert isinstance(config, dict)
+    return list(config['queries'].keys())
+
+
 def named_sql(
         name: str,
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,

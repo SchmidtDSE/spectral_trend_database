@@ -11,6 +11,15 @@ from spectral_trend_database.config import config as c
 from spectral_trend_database import utils
 
 
+#
+# CONSTANTS
+#
+ID_COLUMNS = ['sample_id', 'year']
+
+
+#
+# METHODS
+#
 def index_config(
         name: str = c.DEFAULT_SPECTRAL_INDEX_CONFIG,
         extract_indices: bool = True) -> dict:
@@ -66,7 +75,9 @@ def add_index_arrays(
         name: Optional[str] = c.DEFAULT_SPECTRAL_INDEX_CONFIG,
         indices: Optional[dict[str, str]] = None,
         bands: list[str] = c.LSAT_BANDS,
-        coord: str = 'date') -> pd.DataFrame:
+        coord: str = 'date',
+        coord_type: Optional[str] = c.DATETIME_TYPE,
+        keep: Optional[list[str]] = ID_COLUMNS) -> pd.DataFrame:
     """ add_spectral_indices
 
     Creates a copy of passed dataframe with (array-value) spectral index
@@ -80,18 +91,24 @@ def add_index_arrays(
             if re.search(r'(yaml|yml)$', <name>) loads yaml file with at path at <name>
             else load yaml at '<project-root>/config/spectral_indices/<name>.yaml'
         indices (dict[str, str]): config containing spectral-index equations
-        bands (list[str]=c.LSAT_BANDS): list of spectral band nanmes used in equations
-        coord (str='date'): key for coordinate column
+        bands (list[str] = c.LSAT_BANDS): list of spectral band nanmes used in equations
+        coord (str = 'date'): key for coordinate column
+        coord_type (Optional[str] = DATETIME_TYPE):
+            if truthy convert <coord> arrays to <coord_type>
+        keep (Optional[list[str]] = ID_COLUMNS):
+            - list of columns to keep from the original dataframe
+            - <coord> is always included
+            - if falsey all columns will be preserved
 
     Returns:
         (pd.DataFrame)
     """
     data = data.copy()
-    data[coord] = data[coord].apply(lambda d: d.astype('datetime64[ns]'))
+    if coord_type:
+        data[coord] = data[coord].apply(lambda d: d.astype(coord_type))
     if indices is None:
         assert isinstance(name, str)
         indices = index_config(name)
-    index_cols = list(indices.keys())
 
     def _indices(row: pd.Series) -> list[np.ndarray]:
         return index_arrays(
@@ -100,5 +117,12 @@ def add_index_arrays(
             bands=bands,
             coord=coord)
 
-    data[index_cols] = data.apply(lambda r: _indices(r), axis=1, result_type='expand')
+    index_df = data.apply(lambda r: _indices(r), axis=1, result_type='expand')
+    index_cols = pd.Index(indices.keys())
+    index_df.columns = index_cols
+    if keep:
+        if not (coord in keep):
+            keep += [coord]
+        data = data[keep]
+    data[index_cols] = index_df
     return data

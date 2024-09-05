@@ -15,6 +15,7 @@ from pathlib import Path
 #
 ROOT_MODULE = 'spectral_trend_database'
 INFO_TYPES = ['info', 'warning', 'error']
+SAFE_NAN_VALUE = -99999
 
 
 #
@@ -39,7 +40,7 @@ LSAT_BANDS = [
     'swir1',
     'swir2'
 ]
-NAN_VALUE = -99999
+DATETIME_TYPE = 'datetime64[ns]'
 
 
 #

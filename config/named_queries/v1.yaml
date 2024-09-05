@@ -5,12 +5,19 @@ defaults:
   select: '*'
   using: sample_id
 queries:
-  scym_raw:
+  raw_landsat:
+    table: SAMPLE_POINTS
+    join:
+    - table: LANDSAT_RAW_MASKED
+    where:
+    - key: year
+      table: LANDSAT_RAW_MASKED
+  scym_raw_landsat:
+    table: SAMPLE_POINTS
     join:
     - table: SCYM_YIELD
     - table: LANDSAT_RAW_MASKED
       using: sample_id, year
-    table: SAMPLE_POINTS
     where:
     - key: year
       table: SCYM_YIELD

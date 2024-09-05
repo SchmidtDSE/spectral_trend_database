@@ -103,7 +103,7 @@ def message(
         value: Any,
         *args: str,
         level: Optional[str] = 'info',
-        return_str: bool = False) -> Union[str,None]:
+        return_str: bool = False) -> Union[str, None]:
     """ print or return message
     """
     msg = constants.ROOT_MODULE

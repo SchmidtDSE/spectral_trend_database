@@ -14,7 +14,23 @@ steps:
 
 outputs:
 
-    local:
+- local:
+    - <root-data-folder>/data/processed/biomass_landsat/sample_points
+    - <root-data-folder>/data/processed/biomass_landsat/administrative_boundaries
+    - <root-data-folder>/data/processed/biomass_landsat/scym_yield
+    - <root-data-folder>/data/processed/biomass_landsat/landsat_raw_masked
+
+- gcs (gs://agriculture_monitoring/spectral_trend_database/v1/processed/biomass_landsat):
+    - sample_points
+    - administrative_boundaries
+    - scym_yield
+    - landsat_raw_masked
+
+- bigquery:
+     - SAMPLE_POINTS
+     - ADMINISTRATIVE_BOUNDARIES
+     - SCYM_YIELD
+     - LANDSAT_RAW_MASKED
 
 License:
     BSD, see LICENSE.md
@@ -31,7 +47,7 @@ from spectral_trend_database import paths
 # CONFIG/CONSTANTS
 #
 DRY_RUN: bool = False
-PROJECT: str = None
+PROJECT: Optional[str] = None
 DATASET_NAME: str = 'BiomassTrends'
 LOCATION: str = 'US'
 SRC_PATH: str = paths.gcs(
@@ -106,8 +122,10 @@ def save_data_columns(
 #
 print(f'loading data: {SRC_PATH}')
 df = pd.read_json(SRC_PATH, orient='records', lines=True)
-print('  - shape:', df.shape)
-print('save table datasets to gcs:')
+print('- shape:', df.shape)
+
+
+print('\n\nsave table datasets to gcs:')
 TABLE_CONFIGS: list = []
 TABLE_CONFIGS.append(save_data_columns(
     df,
@@ -137,6 +155,6 @@ print('\n\ncreate tables from datasets:')
 pprint(TABLE_CONFIGS)
 ds = gcp.load_or_create_dataset(DATASET_NAME, LOCATION)
 for config in TABLE_CONFIGS:
-    print(config['name'])
+    print('-', config['name'])
     gcp.create_table_from_json(dataset=ds, **config)
 print('\n[complete]\n\n')
