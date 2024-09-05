@@ -1,4 +1,4 @@
-table: test
+name: test_raw_indicies
 indices:
   ndvi: (nir - red) / (nir + red)
   savi: 1.5 * (nir - red) / (nir + red + 0.5)

@@ -176,7 +176,8 @@ def load_or_create_dataset(
         location: str = c.DEFAULT_LOCATION,
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
-        timeout: int = c.DEFAULT_TIMEOUT) -> bq.Dataset:
+        timeout: int = c.DEFAULT_TIMEOUT,
+        warn: bool = False) -> bq.Dataset:
     """ load or create bigquery dataset
 
     Args:
@@ -187,6 +188,7 @@ def load_or_create_dataset(
             instance of bigquery client
             if None a new one will be instantiated
         timeout (int=30): timeout (seconds)
+        warn (bool = False): print message if dataset exist
 
     Returns:
         bigquery dataset
@@ -195,8 +197,9 @@ def load_or_create_dataset(
         client = bq.Client(project=project)
     try:
         dataset = client.get_dataset(name)
-        msg = f'DATASET {name} EXSITS'
-        utils.message(msg, 'gcp', 'load_or_create_dataset')
+        if warn:
+            msg = f'DATASET {name} EXSITS'
+            utils.message(msg, 'gcp', 'load_or_create_dataset')
     except:
         dataset_id = f'{client.project}.{name}'
         dataset = bq.Dataset(dataset_id)
