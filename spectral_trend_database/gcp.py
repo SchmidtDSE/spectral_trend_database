@@ -207,7 +207,7 @@ def load_or_create_dataset(
     return dataset
 
 
-def create_table_from_json(
+def create_or_update_table_from_json(
         dataset: bq.Dataset,
         name: str,
         uri: str,
@@ -216,7 +216,7 @@ def create_table_from_json(
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
         timeout: int = c.DEFAULT_TIMEOUT) -> Union[bq.Table, None]:
-    """ create table from (line deliminated) json
+    """ create/update table from (line deliminated) json
 
     Note: list valued columns failed if they contained NaNs. Substitue NaNs
         with value (such as -99999) and replace after loading table.

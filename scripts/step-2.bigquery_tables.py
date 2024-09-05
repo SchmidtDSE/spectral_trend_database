@@ -48,8 +48,6 @@ from spectral_trend_database import paths
 #
 DRY_RUN: bool = False
 PROJECT: Optional[str] = None
-DATASET_NAME: str = 'BiomassTrends'
-LOCATION: str = 'US'
 SRC_PATH: str = paths.gcs(
     c.DEST_GCS_FOLDER,
     c.DEST_BIOMASS_YIELD_NAME,
@@ -153,8 +151,8 @@ TABLE_CONFIGS.append(save_data_columns(
 
 print('\n\ncreate tables from datasets:')
 pprint(TABLE_CONFIGS)
-ds = gcp.load_or_create_dataset(DATASET_NAME, LOCATION)
+ds = gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION)
 for config in TABLE_CONFIGS:
     print('-', config['name'])
-    gcp.create_table_from_json(dataset=ds, **config)
+    gcp.create_or_update_table_from_json(dataset=ds, **config)
 print('\n[complete]\n\n')
