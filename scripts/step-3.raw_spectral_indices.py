@@ -68,10 +68,12 @@ def process_raw_indices_for_year(
     print(f'\n\nquery database [{query_name}, {year}]')
     df = query.run(query_name, year=year)
     print('- shape:', df.shape)
+    print('convert from safe-nans:')
     for band in c.LSAT_BANDS:
         print(f'  {band} ...')
         df[band] = df[band].apply(utils.safe_nan_to_nan)
     df = spectral.add_index_arrays(df, indices=indices)
+    print('convert to safe-nans:')
     for spectral_index in indices:
         print(f'  {spectral_index} ...')
         df[spectral_index] = df[spectral_index].apply(utils.nan_to_safe_nan)
