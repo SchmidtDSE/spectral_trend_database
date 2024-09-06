@@ -29,12 +29,13 @@ from spectral_trend_database import gcp
 from spectral_trend_database import paths
 from spectral_trend_database import spectral
 from spectral_trend_database import query
+from spectral_trend_database import utils
 
 
 #
 # CONSTANTS
 #
-YEARS = range(2000, 2023)
+YEARS = range(2000, 2022+1)
 
 
 #
@@ -66,6 +67,9 @@ def process_raw_indices_for_year(
         file_name)
     print(f'\n\nquery database [{query_name}, {year}]')
     df = query.run(query_name, year=year)
+    for band in c.LSAT_BANDS:
+        print(f'  {band} ...')
+        df[band] = df[band].apply(utils.safe_nan_to_nan)
     print('- shape:', df.shape)
     df = spectral.add_index_arrays(df, indices=indices)
     print('- add indices shape: ', df.shape)
