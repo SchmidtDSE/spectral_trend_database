@@ -67,11 +67,14 @@ def process_raw_indices_for_year(
         file_name)
     print(f'\n\nquery database [{query_name}, {year}]')
     df = query.run(query_name, year=year)
+    print('- shape:', df.shape)
     for band in c.LSAT_BANDS:
         print(f'  {band} ...')
         df[band] = df[band].apply(utils.safe_nan_to_nan)
-    print('- shape:', df.shape)
     df = spectral.add_index_arrays(df, indices=indices)
+    for spectral_index in indices:
+        print(f'  {spectral_index} ...')
+        df[spectral_index] = df[spectral_index].apply(utils.nan_to_safe_nan)
     print('- add indices shape: ', df.shape)
     print(f'save json [{file_name}]')
     uri = gcp.save_ld_json(
