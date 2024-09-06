@@ -57,12 +57,10 @@ def process_raw_indices_for_year(
     file_name = f'{table_name.lower()}-{year}'
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
-        'temp',
         c.RAW_INDICES_FOLDER,
         file_name)
     gcs_dest = paths.gcs(
         c.DEST_GCS_FOLDER,
-        'temp',
         c.RAW_INDICES_FOLDER,
         file_name)
     print(f'\n\nquery database [{query_name}, {year}]')
