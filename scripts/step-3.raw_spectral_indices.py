@@ -35,7 +35,8 @@ from spectral_trend_database import utils
 #
 # CONSTANTS
 #
-YEARS = range(2000, 2022+1)
+YEARS = range(2000, 2022 + 1)
+LIMIT = None
 
 
 #
@@ -46,7 +47,6 @@ def process_raw_indices_for_year(
         year: int,
         query_name: str = c.RAW_LANDSAT_QUERY,
         table_name: Optional[str] = None) -> None:
-
     indices = index_config.get('indices', index_config)
     assert isinstance(indices, dict)
     if not table_name:
@@ -64,26 +64,25 @@ def process_raw_indices_for_year(
         c.RAW_INDICES_FOLDER,
         file_name)
     print(f'\n\nquery database [{query_name}, {year}]')
-    df = query.run(query_name, year=year)
+    df = query.run(query_name, year=year, limit=LIMIT)
     print('- shape:', df.shape)
-    print('convert from safe-nans:')
+    print('- convert from safe-nans:')
     for band in c.LSAT_BANDS:
-        print(f'  {band} ...')
         df[band] = df[band].apply(utils.safe_nan_to_nan)
+    print('- compute raw indices')
     df = spectral.add_index_arrays(df, indices=indices)
-    print('convert to safe-nans:')
+    print('- convert to safe-nans')
     for spectral_index in indices:
-        print(f'  {spectral_index} ...')
-        df[spectral_index] = df[spectral_index].apply(utils.nan_to_safe_nan)
+        df[spectral_index] = df[spectral_index].apply(utils.nan_to_safe_nan)  # type: ignore[arg-type]
     print('- add indices shape: ', df.shape)
-    print(f'save json [{file_name}]')
+    print(f'- save json [{file_name}]')
     uri = gcp.save_ld_json(
         df,
         local_dest=local_dest,
         gcs_dest=gcs_dest,
         dry_run=False)
     assert isinstance(uri, str)
-    print(f'update table [{c.DATASET_NAME}.{table_name}]')
+    print(f'- update table [{c.DATASET_NAME}.{table_name}]')
     gcp.create_or_update_table_from_json(
         gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
         name=table_name,
@@ -93,10 +92,13 @@ def process_raw_indices_for_year(
 #
 # RUN
 #
+index_config = spectral.index_config(
+    c.DEFAULT_SPECTRAL_INDEX_CONFIG,
+    extract_indices=False)
+print('\ncompute raw indices:')
+pprint(index_config['indices'], indent=4, width=100)
+print('-' * 50)
 for year in YEARS:
-    index_config = spectral.index_config(
-        c.DEFAULT_SPECTRAL_INDEX_CONFIG,
-        extract_indices=False)
     process_raw_indices_for_year(
         index_config=index_config,
         year=year)

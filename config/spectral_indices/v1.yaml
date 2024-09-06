@@ -1,5 +1,39 @@
-name: test_raw_indicies
+name: raw_indicies_v1
 indices:
   ndvi: (nir - red) / (nir + red)
+  ndbr: (nir - swir2) / (nir + swir2)
+  ndmi: (nir - swir1) / (nir + swir1)
+  ndwi: (green - nir) / (green + nir)
+  msi: swir1 / nir
+  rdi: swir2 / nir
+  srmir: swir2 / red
+  slavi: nir / (red + swir2)
+  wdrvi: ((0.1 * nir) - red) / ((0.1 * nir) + red)
+  bwdrvi: ((0.1 * nir) - blue) / ((0.1 * nir) + blue)
   savi: 1.5 * (nir - red) / (nir + red + 0.5)
+  gsavi: 1.5 * (nir - red) / (nir + green + 0.5)
+  mnli: 1.5 * ((nir**2) - red) / ((nir**2) + red + 0.5)
   tdvi: 1.5 * (nir - red) / sqrt(nir**2 + red + 0.5)
+  evi: 2.5 *  (nir + (6 * red) - (7.5 * blue) + 1)
+  evi2: 2.4 * (nir - red) / (nir + red + 1)
+  evi22: 2.5 * (nir - red) / (nir + (2.4 * red) + 1)
+  atsavi:  1.22 * (nir - (1.22 * red) - 0.03) / ((1.22 * nir) + red - 0.235672)
+  afri1600:  nir - ((0.66 * swir1) / (nir + (0.66 * swir1)))
+  cm: swir1 / swir2
+  cig: (nir / green) - 1
+  gndvi: (nir - green) / (nir + green)
+  msavi: ((2 * nir) + 1 - sqrt(((2 * nir + 1)**2) - 8 * (nir - red)))/ 2
+  gvi: -0.2848 * blue - 0.2435 * green - 0.5436 * red + 0.7243 * nir + 0.0840 * swir1 - 0.1800 * swir2
+  wet:  (0.1509 * blue) + (0.1973 * green) + (0.3279 * red) + (0.3406 * nir) - (0.7112 * swir1) - (0.4572 * swir2)
+  tvi: sqrt(((nir - red) / (nir + red)) + 0.5)
+  osavi: (nir - red) / (nir + red + 0.16)
+  rdvi: (nir - red) / sqrt(nir + red)
+  rvi: nir / red
+  grvi: nir / green
+  si: sqrt(blue * red)
+  si1: sqrt(green * red)
+  gari: (nir - (green - 1.7 * (blue - red))) / (nir + (green - 1.7 * (blue - red)))
+  gli: ((green - red) + (green - blue)) / ((2 * green) + red + blue)
+  msr: ((nir / red) - 1) / (sqrt(nir / red) + 1)
+  nli: ((nir**2) - red) / ((nir**2) + red)
+

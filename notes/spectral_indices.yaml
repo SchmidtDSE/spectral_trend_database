@@ -1,0 +1,36 @@
+links: |
+  https://www.nv5geospatialsoftware.com/docs/BroadbandGreenness.html
+  https://www.indexdatabase.de/db/is.php?sensor_id=168
+  https://pro.arcgis.com/en/pro-app/latest/arcpy/image-analyst/bai.htm
+  https://www.researchgate.net/publication/346997779_Application_of_Geospatial_Technology_in_Assessment_of_Spatial_Variability_in_Soil_Properties_A_Review
+notes: |
+  https://www.mdpi.com/2071-1050/15/21/15444: the visible range (400–700 nm) can indicate the presence
+  of organic matter and iron oxide minerals. Near-infrared reflectance (700–1300 nm) is sensitive to
+  soil moisture content and clay mineralogy. Shortwave infrared reflectance (1300–2500 nm) can be used
+  to estimate soil organic carbon content and identify specific minerals like gypsum or calcite [61].
+ndvi: normalized difference vegetation index
+savi: Soil Adjusted Vegetation Index (https://ieeexplore.ieee.org/document/1026867)
+tdvi: Transformed Difference Vegetation Index (https://ieeexplore.ieee.org/document/1026867)
+evi: |
+  Enhanced Vegetation Index (https://www.usgs.gov/landsat-missions/landsat-enhanced-vegetation-index)
+  designed to enhance the vegetation signal with improved sensitivity in high biomass regions and
+  improved vegetation monitoring through a de-coupling of the canopy background signal and a reduction
+  in atmosphere influences.
+  evi2 and evi22 are 2 Band EVIs. Signal to noise ratios for blue are often problematic.
+  (https://en.wikipedia.org/wiki/Enhanced_vegetation_index)
+wdrvi: Wide Dynamic Range Vegetation Index (https://www.sciencedirect.com/science/article/abs/pii/S0176161704705726)
+cm: |
+  Clay Minerals (also "alteration"): This ratio leverages the fact that hydrous minerals such as the clays,
+  alunite absorb radiation in the 2.0–2.3 micron portion of the spectrum. This index mitigates
+  illumination changes due to terrain since it is a ratio.
+gndvi: |
+  The Green Normalized Difference Vegetation Index (GNDVI) method is a vegetation index for estimating photo
+  synthetic activity and is a commonly used vegetation index to determine water and nitrogen uptake into the
+  plant canopy.
+gsavi: |
+  This index was originally designed with color-infrared photography to predict nitrogren requirements for corn.
+  It is similar to SAVI, but it substitutes the green band for red.
+ndmi: |
+  https://www.usgs.gov/landsat-missions/normalized-difference-moisture-index.
+  closely related to ndwi for leaves: ndwi is for water content of leaves. note that swir1 for landsat does not include 1240.
+  ndwi below is for water bodies
