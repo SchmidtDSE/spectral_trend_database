@@ -64,7 +64,12 @@ def index_arrays(
     Returns:
         (list[np.ndarray]) of spectral index values
     """
+    from IPython.display import display
     ds = utils.pandas_to_xr(row, coord=coord, data_vars=bands)
+    # display(ds)
+    # print(list(indices.values()))
+    # print('\n'*10)
+    # raise
     index_datasets = ds.eval(list(indices.values()))  # type: ignore[arg-type]
     index_arrays = [v.data for v in index_datasets]  # type: ignore[attr-defined]
     return index_arrays
@@ -76,7 +81,7 @@ def add_index_arrays(
         indices: Optional[dict[str, str]] = None,
         bands: list[str] = c.LSAT_BANDS,
         coord: str = 'date',
-        coord_type: Optional[str] = c.DATETIME_TYPE,
+        coord_type: Optional[str] = c.DATETIME_MS,
         keep: Optional[list[str]] = ID_COLUMNS) -> pd.DataFrame:
     """ add_spectral_indices
 
@@ -93,7 +98,7 @@ def add_index_arrays(
         indices (dict[str, str]): config containing spectral-index equations
         bands (list[str] = c.LSAT_BANDS): list of spectral band nanmes used in equations
         coord (str = 'date'): key for coordinate column
-        coord_type (Optional[str] = DATETIME_TYPE):
+        coord_type (Optional[str] = DATETIME_MS):
             if truthy convert <coord> arrays to <coord_type>
         keep (Optional[list[str]] = ID_COLUMNS):
             - list of columns to keep from the original dataframe

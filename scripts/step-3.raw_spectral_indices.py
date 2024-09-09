@@ -35,13 +35,21 @@ from spectral_trend_database import utils
 #
 # CONSTANTS
 #
-YEARS = range(2000, 2022 + 1)
+YEARS = range(2003, 2006 + 1)
 LIMIT = None
 
 
 #
 # METHODS
 #
+def remove_coord_array_infinities(row: pd.Series, indices: list[str]):
+    return utils.remomve_coord_array_values(
+        row=row,
+        test=utils.infinite_along_axis,
+        coord_col=c.DATE_COLUMN,
+        data_cols=indices)
+
+
 def process_raw_indices_for_year(
         index_config: dict[str, Union[str, dict]],
         year: int,
@@ -66,15 +74,11 @@ def process_raw_indices_for_year(
     print(f'\n\nquery database [{query_name}, {year}]')
     df = query.run(query_name, year=year, limit=LIMIT)
     print('- shape:', df.shape)
-    print('- convert from safe-nans:')
-    for band in c.LSAT_BANDS:
-        df[band] = df[band].apply(utils.safe_nan_to_nan)
     print('- compute raw indices')
     df = spectral.add_index_arrays(df, indices=indices)
-    print('- convert to safe-nans')
-    for spectral_index in indices:
-        df[spectral_index] = df[spectral_index].apply(utils.nan_to_safe_nan)  # type: ignore[arg-type]
     print('- add indices shape: ', df.shape)
+    df = df.apply(lambda r: remove_coord_array_infinities(r, indices))
+    print('- remove infinities shape: ', df.shape)
     print(f'- save json [{file_name}]')
     uri = gcp.save_ld_json(
         df,

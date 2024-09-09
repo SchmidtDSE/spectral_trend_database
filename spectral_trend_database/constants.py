@@ -40,7 +40,9 @@ LSAT_BANDS = [
     'swir1',
     'swir2'
 ]
-DATETIME_TYPE = 'datetime64[ns]'
+DATE_COLUMN = 'date'
+DATETIME_NS = 'datetime64[ns]'
+DATETIME_MS = 'datetime64[ms]'
 
 
 #
