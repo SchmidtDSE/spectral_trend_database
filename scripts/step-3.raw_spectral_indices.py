@@ -62,6 +62,7 @@ def process_raw_indices_for_year(
         table_name = index_config['name']
     assert isinstance(table_name, str)
     table_name = table_name.upper()
+    index_names = list(indices.keys())
     file_name = f'{table_name.lower()}-{year}'
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
@@ -77,7 +78,7 @@ def process_raw_indices_for_year(
     print('- compute raw indices')
     df = spectral.add_index_arrays(df, indices=indices)
     print('- add indices shape: ', df.shape)
-    df = df.apply(lambda r: remove_coord_array_infinities(r, indices))
+    df = df.apply(lambda r: remove_coord_array_infinities(r, index_names))
     print('- remove infinities shape: ', df.shape)
     print(f'- save json [{file_name}]')
     uri = gcp.save_ld_json(
