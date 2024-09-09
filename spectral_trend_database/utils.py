@@ -131,7 +131,7 @@ def remomve_coord_array_values(
         original row with values removed from coord_col/data_cols.
     """
     row = row.copy()
-    coord_values = row[coord_col]
+    coord_values = np.array(row[coord_col])
     data_values = np.stack(row[data_cols].values)  # type: ignore[call-overload]
     data_values = data_values.astype(np.float64)
     should_be_removed = test(data_values)

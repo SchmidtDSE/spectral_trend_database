@@ -128,8 +128,6 @@ URLS = gcp.gcs_list(
     f'{c.GCS_ROOT_FOLDER}/{c.SRC_GCS_BIOMASS_YIELD}',
     search=SEARCH,
     prefix=c.URL_PREFIX)
-
-
 print(f'- {len(URLS)} urls found')
 df = pd.concat([load_crop_csv(u) for u in URLS])
 if DEV_NB_SAMPLES:
