@@ -39,7 +39,6 @@ from spectral_trend_database import utils
 #
 YEARS = range(2000, 2022 + 1)
 LIMIT = None
-LIST_COLUMNS = [c.DATE_COLUMN] + c.LSAT_BANDS
 
 
 #
@@ -81,7 +80,7 @@ def process_raw_indices_for_year(
     print('- compute raw indices')
     df = spectral.add_index_arrays(df, indices=indices)
     print('- add indices shape: ', df.shape)
-    df[LIST_COLUMNS] = df.apply(
+    df[[c.DATE_COLUMN] + index_names] = df.apply(
         lambda r: remove_coord_array_infinities(r, index_names),
         axis=1,
         result_type='expand')
