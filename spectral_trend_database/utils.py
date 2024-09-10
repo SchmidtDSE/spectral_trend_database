@@ -108,14 +108,45 @@ def infinite_along_axis(arr: np.ndarray, axis: int = 0):
         data (np.ndarray): np.array
         axis (int = 0): axis to check along
     """
-    return ~np.isfinite(arr).any(axis=axis)
+    return (~np.isfinite(arr)).any(axis=axis)
+
+
+# def remomve_coord_array_values(
+#         row: pd.Series,
+#         test: Callable,
+#         coord_col: str,
+#         data_cols: list[str]) -> pd.Series:
+#     """ remove values within array-valued columns
+
+#     Args:
+#         row (pd.Series): series containing <coord_col>, and <data_cols>,
+#         test (Callable):
+#             function which takes an array and returns an boolean array with
+#             True values for data that should be removed and
+#             False values for data that should remain
+#         coord_col (str): coordinate array column
+#         data_cols (list[str]): data array columns
+
+#     Returns:
+#         original row with values removed from coord_col/data_cols.
+#     """
+#     row = row.copy()
+#     coord_values = np.array(row[coord_col])
+#     data_values = np.stack(row[data_cols].values)  # type: ignore[call-overload]
+#     data_values = data_values.astype(np.float64)
+#     should_be_removed = test(data_values)
+#     coord_values = coord_values[~should_be_removed]
+#     data_values = data_values[:, ~should_be_removed]
+#     row[coord_col] = list(coord_values)
+#     row[data_cols] = list(data_values)
+#     return row
 
 
 def remomve_coord_array_values(
         row: pd.Series,
         test: Callable,
         coord_col: str,
-        data_cols: list[str]) -> pd.Series:
+        data_cols: list[str]) -> list[list]:
     """ remove values within array-valued columns
 
     Args:
@@ -128,19 +159,15 @@ def remomve_coord_array_values(
         data_cols (list[str]): data array columns
 
     Returns:
-        original row with values removed from coord_col/data_cols.
+        list of value lists [[coord_values],data_values]
     """
     row = row.copy()
     coord_values = np.array(row[coord_col])
-    data_values = np.stack(row[data_cols].values)  # type: ignore[call-overload]
-    data_values = data_values.astype(np.float64)
+    data_values = np.vstack(row[data_cols].values, dtype=np.float64)
     should_be_removed = test(data_values)
-    found = should_be_removed.sum() > 0
-    coord_values = coord_values[~should_be_removed]
-    data_values = data_values[:, ~should_be_removed]
-    row[coord_col] = list(coord_values)
-    row[data_cols] = list(data_values)
-    return row
+    coord_values = coord_values[~should_be_removed].tolist()
+    data_values = data_values[:, ~should_be_removed].tolist()
+    return [coord_values] + data_values
 
 
 #
