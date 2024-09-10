@@ -18,6 +18,8 @@ steps:
 outputs:
 
 
+runtime: ~ XXX minutes
+
 License:
     BSD, see LICENSE.md
 """
@@ -35,7 +37,7 @@ from spectral_trend_database import utils
 #
 # CONSTANTS
 #
-YEARS = range(2003, 2006 + 1)
+YEARS = range(2000, 2022 + 1)
 LIMIT = None
 
 

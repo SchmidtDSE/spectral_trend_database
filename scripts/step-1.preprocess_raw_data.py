@@ -24,6 +24,8 @@ outputs:
     local: c.ROOT_DIR/c.LOCAL_DATA_DIR/c.DEST_LOCAL_FOLDER/c.DEST_BIOMASS_YIELD_NAME
     gcs: gs://c.GCS_BUCKET/c.GCS_ROOT_FOLDER/c.DEST_GCS_FOLDER/c.DEST_BIOMASS_YIELD_NAME
 
+runtime: ~ 20 minutes
+
 License:
     BSD, see LICENSE.md
 """

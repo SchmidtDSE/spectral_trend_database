@@ -32,6 +32,8 @@ outputs:
      - SCYM_YIELD
      - LANDSAT_RAW_MASKED
 
+runtime: ~ 15 minutes
+
 License:
     BSD, see LICENSE.md
 """
