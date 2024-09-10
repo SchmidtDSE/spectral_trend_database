@@ -50,8 +50,7 @@ DRY_RUN: bool = False
 PROJECT: Optional[str] = None
 SRC_PATH: str = paths.gcs(
     c.DEST_GCS_FOLDER,
-    c.DEST_BIOMASS_YIELD_NAME,
-    as_url=True)
+    c.DEST_BIOMASS_YIELD_NAME)
 
 
 SAMPLE_COLS: list[str] = [
@@ -61,7 +60,7 @@ SAMPLE_COLS: list[str] = [
     'geohash_5',
     'geohash_7',
     'geohash_9',
-    'nb_years'
+    # 'nb_years'
 ]
 ADMIN_COLS: list[str] = [
     'sample_id',

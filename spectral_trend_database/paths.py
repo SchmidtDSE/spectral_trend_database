@@ -4,7 +4,15 @@ License:
     BSD, see LICENSE.md
 """
 from typing import Optional
+import secrets
 from spectral_trend_database.config import config as c
+
+
+#
+# CONSTANTS
+#
+URI = 'uri'
+URL = 'url'
 
 
 #
@@ -22,11 +30,15 @@ def gcs(
         *args: str,
         bucket: Optional[str] = c.GCS_BUCKET,
         folder: Optional[str] = c.GCS_ROOT_FOLDER,
-        as_uri: bool = True,
-        as_url: bool = False) -> str:
+        prefix: Optional[str] = URI,
+        kill_cache: bool = False) -> str:
     path = local(*args, root_dir=bucket, local_dir=folder)
-    if as_uri:
-        path = f'{c.URI_PREFIX}{path}'
-    elif as_url:
-        path = f'{c.URL_PREFIX}{path}'
+    if prefix:
+        if prefix == URI:
+            prefix = c.URI_PREFIX
+        elif prefix == URL:
+            prefix = c.URL_PREFIX
+        path = f'{prefix}{path}'
+    if kill_cache:
+        path = f'{path}?kill_cache={secrets.token_urlsafe(16)}'
     return path

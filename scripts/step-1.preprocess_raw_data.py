@@ -48,6 +48,7 @@ SEARCH = c.SEARCH  # TODO: CONFIG OR CML ARG
 COUNTY_ID = 'GEOID'
 LL = ['lon', 'lat']
 LOCAL_DIR = f'{c.LOCAL_DATA_DIR}/{c.DEST_LOCAL_FOLDER}'
+LIST_COLUMNS = [c.DATE_COLUMN] + c.LSAT_BANDS
 
 
 #
@@ -79,14 +80,6 @@ def get_geohash(row, precision):
         precision=precision)
 
 
-def remove_coord_array_nans(row):
-    return utils.remomve_coord_array_values(
-        row=row,
-        test=utils.infinite_along_axis,
-        coord_col=c.DATE_COLUMN,
-        data_cols=c.LSAT_BANDS)
-
-
 def process_arr_string(value):
     try:
         v = re.sub('\n', '', value)
@@ -98,6 +91,14 @@ def process_arr_string(value):
     except Exception as e:
         print('ERROR:', value, type(value))
         raise e
+
+
+def remove_coord_array_nans(row):
+    return utils.filter_list_valued_columns(
+        row=row,
+        test=utils.infinite_along_axis,
+        coord_col=c.DATE_COLUMN,
+        data_cols=c.LSAT_BANDS)
 
 
 def years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS):
@@ -116,11 +117,10 @@ def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_politic
         gdf = gdf.drop(drop_cols, axis=1)
     return gdf
 
+
 #
 # RUN
 #
-
-
 print('load data:')
 # 1. Load and Concatenate CSVs from GCP
 URLS = gcp.gcs_list(
@@ -164,8 +164,8 @@ print(f'- convert-bands shape:', df.shape)
 
 
 # 6. remove nan/none values from coord-arrays
-df = df.apply(remove_coord_array_nans, axis=1)
-print(f'- remove-nans shape:', df.shape)
+df[LIST_COLUMNS] = df.apply(remove_coord_array_nans, axis=1, result_type='expand')
+print(f'- remove-empty shape:', df.shape)
 
 
 # 7. require `c.MIN_REQUIRED_YEARS` per geohash

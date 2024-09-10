@@ -43,7 +43,7 @@ LIMIT = None
 # METHODS
 #
 def remove_coord_array_infinities(row: pd.Series, indices: list[str]):
-    return utils.remomve_coord_array_values(
+    return utils.filter_list_valued_columns(
         row=row,
         test=utils.infinite_along_axis,
         coord_col=c.DATE_COLUMN,

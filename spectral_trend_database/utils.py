@@ -142,7 +142,7 @@ def infinite_along_axis(arr: np.ndarray, axis: int = 0):
 #     return row
 
 
-def remomve_coord_array_values(
+def filter_list_valued_columns(
         row: pd.Series,
         test: Callable,
         coord_col: str,
@@ -163,7 +163,7 @@ def remomve_coord_array_values(
     """
     row = row.copy()
     coord_values = np.array(row[coord_col])
-    data_values = np.vstack(row[data_cols].values, dtype=np.float64)
+    data_values = np.vstack(row[data_cols].values, dtype=np.float64)  # type: ignore[call-overload]
     should_be_removed = test(data_values)
     coord_values = coord_values[~should_be_removed].tolist()
     data_values = data_values[:, ~should_be_removed].tolist()
