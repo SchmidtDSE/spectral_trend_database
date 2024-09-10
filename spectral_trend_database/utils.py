@@ -111,37 +111,6 @@ def infinite_along_axis(arr: np.ndarray, axis: int = 0):
     return (~np.isfinite(arr)).any(axis=axis)
 
 
-# def remomve_coord_array_values(
-#         row: pd.Series,
-#         test: Callable,
-#         coord_col: str,
-#         data_cols: list[str]) -> pd.Series:
-#     """ remove values within array-valued columns
-
-#     Args:
-#         row (pd.Series): series containing <coord_col>, and <data_cols>,
-#         test (Callable):
-#             function which takes an array and returns an boolean array with
-#             True values for data that should be removed and
-#             False values for data that should remain
-#         coord_col (str): coordinate array column
-#         data_cols (list[str]): data array columns
-
-#     Returns:
-#         original row with values removed from coord_col/data_cols.
-#     """
-#     row = row.copy()
-#     coord_values = np.array(row[coord_col])
-#     data_values = np.stack(row[data_cols].values)  # type: ignore[call-overload]
-#     data_values = data_values.astype(np.float64)
-#     should_be_removed = test(data_values)
-#     coord_values = coord_values[~should_be_removed]
-#     data_values = data_values[:, ~should_be_removed]
-#     row[coord_col] = list(coord_values)
-#     row[data_cols] = list(data_values)
-#     return row
-
-
 def filter_list_valued_columns(
         row: pd.Series,
         test: Callable,
