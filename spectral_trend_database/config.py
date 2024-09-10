@@ -38,7 +38,9 @@ _PROTECTED_ERROR = '"{}" is protected and may not be included included in user-c
 PROTECTED_KEYS = [
     'ROOT_MODULE',
     'INFO_TYPES',
-    'SAFE_NAN_VALUE']
+    'SAFE_NAN_VALUE',
+    'DATETIME_NS',
+    'DATETIME_MS']
 
 
 #

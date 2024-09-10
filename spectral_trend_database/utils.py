@@ -48,6 +48,7 @@ def pandas_to_xr(
         row: pd.Series,
         coord: str,
         data_vars: list[str],
+        coord_type: Optional[str] = constants.DATETIME_NS,
         exclude: list[str] = []) -> xr.Dataset:
     """ converts a pd.Series/row of pd.DataFrame to an xr.Dataset
 
@@ -59,15 +60,21 @@ def pandas_to_xr(
         row (pd.Series): series containing coordinate, data_vars, and attributes
         coord (str): key for coordinate value
         data_vars (list[str]): list of keys for data_vars values
+        coord_type (Optional[str] = c.DATETIME_NS):
+            if passed coord_array will be cast to <coord_type>. used to avoid
+            'non-nanosecond precision' warning from xarray
         exclude (list[str] = []): list of keys to exclude from attributes.
 
     Returns:
         xr.Dataset
     """
     exclude = exclude + data_vars + [coord]
+    coord_array = row[coord]
+    if coord_type:
+        coord_array = coord_array.astype(coord_type)
     attrs = {v: row[v] for v in row.keys() if v not in exclude}
     data_var_dict = {v: ([coord], row[v]) for v in data_vars}
-    return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, row[coord])}, attrs=attrs)
+    return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, coord_array)}, attrs=attrs)
 
 
 def nan_to_safe_nan(values: Union[list, np.ndarray]) -> np.ndarray:
