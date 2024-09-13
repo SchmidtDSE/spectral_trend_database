@@ -31,10 +31,11 @@ import re
 from pathlib import Path
 import warnings
 import math
-import geohash
+import geohash  # type: ignore[import-untyped]
+import numpy as np
 import pandas as pd
 import xarray as xr
-import mproc
+import mproc  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
@@ -50,8 +51,8 @@ warnings.filterwarnings(
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
-YEARS = range(2020, 2022 + 1)
-LIMIT = 3
+YEARS = range(2022, 2022 + 1)
+LIMIT = 5000
 SCALE = 30
 CROP_TYPE = 'corn'
 # CROP_TYPE = 'soy'
@@ -161,11 +162,9 @@ for year in YEARS:
         lsat_df = pd.DataFrame(rows)
         name = f'{DEST_NAME}-{year}.json'
         local_dest = paths.local(
-            # c.DEST_LOCAL_FOLDER,
             c.RAW_LOCAL_FOLDER,
             name)
         gcs_dest = paths.gcs(
-            # c.DEST_GCS_FOLDER,
             c.RAW_GCS_FOLDER,
             name)
         uri = gcp.save_ld_json(

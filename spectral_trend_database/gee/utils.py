@@ -3,7 +3,7 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Optional
+from typing import Union, Optional
 import ee
 import re
 from pprint import pprint
@@ -25,7 +25,7 @@ def get_ee_xrr(
         geom: ee.Geometry,
         scale: float,
         attrs: Optional[dict] = None,
-        mask_values: Optional[list[int]] = MASK_VALUES,
+        mask_values: Optional[list[Union[int, float]]] = MASK_VALUES,
         mask_value_band: Optional[str] = MASK_VALUE_BAND,
         load: bool = True):
     """ get ee data using xarray
@@ -43,7 +43,7 @@ def get_ee_xrr(
         data as xarray
     """
     ds = xr.open_dataset(
-        ic,
+        ic,  # type: ignore[arg-type]
         scale=scale,
         engine='ee',
         crs=EE_CRS,

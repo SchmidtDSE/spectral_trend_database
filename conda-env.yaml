@@ -46,6 +46,7 @@ dependencies:
   - plotly
   - ipywidgets
   - jupyter-dash
+  - types-requests
   - pip:
     - python-geohash
     - xee

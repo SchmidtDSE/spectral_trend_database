@@ -74,7 +74,7 @@ HARMONIZED_BANDS = [
     'swir1',
     'swir2'
 ]
-MISSIONS = {
+MISSIONS: dict[int, dict] = {
     8: {
         'id': L8_SR_ID,
         'bands': L8_BANDS,
@@ -112,20 +112,20 @@ def cloud_masked_rescaled_image(
          (ee.Image) cloud masked, scaled and offset, bands
          maintaining im properties and timestamps.
     """
-    im = ee.Image(im)
-    timestamp = im.date().millis()
-    qa_mask = im.select('QA_PIXEL').bitwiseAnd(0b11111).eq(0)
-    saturation_mask = im.select('QA_RADSAT').eq(0)
-    im.updateMask(qa_mask).updateMask(saturation_mask)
-    im = im.select(bands).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET)
+    _im = ee.Image(im)
+    qa_mask = _im.select('QA_PIXEL').bitwiseAnd(0b11111).eq(0)
+    saturation_mask = _im.select('QA_RADSAT').eq(0)
+    _im.updateMask(qa_mask).updateMask(saturation_mask)
+    _im = _im.select(bands).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET)
     if mission:
-        im = im.set('mission', mission)
-    return im.set('system:time_start', timestamp)
+        _im = _im.set('mission', mission)
+    _im = _im.set('system:time_start', im.date().millis())
+    return ee.Image(_im)
 
 
 def cloud_masked_rescaled_ic_for_mission(
         mission: int,
-        bands: Optional[list[str]] = HARMONIZED_BANDS,
+        bands: list[str] = HARMONIZED_BANDS,
         data_filter: Optional[ee.Filter] = None) -> ee.ImageCollection:
     """ cloud masked rescaled landsat bands ic for mission
     Args:
