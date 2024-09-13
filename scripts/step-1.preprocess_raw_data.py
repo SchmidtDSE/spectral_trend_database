@@ -17,7 +17,7 @@ steps:
     6. remove nan/none values from coord-arrays
     7. require `c.MIN_REQUIRED_YEARS` per geohash
     8. Add County/State Data
-    9. Save local and GCS results as line-deliminated JSON
+    9. Save results, local and GCS, as line-deliminated JSON
 
 outputs:
 
@@ -130,6 +130,8 @@ URLS = gcp.gcs_list(
     f'{c.GCS_ROOT_FOLDER}/{c.SRC_GCS_BIOMASS_YIELD}',
     search=SEARCH,
     prefix=c.URL_PREFIX)
+print(URLS[0])
+raise
 print(f'- {len(URLS)} urls found')
 df = pd.concat([load_crop_csv(u) for u in URLS])
 if DEV_NB_SAMPLES:

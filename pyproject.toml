@@ -10,5 +10,6 @@ dependencies = []
 
 [tool.setuptools]
 packages = [
-	"spectral_trend_database"
+	"spectral_trend_database",
+	"spectral_trend_database.gee"
 ]
