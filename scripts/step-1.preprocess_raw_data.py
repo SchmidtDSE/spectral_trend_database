@@ -12,12 +12,11 @@ steps:
     1. Load and Concatenate CSVs from GCP
     2. Remove missing band values (tested using green only)
     3. Requrie unique lon-lat per geohash-7
-    4. Add `sample_id` (geohash-11)
-    5. Convert band-value array-strings to arrays and ensure band-values are not None
-    6. remove nan/none values from coord-arrays
-    7. require `c.MIN_REQUIRED_YEARS` per geohash
-    8. Add County/State Data
-    9. Save results, local and GCS, as line-deliminated JSON
+    4. Convert band-value array-strings to arrays and ensure band-values are not None
+    5. remove nan/none values from coord-arrays
+    6. require `c.MIN_REQUIRED_YEARS` per geohash
+    7. Add County/State Data
+    8. Save results, local and GCS, as line-deliminated JSON
 
 outputs:
 
@@ -34,7 +33,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import geopandas as gpd  # type: ignore[import-untyped]
-import geohash  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
@@ -56,8 +54,8 @@ LIST_COLUMNS = [c.DATE_COLUMN] + c.LSAT_BANDS
 #
 # METHODS
 #
-def load_crop_csv(u):
-    df = pd.read_csv(u)
+def load_crop_json(u):
+    df = pd.read_json(u, orient='records', lines=True)
     df['crop_type'] = Path(u).name.split("_")[0]
     return df
 
@@ -133,7 +131,7 @@ URLS = gcp.gcs_list(
 print(URLS[0])
 raise
 print(f'- {len(URLS)} urls found')
-df = pd.concat([load_crop_csv(u) for u in URLS])
+df = pd.concat([load_crop_json(u) for u in URLS])
 if DEV_NB_SAMPLES:
     df = df.sample(DEV_NB_SAMPLES)
 print(f'- raw shape: {df.shape}')
@@ -152,12 +150,7 @@ df = unique_by_geohash(df)
 print(f'- gh-7 unique shape:', df.shape)
 
 
-# 4. Add `sample_id` (geohash-11)
-df['sample_id'] = df.apply(lambda r: get_geohash(r, 11), axis=1)
-print(f'- sample_id shape:', df.shape)
-
-
-# 5. Convert band-value array-strings to arrays and ensure band-values are not None
+# 4. Convert band-value array-strings to arrays and ensure band-values are not None
 print('- convert bands array-strings')
 for band in c.LSAT_BANDS:
     print(f'  {band} ...')
@@ -167,24 +160,24 @@ df['date'] = df.date.apply(eval)
 print(f'- convert-bands shape:', df.shape)
 
 
-# 6. remove nan/none values from coord-arrays
+# 5. remove nan/none values from coord-arrays
 df[LIST_COLUMNS] = df.apply(remove_coord_array_nans, axis=1, result_type='expand')
 print(f'- remove-empty shape:', df.shape)
 
 
-# 7. require `c.MIN_REQUIRED_YEARS` per geohash
+# 6. require `c.MIN_REQUIRED_YEARS` per geohash
 df = years_per_geohash(df, min_years=10)
 print(f'- min-years shape:', df.shape)
 
 
-# 8. Add County/State Data
+# 7. Add County/State Data
 us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
 us_gdf = us_gdf.to_crs(epsg=4326)
 df = merge_county_data(df, us_gdf)
 print(f'merge-county shape:', df.shape)
 
 
-# 9. Save local and GCS results as line-deliminated JSON
+# 8. Save local and GCS results as line-deliminated JSON
 local_dest = paths.local(
     c.DEST_LOCAL_FOLDER,
     c.DEST_BIOMASS_YIELD_NAME)
