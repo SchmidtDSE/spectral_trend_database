@@ -12,11 +12,10 @@ steps:
     1. Load and Concatenate CSVs from GCP
     2. Remove missing band values (tested using green only)
     3. Requrie unique lon-lat per geohash-7
-    4. Convert band-value array-strings to arrays and ensure band-values are not None
-    5. remove nan/none values from coord-arrays
-    6. require `c.MIN_REQUIRED_YEARS` per geohash
-    7. Add County/State Data
-    8. Save results, local and GCS, as line-deliminated JSON
+    4. remove nan/none values from coord-arrays
+    5. require `c.MIN_REQUIRED_YEARS` per geohash
+    6. Add County/State Data
+    7. Save results, local and GCS, as line-deliminated JSON
 
 outputs:
 
@@ -28,7 +27,6 @@ runtime: ~ 20 minutes
 License:
     BSD, see LICENSE.md
 """
-import re
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -78,19 +76,6 @@ def get_geohash(row, precision):
         latitude=row.lat,
         longitude=row.lon,
         precision=precision)
-
-
-def process_arr_string(value):
-    try:
-        v = re.sub('\n', '', value)
-        v = re.sub('nan', 'np.nan', v)
-        v = re.sub(r'[ \t]+', ', ', v)
-        v = re.sub(r'\[,', '[', v)
-        v = re.sub(r'\,]', ']', v)
-        return np.array(eval(v))
-    except Exception as e:
-        print('ERROR:', value, type(value))
-        raise e
 
 
 def remove_coord_array_nans(row):
@@ -148,34 +133,24 @@ df = unique_by_geohash(df)
 print(f'- gh-7 unique shape:', df.shape)
 
 
-# 4. Convert band-value array-strings to arrays and ensure band-values are not None
-print('- convert bands array-strings')
-for band in c.LSAT_BANDS:
-    print(f'  {band} ...')
-    df[band] = df[band].apply(process_arr_string)
-print(f'  date ...')
-df['date'] = df.date.apply(eval)
-print(f'- convert-bands shape:', df.shape)
-
-
-# 5. remove nan/none values from coord-arrays
+# 4. remove nan/none values from coord-arrays
 df[LIST_COLUMNS] = df.apply(remove_coord_array_nans, axis=1, result_type='expand')
 print(f'- remove-empty shape:', df.shape)
 
 
-# 6. require `c.MIN_REQUIRED_YEARS` per geohash
+# 5. require `c.MIN_REQUIRED_YEARS` per geohash
 df = years_per_geohash(df, min_years=10)
 print(f'- min-years shape:', df.shape)
 
 
-# 7. Add County/State Data
+# 6. Add County/State Data
 us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
 us_gdf = us_gdf.to_crs(epsg=4326)
 df = merge_county_data(df, us_gdf)
 print(f'merge-county shape:', df.shape)
 
 
-# 8. Save local and GCS results as line-deliminated JSON
+# 7. Save local and GCS results as line-deliminated JSON
 local_dest = paths.local(
     c.DEST_LOCAL_FOLDER,
     c.DEST_BIOMASS_YIELD_NAME)
