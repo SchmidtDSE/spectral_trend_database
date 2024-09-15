@@ -51,8 +51,8 @@ warnings.filterwarnings(
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
-YEARS = range(2022, 2022 + 1)
-LIMIT = 5000
+YEARS = range(2000, 2022 + 1)
+LIMIT = None
 SCALE = 30
 CROP_TYPE = 'corn'
 # CROP_TYPE = 'soy'
@@ -71,7 +71,7 @@ MAX_ERR = 1
 #
 DATA_ROOT = f'{c.ROOT_DIR}/{c.LOCAL_DATA_DIR}'
 
-DEST_NAME = c.RAW_BASE_NAME
+DEST_NAME = f'{CROP_TYPE}_{c.RAW_BASE_NAME}'
 LANDSAT_RADIUS = math.ceil(landsat.NOMINAL_SCALE / 2)
 if BUFFER != 'auto':
     LANDSAT_RADIUS = LANDSAT_RADIUS + BUFFER
