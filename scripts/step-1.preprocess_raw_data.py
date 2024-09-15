@@ -107,7 +107,7 @@ def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_politic
 # RUN
 #
 print('load data:')
-# 1. Load and Concatenate CSVs from GCP
+# 1. Load and Concatenate (nd) JSONs from GCP
 URLS = gcp.gcs_list(
     c.GCS_BUCKET,
     f'{c.GCS_ROOT_FOLDER}/{c.SRC_GCS_BIOMASS_YIELD}',

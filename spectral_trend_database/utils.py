@@ -139,7 +139,8 @@ def filter_list_valued_columns(
     """
     row = row.copy()
     coord_values = np.array(row[coord_col])
-    data_values = np.vstack(row[data_cols].values, dtype=np.float64)  # type: ignore[call-overload]
+    values = [np.array(v, dtype=np.float64) for v in row[data_cols].values]
+    data_values = np.vstack(values, dtype=np.float64)  # type: ignore[call-overload]
     should_be_removed = test(data_values)
     coord_values = coord_values[~should_be_removed].tolist()
     data_values = data_values[:, ~should_be_removed].tolist()
