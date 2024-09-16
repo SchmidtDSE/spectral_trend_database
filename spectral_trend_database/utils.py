@@ -68,10 +68,10 @@ def pandas_to_xr(
     Returns:
         xr.Dataset
     """
-    exclude = exclude + data_vars + [coord]
+    exclude = list(exclude) + list(data_vars) + [coord]
     coord_array = row[coord]
     if coord_type:
-        coord_array = coord_array.astype(coord_type)
+        coord_array = np.array(coord_array).astype(coord_type)
     attrs = {v: row[v] for v in row.keys() if v not in exclude}
     data_var_dict = {v: ([coord], row[v]) for v in data_vars}
     return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, coord_array)}, attrs=attrs)

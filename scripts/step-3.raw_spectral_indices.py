@@ -37,8 +37,7 @@ from spectral_trend_database import utils
 #
 # CONSTANTS
 #
-# YEARS = range(2000, 2022 + 1)
-YEARS = range(2014, 2022 + 1)
+YEARS = range(2000, 2022 + 1)
 LIMIT = None
 
 
