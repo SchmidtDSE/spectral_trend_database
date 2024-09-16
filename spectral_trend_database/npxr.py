@@ -1,8 +1,15 @@
-from typing import Callable, Union, Optional, Literal
+from typing import Callable, Union, Optional, Literal, TypeAlias
 from copy import deepcopy
 from functools import wraps
 import numpy as np
 import xarray as xr
+
+
+#
+# CUSTOM TYPES
+#
+XR_DATA: TypeAlias = Union[xr.Dataset, xr.DataArray]
+NPXR_DATA: TypeAlias = Union[XR_DATA, np.ndarray]
 
 
 #
@@ -103,11 +110,11 @@ def npxr(func: Callable) -> Callable:
 # METHODS
 #
 def sequencer(
-        data: Union[np.ndarray, xr.DataArray, xr.Dataset],
+        data: NPXR_DATA,
         data_var: Optional[str] = None,
         result_data_vars: Optional[Union[str, list[str]]] = None,
         func_list: list[Callable] = [],
-        args_list: list[Union[tuple, list, dict, Literal[False]]] = []):
+        args_list: list[Union[tuple, list, dict, Literal[False]]] = []) -> NPXR_DATA:
     """ run a sequence of npxr-decorated methods
 
     Args:
@@ -148,7 +155,12 @@ def sequencer(
 #
 # INTERNEL
 #
-def _get_data_var_names(data_var_names, data_var, result_data_var, result_prefix, result_suffix):
+def _get_data_var_names(
+        data_var_names,
+        data_var,
+        result_data_var,
+        result_prefix,
+        result_suffix) -> tuple[str, str]:
     """
     - if not <data_var> extract from data_var_names[0] or raise exception
     - if not <result_data_var> create from [data_var, result_prefix, result_suffix]
@@ -173,24 +185,34 @@ def _get_data_var_names(data_var_names, data_var, result_data_var, result_prefix
             result_data_var = f'{result_data_var}_{result_suffix}'
     return data_var, result_data_var
 
+# tuple[DataArray, DataArrayCoordinates[Any], str, str | None, str]
+# tuple[Dataset | DataArray, DataArray, str, str | None, str | None]
 
 def _preprocess_xarray_data(
-        data,
-        data_var=None,
-        result_data_var=None,
-        result_prefix=None,
-        result_suffix=None):
+        data: XR_DATA,
+        data_var: Optional[str] = None,
+        result_data_var: Optional[str] = None,
+        result_prefix: Optional[str] = None,
+        result_suffix: Optional[str] = None) -> tuple[
+            XR_DATA,
+            xr.core.coordinates.DataArrayCoordinates,
+            str,
+            Optional[str],
+            Optional[str]]:
     """
     Args:
         data (xr.dataset|xr.data_array): data to process
-        data_var (str|None):
+        data_var (Optional[str] = None):
             only used for xr.dataset. if exists update
             the named data_var. if falsey: if only 1
             data_var exists use that data_var, otherwise
             throw error.
-
+        result_data_var (Optional[str] = None):
+        result_prefix (Optional[str] = None):
+        result_suffix (Optional[str] = None):
     Returns:
-        tuple (data, datatype, result_data_var)
+        tuple[XR_DATA, str, str, str]:
+            (data, xr.DataArray, data_object_type, data_var, result_data_var)
     """
     if isinstance(data, xr.Dataset):
         data_var, result_data_var = _get_data_var_names(
@@ -211,19 +233,19 @@ def _preprocess_xarray_data(
         else:
             data_object_type = DATA_ARRAY_TYPE
             if not result_data_var:
-                result_data_var = da.name
+                result_data_var = str(da.name)
             da.name = result_data_var
             coords = da.coords
     return da, coords, data_object_type, data_var, result_data_var
 
 
 def _postprocess_xarray_data(
-        values,
-        coords,
-        data,
-        data_object_type,
-        result_data_var,
-        reindex=False):
+        values: np.ndarray,
+        coords: xr.core.coordinates.DataArrayCoordinates,
+        data: Optional[xr.Dataset],
+        data_object_type: str,
+        result_data_var: Optional[Union[list, str, Literal[False]]],
+        reindex: Union[str, bool]) -> Union[NPXR_DATA, tuple[xr.DataArray, np.ndarray]]:
     """
     Returns:
         * if data_object_type is DATASET_TYPE:
@@ -234,33 +256,42 @@ def _postprocess_xarray_data(
     if data_object_type == NP_ARRAY_TYPE:
         return values
     else:
-        coords = _reindex_coords(reindex, coords, len(values))
-        da = xr.DataArray(values, coords=coords)
+        cname = str(list(coords)[0])
+        coord_values = coords[cname]
+        reindexed_coord_dict = _reindex_coords(
+            reindex,
+            coord_name=cname,
+            coord_values=coord_values,
+            len_out=len(values))
+        da = xr.DataArray(values, coords=reindexed_coord_dict)
         if data_object_type == DATASET_TYPE:
+            assert data is not None
             data[result_data_var] = da
             return data
         else:
             return da
 
 
-def _reindex_coords(reindex, coords, len_out):
-    cname = list(coords)[0]
-    cvals = coords[cname]
-    len_coord = len(cvals)
+def _reindex_coords(
+        reindex: Union[str, bool],
+        coord_name: str,
+        coord_values: xr.DataArray,
+        len_out: int) -> dict[str, xr.DataArray]:
+    len_coord = len(coord_values)
     len_diff = len_coord - len_out
     if len_diff > 0:
         if reindex == REINDEX_DROP_LAST:
-            cvals = cvals.isel({cname: slice(None, -len_diff)})
+            coord_values = coord_values.isel({coord_name: slice(None, -len_diff)})
         elif reindex in [True, REINDEX_DROP_INIT]:
-            cvals = cvals.isel({cname: slice(len_diff, None)})
+            coord_values = coord_values.isel({coord_name: slice(len_diff, None)})
         else:
             err = (
                 'ndvi_trends.utils.npxr._reindex_coords: '
                 f'if coords lengths do not match ({len_coord}, {len_out}) '
-                f'<reindex> must be one of [True, {REINDEX_DROP_INIT}, {REINDEX_DROP_LAST}] '
+                f'<reindex> must be one of [True, {REINDEX_DROP_INIT}, {REINDEX_DROP_LAST}]'
             )
             raise ValueError(err)
-    return {cname: cvals}
+    return {coord_name: coord_values}
 
 
 def _process_sequence_function_args(
@@ -289,7 +320,11 @@ def _process_sequence_function_args(
     return args, kwargs
 
 
-def _process_sequence_args(data_var, args_list, result_data_vars, len_funcs):
+def _process_sequence_args(
+        data_var: Optional[str],
+        args_list: list,
+        result_data_vars: Optional[Union[list, str, Literal[False]]],
+        len_funcs: int) -> tuple[list, list[str]]:
     """ process arguments for sequencer
 
     Args:
