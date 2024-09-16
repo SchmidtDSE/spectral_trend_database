@@ -1,4 +1,4 @@
-name: raw_indicies_v1
+name: raw_indices_v1
 indices:
   ndvi: (nir - red) / (nir + red)
   ndbr: (nir - swir2) / (nir + swir2)
