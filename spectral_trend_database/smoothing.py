@@ -16,10 +16,10 @@ from copy import deepcopy
 import numpy as np
 import xarray as xr
 from numpy.lib.stride_tricks import sliding_window_view
-from scipy.interpolate import interp1d
-import scipy.signal as sig
+from scipy.interpolate import interp1d  # type: ignore[import-untyped]
+import scipy.signal as sig  # type: ignore[import-untyped]
 from datetime import timedelta
-from ndvi_trends.utils.npxr import npxr, sequencer
+from spectral_trend_database.npxr import npxr, sequencer
 
 
 #

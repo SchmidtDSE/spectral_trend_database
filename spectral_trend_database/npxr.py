@@ -1,4 +1,4 @@
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, Literal
 from copy import deepcopy
 from functools import wraps
 import numpy as np
@@ -107,7 +107,7 @@ def sequencer(
         data_var: Optional[str] = None,
         result_data_vars: Optional[Union[str, list[str]]] = None,
         func_list: list[Callable] = [],
-        args_list: list[dict] = []):
+        args_list: list[Union[tuple, list, dict, Literal[False]]] = []):
     """ run a sequence of npxr-decorated methods
 
     Args:
@@ -118,9 +118,9 @@ def sequencer(
             if None: overwrite input data
             if str: assign final output to name <result_data_vars>
             if list: keep all intermediate results named with elements of <result_data_vars>
-        func_list (list[functions]):
+        func_list (list[Callable]):
             ordered list of functions to execute
-        args_list (list):
+        args_list (list[Union[list, dict, Literal[False]]]):
             list of arguments for aligned function. an element "<args>" should be
                 - False: to skip this function
                 - a tuple such that, `args, kwargs = <args>` and func(data, *args, **kwargs)
@@ -263,7 +263,8 @@ def _reindex_coords(reindex, coords, len_out):
     return {cname: cvals}
 
 
-def _process_sequence_function_args(args):
+def _process_sequence_function_args(
+        args: Union[tuple[list, dict], list, dict, Literal[False]]) -> tuple[list, dict]:
     """ process arguments for functions in sequencer `func_list`
 
     converts element of `args_list` to args-kwargs pair for function
@@ -284,6 +285,7 @@ def _process_sequence_function_args(args):
         args, kwargs = [args], {}
     else:
         args, kwargs = [], {}
+    assert isinstance(args, list) and isinstance(kwargs, dict)
     return args, kwargs
 
 
