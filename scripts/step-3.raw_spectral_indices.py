@@ -65,7 +65,7 @@ def process_raw_indices_for_year(
     assert isinstance(table_name, str)
     table_name = table_name.upper()
     index_names = list(indices.keys())
-    file_name = f'{table_name.lower()}-{year}'
+    file_name = f'{table_name.lower()}-{year}.json'
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
         c.RAW_INDICES_FOLDER,
