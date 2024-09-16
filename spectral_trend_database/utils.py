@@ -3,7 +3,7 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Any, Union, Optional, Callable
+from typing import Any, Union, Optional, Callable, Iterable
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -145,6 +145,20 @@ def filter_list_valued_columns(
     coord_values = coord_values[~should_be_removed].tolist()
     data_values = data_values[:, ~should_be_removed].tolist()
     return [coord_values] + data_values
+
+
+def cast_duck_array(arr: Iterable, dtype: str = 'str') -> np.ndarray:
+    """
+    Convience method to cast array. The main purpuse is avoiding
+    lambdas in `dataframe.apply(...)`
+
+    Args:
+        arr (Iterable): array-like object to cast
+        dtype (str = 'str'): dtype to cast to
+    Returns:
+        numpy array with type <dtype>
+    """
+    return np.array(arr).astype(dtype)
 
 
 #

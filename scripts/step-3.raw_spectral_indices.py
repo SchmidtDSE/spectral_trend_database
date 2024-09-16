@@ -86,6 +86,7 @@ def process_raw_indices_for_year(
         result_type='expand')
     print('- remove infinities shape: ', df.shape)
     print(f'- save json [{file_name}]')
+    df[c.DATE_COLUMN] = df[c.DATE_COLUMN].apply(utils.cast_duck_array)
     uri = gcp.save_ld_json(
         df,
         local_dest=local_dest,
