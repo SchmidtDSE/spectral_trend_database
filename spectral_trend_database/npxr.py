@@ -156,11 +156,11 @@ def sequencer(
 # INTERNEL
 #
 def _get_data_var_names(
-        data_var_names,
-        data_var,
-        result_data_var,
-        result_prefix,
-        result_suffix) -> tuple[str, str]:
+        data_var_names: list,
+        data_var: Optional[str] = None,
+        result_data_var: Optional[str] = None,
+        result_prefix: Optional[str] = None,
+        result_suffix: Optional[str] = None) -> tuple[str, Optional[str]]:
     """
     - if not <data_var> extract from data_var_names[0] or raise exception
     - if not <result_data_var> create from [data_var, result_prefix, result_suffix]
@@ -183,10 +183,9 @@ def _get_data_var_names(
             result_data_var = f'{result_prefix}_{result_data_var}'
         if result_suffix:
             result_data_var = f'{result_data_var}_{result_suffix}'
+    assert isinstance(data_var, str)
     return data_var, result_data_var
 
-# tuple[DataArray, DataArrayCoordinates[Any], str, str | None, str]
-# tuple[Dataset | DataArray, DataArray, str, str | None, str | None]
 
 def _preprocess_xarray_data(
         data: XR_DATA,
@@ -311,7 +310,7 @@ def _process_sequence_function_args(
     elif isinstance(args, list):
         args, kwargs = args, {}
     elif isinstance(args, dict):
-        args, kwargs = [], args
+        args, kwargs = [], dict(args)
     elif args:
         args, kwargs = [args], {}
     else:
