@@ -311,7 +311,7 @@ def _process_sequence_function_args(
     elif isinstance(args, list):
         args, kwargs = args, {}
     elif isinstance(args, dict):
-        args, kwargs = {}, args
+        args, kwargs = [], args
     elif args:
         args, kwargs = [args], {}
     else:
