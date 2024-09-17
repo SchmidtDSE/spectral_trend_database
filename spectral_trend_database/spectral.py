@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from spectral_trend_database.config import config as c
 from spectral_trend_database import utils
+from spectral_trend_database.gee import landsat
 
 
 #
@@ -48,7 +49,7 @@ def index_config(
 def index_arrays(
         row: pd.Series,
         indices: dict[str, str],
-        bands: list[str] = c.LSAT_BANDS,
+        bands: list[str] = landsat.HARMONIZED_BANDS,
         coord: str = 'date') -> list[np.ndarray]:
     """ computes spectral indices
 
@@ -58,7 +59,7 @@ def index_arrays(
     Args:
         row (pd.Series): series containing spectral band and coord arrays
         indices (dict[str, str]): config containing spectral-index equations
-        bands (list[str]=c.LSAT_BANDS): list of spectral band nanmes used in equations
+        bands (list[str]=landsat.HARMONIZED_BANDS): list of spectral band nanmes used in equations
         coord (str='date'): key for coordinate column
 
     Returns:
@@ -79,7 +80,7 @@ def add_index_arrays(
         data: pd.DataFrame,
         name: Optional[str] = c.DEFAULT_SPECTRAL_INDEX_CONFIG,
         indices: Optional[dict[str, str]] = None,
-        bands: list[str] = c.LSAT_BANDS,
+        bands: list[str] = landsat.HARMONIZED_BANDS,
         coord: str = 'date',
         coord_type: Optional[str] = c.DATETIME_MS,
         keep: Optional[list[str]] = ID_COLUMNS) -> pd.DataFrame:
@@ -96,7 +97,7 @@ def add_index_arrays(
             if re.search(r'(yaml|yml)$', <name>) loads yaml file with at path at <name>
             else load yaml at '<project-root>/config/spectral_indices/<name>.yaml'
         indices (dict[str, str]): config containing spectral-index equations
-        bands (list[str] = c.LSAT_BANDS): list of spectral band nanmes used in equations
+        bands (list[str] = landsat.HARMONIZED_BANDS): list of spectral band nanmes used in equations
         coord (str = 'date'): key for coordinate column
         coord_type (Optional[str] = DATETIME_MS):
             if truthy convert <coord> arrays to <coord_type>

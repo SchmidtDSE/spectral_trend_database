@@ -43,6 +43,7 @@ import pandas as pd
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
+from spectral_trend_database.gee import landsat
 
 
 #
@@ -85,7 +86,7 @@ YIELD_COLS: list[str] = [
     'crop_type',
     'biomass'
 ]
-LANDSAT_COLS: list[str] = ['sample_id', 'year', 'date'] + c.LSAT_BANDS
+LANDSAT_COLS: list[str] = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
 
 
 #

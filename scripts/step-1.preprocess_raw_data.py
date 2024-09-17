@@ -35,6 +35,7 @@ from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
 from spectral_trend_database import utils
+from spectral_trend_database.gee import landsat
 
 
 #
@@ -46,7 +47,7 @@ SEARCH = c.SEARCH  # TODO: CONFIG OR CML ARG
 COUNTY_ID = 'GEOID'
 LL = ['lon', 'lat']
 LOCAL_DIR = f'{c.LOCAL_DATA_DIR}/{c.DEST_LOCAL_FOLDER}'
-LIST_COLUMNS = [c.DATE_COLUMN] + c.LSAT_BANDS
+LIST_COLUMNS = [c.DATE_COLUMN] + landsat.HARMONIZED_BANDS
 
 
 #
@@ -83,7 +84,7 @@ def remove_coord_array_nans(row):
         row=row,
         test=utils.infinite_along_axis,
         coord_col=c.DATE_COLUMN,
-        data_cols=c.LSAT_BANDS)
+        data_cols=landsat.HARMONIZED_BANDS)
 
 
 def years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS):
