@@ -13,10 +13,18 @@ NPXR_ARRAY: TypeAlias = Union[xr.DataArray, np.ndarray]
 NPXR: TypeAlias = Union[XR, np.ndarray]
 
 
-ARGS: TypeAlias = Union[Sequence, dict, Literal[False], None]
-VARS: TypeAlias = Union[str, Sequence[Union[str, None]]]
+#
+# LITERAL OPTION TYPES
+#
+FILL_METHOD: TypeAlias = Literal['nearest','pad','ffill','backfill','bfill']
+CONV_MODE: TypeAlias = Literal['same','valid','full']
 
 
+#
+# REPEATED ARG TYPES
+#
+ARGS_KWARGS: TypeAlias = Union[Sequence, dict, Literal[False], None]
+STRINGS: TypeAlias = Union[str, Sequence[Union[str, None]]]
 EWM_INITALIZER: TypeAlias = Union[
     Literal['sma'],
     Literal['mean'],
@@ -25,17 +33,3 @@ EWM_INITALIZER: TypeAlias = Union[
     np.ndarray,
     Callable,
     Literal[False]]
-
-FILL_METHOD: TypeAlias = Literal[
-    'nearest',
-    'pad',
-    'ffill',
-    'backfill',
-    'bfill']
-
-
-
-CONV_MODE: TypeAlias = Union[
-    Literal['same'],
-    Literal['valid'],
-    Literal['full']]

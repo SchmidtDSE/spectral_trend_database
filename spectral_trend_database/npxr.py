@@ -107,9 +107,9 @@ def npxr(func: Callable) -> Callable:
 def sequencer(
         data: types.NPXR,
         data_var: Optional[str] = None,
-        result_data_vars: Optional[types.VARS] = None,
+        result_data_vars: Optional[types.STRINGS] = None,
         func_list: Sequence[Callable] = [],
-        args_list: Sequence[types.ARGS] = []) -> types.NPXR:
+        args_list: Sequence[types.ARGS_KWARGS] = []) -> types.NPXR:
     """ run a sequence of npxr-decorated methods
 
     Args:
@@ -317,8 +317,8 @@ def _process_sequence_function_args(
 
 def _process_sequence_args(
         data_var: Optional[str],
-        args_list: Sequence[types.ARGS],
-        result_data_vars: Optional[types.VARS],
+        args_list: Sequence[types.ARGS_KWARGS],
+        result_data_vars: Optional[types.STRINGS],
         len_funcs: int) -> tuple[Sequence, Sequence[Union[str, None]]]:
     """ process arguments for sequencer
 

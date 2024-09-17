@@ -574,9 +574,9 @@ def savitzky_golay_processor(
         result_data_vars: Optional[Sequence[Union[str, None]]] = SMOOTHING_RESULT_DATA_VARS,
         window_length: int = DEFAULT_SG_WINDOW_LENGTH,
         polyorder: int = DEFAULT_SG_POLYORDER,
-        daily_args: Optional[types.ARGS] = None,
-        remove_drops_args: Optional[types.ARGS] = None,
-        interpolate_args: Optional[types.ARGS] = None,
+        daily_args: Optional[types.ARGS_KWARGS] = None,
+        remove_drops_args: Optional[types.ARGS_KWARGS] = None,
+        interpolate_args: Optional[types.ARGS_KWARGS] = None,
         **kwargs) -> types.NPXR:
     """
 
