@@ -10,24 +10,57 @@ The main method, `smooth(...)`, takes a number of steps:
 License:
     BSD, see LICENSE.md
 """
-
+from typing import Callable, Union, Optional, Literal, TypeAlias, Sequence, Any
 import warnings
 from copy import deepcopy
 import numpy as np
 import xarray as xr
+import dask.array
 from numpy.lib.stride_tricks import sliding_window_view
 from scipy.interpolate import interp1d  # type: ignore[import-untyped]
 import scipy.signal as sig  # type: ignore[import-untyped]
 from datetime import timedelta
+from spectral_trend_database import utils
 from spectral_trend_database.npxr import npxr, sequencer
+from spectral_trend_database.npxr import NPXR_DATA_TYPE, XR_DATA_TYPE, ARGS_TYPE
+
+
+#
+# CUSTOM TYPES
+#
+EWM_INITALIZER_TYPE: TypeAlias = Union[
+    Literal['sma'],
+    Literal['mean'],
+    float,
+    list,
+    np.ndarray,
+    Callable,
+    Literal[False]]
+
+FILL_METHOD_TYPE: TypeAlias = Literal[
+    'nearest',
+    'pad',
+    'ffill',
+    'backfill',
+    'bfill']
+
+NPDASK_TYPE: TypeAlias = Union[
+    np.ndarray,
+    dask.array.Array]
+
+CONV_MODE_TYPE: TypeAlias = Union[
+    Literal['same'],
+    Literal['valid'],
+    Literal['full']]
 
 
 #
 # CONSTANTS
 #
-SAME_CONV_MODE = 'same'
-VALID_CONV_MODE = 'valid'
-DEFAULT_CONV_MODE = SAME_CONV_MODE
+SAME_CONV_MODE: Literal['same']  = 'same'
+VALID_CONV_MODE: Literal['valid']  = 'valid'
+FULL_CONV_MODE: Literal['full']  = 'full'
+DEFAULT_CONV_MODE: CONV_MODE_TYPE = SAME_CONV_MODE
 LINEAR_CONV_TYPE = 'linear'
 MEAN_CONV_TYPE = 'mean'
 SMOOTHING_DATA_VAR = 'ndvi'
@@ -52,10 +85,10 @@ EPS = 1e-4
 #
 @npxr
 def ewma(
-        data,
-        alpha=None,
-        span=None,
-        init_value='sma'):
+        data: np.ndarray,
+        alpha: Optional[float] = None,
+        span: Optional[int] = None,
+        init_value: EWM_INITALIZER_TYPE = 'sma') -> np.ndarray:
     """ exponentially weighted moving average
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -107,6 +140,7 @@ def ewma(
         else:
             alpha = 2 / (span + 1)
     else:
+        assert isinstance(alpha, float)
         span = round((2 / alpha) - 1)
     if span < 2:
         err = (
@@ -122,9 +156,10 @@ def ewma(
             ewm_pre = [data[:span].mean()]
         elif isinstance(init_value, float):
             ewm_pre = [init_value]
-        elif isinstance(a, (list, np.ndarray, xr.DataArray)):
+        elif isinstance(init_value, (list, np.ndarray, xr.DataArray)):
             ewm_pre = init_value
         else:
+            assert callable(init_value)
             ewm_pre = init_value(data[:span])
         ewm_0 = ewm_pre[-1]
         values_in = ewm_pre[:-1]
@@ -141,7 +176,7 @@ def ewma(
 
 
 @npxr
-def linearly_interpolate(data):
+def linearly_interpolate(data: np.ndarray) -> np.ndarray:
     """ linearly interpolate time series
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -171,14 +206,9 @@ def linearly_interpolate(data):
 
 @npxr
 def interpolate(
-        data,
-        kind='linear',
-        extrapolate=True,
-        return_data_var=False,
-        data_var=None,
-        result_data_var=None,
-        result_prefix=None,
-        result_suffix=None):
+        data: np.ndarray,
+        kind: str = 'linear',
+        extrapolate: bool = True) -> np.ndarray:
     """ interpolate series xr.dataset/data_array
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -214,7 +244,7 @@ def interpolate(
 
 
 @npxr
-def simple_moving_average(data, win_size):
+def simple_moving_average(data: np.ndarray, win_size: int) -> np.ndarray:
     """ simple moving average
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -239,7 +269,7 @@ def simple_moving_average(data, win_size):
 
 
 @npxr
-def kernel_smoothing(data, kernel, normalize=True):
+def kernel_smoothing(data: np.ndarray, kernel: np.ndarray, normalize: bool = True) -> np.ndarray:
     """
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -259,11 +289,11 @@ def kernel_smoothing(data, kernel, normalize=True):
     data = data.copy()
     if normalize:
         kernel = kernel / kernel.sum()
-    return np.convolve(data, kernel, mode=SAME_CONV_MODE)
+    return np.convolve(data, kernel, mode=DEFAULT_CONV_MODE)
 
 
 @npxr
-def mean_window_smoothing(data, radius=DEFAULT_WINDOW_RADIUS):
+def mean_window_smoothing(data: np.ndarray, radius: int = DEFAULT_WINDOW_RADIUS) -> np.ndarray:
     """
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -283,12 +313,12 @@ def mean_window_smoothing(data, radius=DEFAULT_WINDOW_RADIUS):
 
 
 def nan_mean_window_smoothing(
-        data,
-        radius,
-        pad_window=1,
-        pad_value=None,
-        data_var=None,
-        result_data_var=None):
+        data: NPXR_DATA_TYPE,
+        radius: int,
+        pad_window: Optional[int] = 1,
+        pad_value: Optional[float] = None,
+        data_var: Optional[str] = None,
+        result_data_var: Optional[str] = None) -> NPXR_DATA_TYPE:
     """ mean_window_smoothing that ignores NaNs
 
     Note: @npxr decorator could not be used because of multi-dim array indexing
@@ -339,20 +369,27 @@ def nan_mean_window_smoothing(
     win_nan = np.isnan(win_data)
     win_mean = np.nansum(win_data, axis=1) / np.nansum(~win_nan, axis=1)
     if arr_type == 'array':
+        assert isinstance(data, np.ndarray)
         data = win_mean
     elif arr_type == 'data_array':
+        assert isinstance(data, xr.DataArray)
         coords = list(data.coords)
-        result_data_var = result_data_var or data.name
+        result_data_var = result_data_var or str(data.name)
         data = xr.DataArray(win_mean, coords=data.coords).rename(result_data_var or data.name)
     else:
-        coords = list(data[data_var].coords)[0]
+        assert isinstance(data, xr.Dataset)
+        coords = list(data[data_var].coords)
+        # coords = utils.xr_coord_name(data, data_var=data_var)
         name = result_data_var or data[data_var].name
         data[name] = coords, win_mean
     return data
 
 
 @npxr
-def linear_window_smoothing(data, radius=DEFAULT_WINDOW_RADIUS, slope=1):
+def linear_window_smoothing(
+        data: np.ndarray,
+        radius: int = DEFAULT_WINDOW_RADIUS,
+        slope: float = 1.0) -> np.ndarray:
     """
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -376,9 +413,9 @@ def linear_window_smoothing(data, radius=DEFAULT_WINDOW_RADIUS, slope=1):
 
 @npxr
 def remove_drops(
-        data,
-        drop_threshold=0.5,
-        smoothing_radius=16):
+        data: NPDASK_TYPE,
+        drop_threshold: float = 0.5,
+        smoothing_radius: int = 16) -> NPDASK_TYPE:
     """
     Replaces points in data where the value has a large dip by
 
@@ -394,11 +431,8 @@ def remove_drops(
         data with drops removed and replaced by nan
     """
     data = data.copy()
-    # compute if dask array
-    try:
+    if isinstance(data, dask.array.Array):
         data = data.compute()
-    except:
-        pass
     test_data = nan_mean_window_smoothing(data, radius=smoothing_radius)
     test = (data / test_data) < drop_threshold
     data[test] = np.nan
@@ -406,7 +440,11 @@ def remove_drops(
 
 
 @npxr
-def replace_windows(data, replacement_data, indices, radius=1):
+def replace_windows(
+        data: np.ndarray,
+        replacement_data: np.ndarray,
+        indices: Union[np.ndarray,list],
+        radius: int = 1) -> np.ndarray:
     """ replace data with replacement data for windows around indices
 
 
@@ -435,7 +473,7 @@ def replace_windows(data, replacement_data, indices, radius=1):
 
 
 @npxr
-def npxr_execute(data, func, **kwargs):
+def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
     """
     Wrapper that extends function that takes and returns np.array to return
     xarray objects using the @npxr decorator.  See `npxr`
@@ -451,7 +489,11 @@ def npxr_execute(data, func, **kwargs):
     return func(data, **kwargs)
 
 
-def npxr_savitzky_golay(data, window_length=20, polyorder=3, **kwargs):
+def npxr_savitzky_golay(
+        data: np.ndarray,
+        window_length: int = 20,
+        polyorder: int = 3,
+        **kwargs) -> np.ndarray:
     """ wrapper for scipy's savitzky-golay filter
 
     NOTE: Extends function that takes and returns np.array to return
@@ -485,11 +527,11 @@ def npxr_savitzky_golay(data, window_length=20, polyorder=3, **kwargs):
 # SEQUENCES
 #
 def macd_processor(
-        data,
-        spans,
-        data_var=MACD_DATA_VAR,
-        result_data_vars=MACD_RESULT_DATA_VARS,
-        ewma_init_value='sma'):
+        data: XR_DATA_TYPE,
+        spans: Sequence[int],
+        data_var: Optional[str] = MACD_DATA_VAR,
+        result_data_vars: Optional[Sequence[Union[str, None]]] = MACD_RESULT_DATA_VARS,
+        ewma_init_value: EWM_INITALIZER_TYPE = 'sma') -> XR_DATA_TYPE:
     """ moving average convergence divergence
 
     Computes Moving Average Convergence Divergence (MACD). For len(<spans>) == 3,
@@ -497,7 +539,7 @@ def macd_processor(
 
     Args:
         data (xr.dataset|xr.data_array): source np.array|xr.dataset|xr.data_array
-        spans (list[int]): list of window_sizes. Must have exactly 2 or 3 elements.
+        spans (Sequence[int]): list of window_sizes. Must have exactly 2 or 3 elements.
             if len(<spans>) == 2:
                 compute and return the moving-average-convergence-divergence
                 `macd_values = ewma(data, spans[0]) - ewma(data, spans[1])`
@@ -548,23 +590,23 @@ def macd_processor(
             data = results[-1]
             data.name = result_data_vars
         elif isinstance(result_data_vars, list):
-            data = {dvar: values for (dvar, values) in zip(result_data_vars, results)}
+            data_value_dict = {dvar: values for (dvar, values) in zip(result_data_vars, results)}
             if data_var not in result_data_vars:
-                data[data_var] = da
-            data = xr.Dataset(data)
+                data_value_dict[data_var] = da
+            data = xr.Dataset(data_value_dict)
     return data
 
 
 def savitzky_golay_processor(
-        data,
-        data_var=SMOOTHING_DATA_VAR,
-        result_data_vars=SMOOTHING_RESULT_DATA_VARS,
-        window_length=DEFAULT_SG_WINDOW_LENGTH,
-        polyorder=DEFAULT_SG_POLYORDER,
-        daily_args=None,
-        remove_drops_args=None,
-        interpolate_args=None,
-        **kwargs):
+        data: NPXR_DATA_TYPE,
+        data_var: Optional[str] = SMOOTHING_DATA_VAR,
+        result_data_vars: Optional[Sequence[Union[str, None]]] = SMOOTHING_RESULT_DATA_VARS,
+        window_length: int = DEFAULT_SG_WINDOW_LENGTH,
+        polyorder: int = DEFAULT_SG_POLYORDER,
+        daily_args: Optional[ARGS_TYPE] = None,
+        remove_drops_args: Optional[ARGS_TYPE] = None,
+        interpolate_args: Optional[ARGS_TYPE] = None,
+        **kwargs) -> NPXR_DATA_TYPE:
     """
 
     !!!!!!!!!!!!!!!!! WIP !!!!!!!!!!!!!!!!!
@@ -601,7 +643,8 @@ def savitzky_golay_processor(
     return sequencer(
         data,
         data_var=data_var,
-        func_list=func_list,
+        # mypy bug: https://github.com/python/mypy/issues/14319
+        func_list=func_list,  # type: ignore[arg-type]
         args_list=args_list,
         result_data_vars=result_data_vars)
 
@@ -610,14 +653,14 @@ def savitzky_golay_processor(
 # XARRAY
 #
 def daily_dataset(
-        data,
-        data_var=None,
-        days=1,
-        coord_var=COORD_VAR,
-        result_data_var=None,
-        start_date=None,
-        end_date=None,
-        method=None):
+        data: XR_DATA_TYPE,
+        data_var: Optional[str] = None,
+        days: int = 1,
+        coord_var: str = COORD_VAR,
+        result_data_var: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        method: Optional[FILL_METHOD_TYPE] = None) -> XR_DATA_TYPE:
     """ transform a dataset to a (n-)day dataset
 
     takes a dataset with datetime coordinate and returns
@@ -679,7 +722,10 @@ def daily_dataset(
 #
 # INTERNAL
 #
-def _left_right_pad_values(data, window, value):
+def _left_right_pad_values(
+        data: np.ndarray,
+        window: Optional[int],
+        value: Optional[float]) -> tuple[float, float]:
     if window:
         is_nan = np.isnan(data)
         if is_nan[:window].all():

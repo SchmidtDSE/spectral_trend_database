@@ -1,16 +1,19 @@
-from typing import Callable, Union, Optional, Literal, TypeAlias
+from typing import Callable, Union, Optional, Literal, TypeAlias, Sequence
 from copy import deepcopy
 from functools import wraps
 import numpy as np
 import xarray as xr
+import dask.array
 
 
 #
 # CUSTOM TYPES
 #
-XR_DATA: TypeAlias = Union[xr.Dataset, xr.DataArray]
-NPXR_DATA: TypeAlias = Union[XR_DATA, np.ndarray]
-
+XR_DATA_TYPE: TypeAlias = Union[xr.Dataset, xr.DataArray, dask.array.Array]
+NPXR_ARRAY_DATA_TYPE: TypeAlias = Union[xr.DataArray, np.ndarray]
+NPXR_DATA_TYPE: TypeAlias = Union[XR_DATA_TYPE, np.ndarray]
+ARGS_TYPE: TypeAlias = Union[tuple, Sequence, dict, Literal[False], None]
+VARS_TYPE: TypeAlias = Union[str, Sequence[Union[str, None]]]
 
 #
 # CONSTANTS
@@ -110,24 +113,24 @@ def npxr(func: Callable) -> Callable:
 # METHODS
 #
 def sequencer(
-        data: NPXR_DATA,
+        data: NPXR_DATA_TYPE,
         data_var: Optional[str] = None,
-        result_data_vars: Optional[Union[str, list[str]]] = None,
-        func_list: list[Callable] = [],
-        args_list: list[Union[tuple, list, dict, Literal[False]]] = []) -> NPXR_DATA:
+        result_data_vars: Optional[VARS_TYPE] = None,
+        func_list: Sequence[Callable] = [],
+        args_list: Sequence[ARGS_TYPE] = []) -> NPXR_DATA_TYPE:
     """ run a sequence of npxr-decorated methods
 
     Args:
         data (Union[np.ndarray, xr.DataArray, xr.Dataset]):
         data_var (Optional[str]):
             if data is xr.dataset, name of data_var to use as input data
-        result_data_vars (Optional[Union[str, list[str]]]):
+        result_data_vars (Optional[Union[str, Sequence[str]]]):
             if None: overwrite input data
             if str: assign final output to name <result_data_vars>
             if list: keep all intermediate results named with elements of <result_data_vars>
-        func_list (list[Callable]):
+        func_list (Sequence[Callable]):
             ordered list of functions to execute
-        args_list (list[Union[list, dict, Literal[False]]]):
+        args_list (Sequence[Union[list, dict, Literal[False]]]):
             list of arguments for aligned function. an element "<args>" should be
                 - False: to skip this function
                 - a tuple such that, `args, kwargs = <args>` and func(data, *args, **kwargs)
@@ -188,12 +191,12 @@ def _get_data_var_names(
 
 
 def _preprocess_xarray_data(
-        data: XR_DATA,
+        data: XR_DATA_TYPE,
         data_var: Optional[str] = None,
         result_data_var: Optional[str] = None,
         result_prefix: Optional[str] = None,
         result_suffix: Optional[str] = None) -> tuple[
-            XR_DATA,
+            XR_DATA_TYPE,
             xr.core.coordinates.DataArrayCoordinates,
             str,
             Optional[str],
@@ -210,7 +213,7 @@ def _preprocess_xarray_data(
         result_prefix (Optional[str] = None):
         result_suffix (Optional[str] = None):
     Returns:
-        tuple[XR_DATA, str, str, str]:
+        tuple[XR_DATA_TYPE, str, str, str]:
             (data, xr.DataArray, data_object_type, data_var, result_data_var)
     """
     if isinstance(data, xr.Dataset):
@@ -244,7 +247,7 @@ def _postprocess_xarray_data(
         data: Optional[xr.Dataset],
         data_object_type: str,
         result_data_var: Optional[Union[list, str, Literal[False]]],
-        reindex: Union[str, bool]) -> Union[NPXR_DATA, tuple[xr.DataArray, np.ndarray]]:
+        reindex: Union[str, bool]) -> Union[NPXR_DATA_TYPE, tuple[xr.DataArray, np.ndarray]]:
     """
     Returns:
         * if data_object_type is DATASET_TYPE:
@@ -322,8 +325,8 @@ def _process_sequence_function_args(
 def _process_sequence_args(
         data_var: Optional[str],
         args_list: list,
-        result_data_vars: Optional[Union[list, str, Literal[False]]],
-        len_funcs: int) -> tuple[list, list[str]]:
+        result_data_vars: Optional[VARS_TYPE],
+        len_funcs: int) -> Sequence[Sequence, Sequence[Union[str, None]]]:
     """ process arguments for sequencer
 
     Args:
@@ -337,6 +340,7 @@ def _process_sequence_args(
         (tuple) args_list, data_vars
     """
     if not isinstance(result_data_vars, list):
+        assert isinstance(result_data_vars, [str, None])
         result_data_vars = [result_data_vars]
     len_args = len(args_list)
     len_rdvars = len(result_data_vars)
