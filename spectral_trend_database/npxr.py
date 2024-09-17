@@ -12,8 +12,9 @@ import dask.array
 XR_DATA_TYPE: TypeAlias = Union[xr.Dataset, xr.DataArray, dask.array.Array]
 NPXR_ARRAY_DATA_TYPE: TypeAlias = Union[xr.DataArray, np.ndarray]
 NPXR_DATA_TYPE: TypeAlias = Union[XR_DATA_TYPE, np.ndarray]
-ARGS_TYPE: TypeAlias = Union[tuple, Sequence, dict, Literal[False], None]
+ARGS_TYPE: TypeAlias = Union[Sequence, dict, Literal[False], None]
 VARS_TYPE: TypeAlias = Union[str, Sequence[Union[str, None]]]
+
 
 #
 # CONSTANTS
@@ -227,6 +228,7 @@ def _preprocess_xarray_data(
         da = data[data_var]
         coords = da.coords
     else:
+        assert isinstance(data, xr.DataArray)
         da = data
         if isinstance(data, np.ndarray):
             data_object_type = NP_ARRAY_TYPE
@@ -297,7 +299,7 @@ def _reindex_coords(
 
 
 def _process_sequence_function_args(
-        args: Union[tuple[list, dict], list, dict, Literal[False]]) -> tuple[list, dict]:
+        args: Union[tuple[list, dict], Sequence, dict, None]) -> tuple[list, dict]:
     """ process arguments for functions in sequencer `func_list`
 
     converts element of `args_list` to args-kwargs pair for function
@@ -316,7 +318,7 @@ def _process_sequence_function_args(
         args, kwargs = [], dict(args)
     elif args:
         args, kwargs = [args], {}
-    else:
+    elif args is None:
         args, kwargs = [], {}
     assert isinstance(args, list) and isinstance(kwargs, dict)
     return args, kwargs
@@ -324,9 +326,9 @@ def _process_sequence_function_args(
 
 def _process_sequence_args(
         data_var: Optional[str],
-        args_list: list,
+        args_list: Sequence[ARGS_TYPE],
         result_data_vars: Optional[VARS_TYPE],
-        len_funcs: int) -> Sequence[Sequence, Sequence[Union[str, None]]]:
+        len_funcs: int) -> tuple[Sequence, Sequence[Union[str, None]]]:
     """ process arguments for sequencer
 
     Args:
@@ -340,13 +342,13 @@ def _process_sequence_args(
         (tuple) args_list, data_vars
     """
     if not isinstance(result_data_vars, list):
-        assert isinstance(result_data_vars, [str, None])
+        assert isinstance(result_data_vars, str) or (result_data_vars is None)
         result_data_vars = [result_data_vars]
     len_args = len(args_list)
     len_rdvars = len(result_data_vars)
     if len_funcs != len_args:
         if len_funcs > len_args:
-            args_list = args_list + [None] * (len_funcs - len_args)
+            args_list = list(args_list) + [None] * (len_funcs - len_args)
         else:
             err = (
                 'ndvi_trends.utils.npxr._process_sequence_args: '

@@ -57,9 +57,9 @@ CONV_MODE_TYPE: TypeAlias = Union[
 #
 # CONSTANTS
 #
-SAME_CONV_MODE: Literal['same']  = 'same'
-VALID_CONV_MODE: Literal['valid']  = 'valid'
-FULL_CONV_MODE: Literal['full']  = 'full'
+SAME_CONV_MODE: Literal['same'] = 'same'
+VALID_CONV_MODE: Literal['valid'] = 'valid'
+FULL_CONV_MODE: Literal['full'] = 'full'
 DEFAULT_CONV_MODE: CONV_MODE_TYPE = SAME_CONV_MODE
 LINEAR_CONV_TYPE = 'linear'
 MEAN_CONV_TYPE = 'mean'
@@ -443,7 +443,7 @@ def remove_drops(
 def replace_windows(
         data: np.ndarray,
         replacement_data: np.ndarray,
-        indices: Union[np.ndarray,list],
+        indices: Union[np.ndarray, list],
         radius: int = 1) -> np.ndarray:
     """ replace data with replacement data for windows around indices
 

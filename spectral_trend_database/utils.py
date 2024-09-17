@@ -78,20 +78,19 @@ def pandas_to_xr(
 
 
 def xr_coord_name(
-            data: Union[xr.Dataset, xr.DataArray],
-            data_var: Optional[str] = None) -> str:
-        """ extract coord-name from xr data
+        data: Union[xr.Dataset, xr.DataArray],
+        data_var: Optional[str] = None) -> str:
+    """ extract coord-name from xr data
+    Args:
+        data (Union[xr.Dataset, xr.DataArray]): xr data
+        data_var (Optional[str] = None): name of data_var (only use if <data> is xr.Dataset)
 
-        Args:
-            data (Union[xr.Dataset, xr.DataArray]): xr data
-            data_var (Optional[str] = None): name of data_var (only use if <data> is xr.Dataset)
-
-        Returns:
-            (str) coord name
-        """
-        if data_var:
-            data = data[data_var]
-        return str(list(data.coords)[0])
+    Returns:
+        (str) coord name
+    """
+    if data_var:
+        data = data[data_var]
+    return str(list(data.coords)[0])
 
 
 def nan_to_safe_nan(values: Union[list, np.ndarray]) -> np.ndarray:
