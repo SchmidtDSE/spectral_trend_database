@@ -16,8 +16,8 @@ NPXR: TypeAlias = Union[XR, np.ndarray]
 #
 # LITERAL OPTION TYPES
 #
-FILL_METHOD: TypeAlias = Literal['nearest','pad','ffill','backfill','bfill']
-CONV_MODE: TypeAlias = Literal['same','valid','full']
+FILL_METHOD: TypeAlias = Literal['nearest', 'pad', 'ffill', 'backfill', 'bfill']
+CONV_MODE: TypeAlias = Literal['same', 'valid', 'full']
 
 
 #
