@@ -4,16 +4,7 @@ from functools import wraps
 import numpy as np
 import xarray as xr
 import dask.array
-
-
-#
-# CUSTOM TYPES
-#
-XR_DATA_TYPE: TypeAlias = Union[xr.Dataset, xr.DataArray, dask.array.Array]
-NPXR_ARRAY_DATA_TYPE: TypeAlias = Union[xr.DataArray, np.ndarray]
-NPXR_DATA_TYPE: TypeAlias = Union[XR_DATA_TYPE, np.ndarray]
-ARGS_TYPE: TypeAlias = Union[Sequence, dict, Literal[False], None]
-VARS_TYPE: TypeAlias = Union[str, Sequence[Union[str, None]]]
+from spectral_trend_database import types
 
 
 #
@@ -114,11 +105,11 @@ def npxr(func: Callable) -> Callable:
 # METHODS
 #
 def sequencer(
-        data: NPXR_DATA_TYPE,
+        data: types.NPXR_DATA,
         data_var: Optional[str] = None,
-        result_data_vars: Optional[VARS_TYPE] = None,
+        result_data_vars: Optional[types.VARS] = None,
         func_list: Sequence[Callable] = [],
-        args_list: Sequence[ARGS_TYPE] = []) -> NPXR_DATA_TYPE:
+        args_list: Sequence[types.ARGS] = []) -> types.NPXR_DATA:
     """ run a sequence of npxr-decorated methods
 
     Args:
@@ -192,12 +183,12 @@ def _get_data_var_names(
 
 
 def _preprocess_xarray_data(
-        data: XR_DATA_TYPE,
+        data: types.XR_DATA,
         data_var: Optional[str] = None,
         result_data_var: Optional[str] = None,
         result_prefix: Optional[str] = None,
         result_suffix: Optional[str] = None) -> tuple[
-            XR_DATA_TYPE,
+            types.XR_DATA,
             xr.core.coordinates.DataArrayCoordinates,
             str,
             Optional[str],
@@ -214,7 +205,7 @@ def _preprocess_xarray_data(
         result_prefix (Optional[str] = None):
         result_suffix (Optional[str] = None):
     Returns:
-        tuple[XR_DATA_TYPE, str, str, str]:
+        tuple[types.XR_DATA, str, str, str]:
             (data, xr.DataArray, data_object_type, data_var, result_data_var)
     """
     if isinstance(data, xr.Dataset):
@@ -249,7 +240,7 @@ def _postprocess_xarray_data(
         data: Optional[xr.Dataset],
         data_object_type: str,
         result_data_var: Optional[Union[list, str, Literal[False]]],
-        reindex: Union[str, bool]) -> Union[NPXR_DATA_TYPE, tuple[xr.DataArray, np.ndarray]]:
+        reindex: Union[str, bool]) -> Union[types.NPXR_DATA, tuple[xr.DataArray, np.ndarray]]:
     """
     Returns:
         * if data_object_type is DATASET_TYPE:
@@ -326,8 +317,8 @@ def _process_sequence_function_args(
 
 def _process_sequence_args(
         data_var: Optional[str],
-        args_list: Sequence[ARGS_TYPE],
-        result_data_vars: Optional[VARS_TYPE],
+        args_list: Sequence[types.ARGS],
+        result_data_vars: Optional[types.VARS],
         len_funcs: int) -> tuple[Sequence, Sequence[Union[str, None]]]:
     """ process arguments for sequencer
 

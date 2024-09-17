@@ -22,36 +22,7 @@ import scipy.signal as sig  # type: ignore[import-untyped]
 from datetime import timedelta
 from spectral_trend_database import utils
 from spectral_trend_database.npxr import npxr, sequencer
-from spectral_trend_database.npxr import NPXR_DATA_TYPE, XR_DATA_TYPE, ARGS_TYPE
-
-
-#
-# CUSTOM TYPES
-#
-EWM_INITALIZER_TYPE: TypeAlias = Union[
-    Literal['sma'],
-    Literal['mean'],
-    float,
-    list,
-    np.ndarray,
-    Callable,
-    Literal[False]]
-
-FILL_METHOD_TYPE: TypeAlias = Literal[
-    'nearest',
-    'pad',
-    'ffill',
-    'backfill',
-    'bfill']
-
-NPDASK_TYPE: TypeAlias = Union[
-    np.ndarray,
-    dask.array.Array]
-
-CONV_MODE_TYPE: TypeAlias = Union[
-    Literal['same'],
-    Literal['valid'],
-    Literal['full']]
+from spectral_trend_database import types
 
 
 #
@@ -60,7 +31,7 @@ CONV_MODE_TYPE: TypeAlias = Union[
 SAME_CONV_MODE: Literal['same'] = 'same'
 VALID_CONV_MODE: Literal['valid'] = 'valid'
 FULL_CONV_MODE: Literal['full'] = 'full'
-DEFAULT_CONV_MODE: CONV_MODE_TYPE = SAME_CONV_MODE
+DEFAULT_CONV_MODE: types.CONV_MODE = SAME_CONV_MODE
 LINEAR_CONV_TYPE = 'linear'
 MEAN_CONV_TYPE = 'mean'
 SMOOTHING_DATA_VAR = 'ndvi'
@@ -88,7 +59,7 @@ def ewma(
         data: np.ndarray,
         alpha: Optional[float] = None,
         span: Optional[int] = None,
-        init_value: EWM_INITALIZER_TYPE = 'sma') -> np.ndarray:
+        init_value: types.EWM_INITALIZER = 'sma') -> np.ndarray:
     """ exponentially weighted moving average
 
     NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
@@ -313,12 +284,12 @@ def mean_window_smoothing(data: np.ndarray, radius: int = DEFAULT_WINDOW_RADIUS)
 
 
 def nan_mean_window_smoothing(
-        data: NPXR_DATA_TYPE,
+        data: types.NPXR_DATA,
         radius: int,
         pad_window: Optional[int] = 1,
         pad_value: Optional[float] = None,
         data_var: Optional[str] = None,
-        result_data_var: Optional[str] = None) -> NPXR_DATA_TYPE:
+        result_data_var: Optional[str] = None) -> types.NPXR_DATA:
     """ mean_window_smoothing that ignores NaNs
 
     Note: @npxr decorator could not be used because of multi-dim array indexing
@@ -413,9 +384,9 @@ def linear_window_smoothing(
 
 @npxr
 def remove_drops(
-        data: NPDASK_TYPE,
+        data: types.NPDASK,
         drop_threshold: float = 0.5,
-        smoothing_radius: int = 16) -> NPDASK_TYPE:
+        smoothing_radius: int = 16) -> types.NPDASK:
     """
     Replaces points in data where the value has a large dip by
 
@@ -527,11 +498,11 @@ def npxr_savitzky_golay(
 # SEQUENCES
 #
 def macd_processor(
-        data: XR_DATA_TYPE,
+        data: types.XR_DATA,
         spans: Sequence[int],
         data_var: Optional[str] = MACD_DATA_VAR,
         result_data_vars: Optional[Sequence[Union[str, None]]] = MACD_RESULT_DATA_VARS,
-        ewma_init_value: EWM_INITALIZER_TYPE = 'sma') -> XR_DATA_TYPE:
+        ewma_init_value: types.EWM_INITALIZER = 'sma') -> types.XR_DATA:
     """ moving average convergence divergence
 
     Computes Moving Average Convergence Divergence (MACD). For len(<spans>) == 3,
@@ -598,15 +569,15 @@ def macd_processor(
 
 
 def savitzky_golay_processor(
-        data: NPXR_DATA_TYPE,
+        data: types.NPXR_DATA,
         data_var: Optional[str] = SMOOTHING_DATA_VAR,
         result_data_vars: Optional[Sequence[Union[str, None]]] = SMOOTHING_RESULT_DATA_VARS,
         window_length: int = DEFAULT_SG_WINDOW_LENGTH,
         polyorder: int = DEFAULT_SG_POLYORDER,
-        daily_args: Optional[ARGS_TYPE] = None,
-        remove_drops_args: Optional[ARGS_TYPE] = None,
-        interpolate_args: Optional[ARGS_TYPE] = None,
-        **kwargs) -> NPXR_DATA_TYPE:
+        daily_args: Optional[types.ARGS] = None,
+        remove_drops_args: Optional[types.ARGS] = None,
+        interpolate_args: Optional[types.ARGS] = None,
+        **kwargs) -> types.NPXR_DATA:
     """
 
     !!!!!!!!!!!!!!!!! WIP !!!!!!!!!!!!!!!!!
@@ -653,14 +624,14 @@ def savitzky_golay_processor(
 # XARRAY
 #
 def daily_dataset(
-        data: XR_DATA_TYPE,
+        data: types.XR_DATA,
         data_var: Optional[str] = None,
         days: int = 1,
         coord_var: str = COORD_VAR,
         result_data_var: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        method: Optional[FILL_METHOD_TYPE] = None) -> XR_DATA_TYPE:
+        method: Optional[types.FILL_METHOD] = None) -> types.XR_DATA:
     """ transform a dataset to a (n-)day dataset
 
     takes a dataset with datetime coordinate and returns
