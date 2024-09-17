@@ -284,12 +284,12 @@ def mean_window_smoothing(data: np.ndarray, radius: int = DEFAULT_WINDOW_RADIUS)
 
 
 def nan_mean_window_smoothing(
-        data: types.NPXR_DATA,
+        data: types.NPXR,
         radius: int,
         pad_window: Optional[int] = 1,
         pad_value: Optional[float] = None,
         data_var: Optional[str] = None,
-        result_data_var: Optional[str] = None) -> types.NPXR_DATA:
+        result_data_var: Optional[str] = None) -> types.NPXR:
     """ mean_window_smoothing that ignores NaNs
 
     Note: @npxr decorator could not be used because of multi-dim array indexing
@@ -498,11 +498,11 @@ def npxr_savitzky_golay(
 # SEQUENCES
 #
 def macd_processor(
-        data: types.XR_DATA,
+        data: types.XR,
         spans: Sequence[int],
         data_var: Optional[str] = MACD_DATA_VAR,
         result_data_vars: Optional[Sequence[Union[str, None]]] = MACD_RESULT_DATA_VARS,
-        ewma_init_value: types.EWM_INITALIZER = 'sma') -> types.XR_DATA:
+        ewma_init_value: types.EWM_INITALIZER = 'sma') -> types.XR:
     """ moving average convergence divergence
 
     Computes Moving Average Convergence Divergence (MACD). For len(<spans>) == 3,
@@ -569,7 +569,7 @@ def macd_processor(
 
 
 def savitzky_golay_processor(
-        data: types.NPXR_DATA,
+        data: types.NPXR,
         data_var: Optional[str] = SMOOTHING_DATA_VAR,
         result_data_vars: Optional[Sequence[Union[str, None]]] = SMOOTHING_RESULT_DATA_VARS,
         window_length: int = DEFAULT_SG_WINDOW_LENGTH,
@@ -577,7 +577,7 @@ def savitzky_golay_processor(
         daily_args: Optional[types.ARGS] = None,
         remove_drops_args: Optional[types.ARGS] = None,
         interpolate_args: Optional[types.ARGS] = None,
-        **kwargs) -> types.NPXR_DATA:
+        **kwargs) -> types.NPXR:
     """
 
     !!!!!!!!!!!!!!!!! WIP !!!!!!!!!!!!!!!!!
@@ -624,14 +624,14 @@ def savitzky_golay_processor(
 # XARRAY
 #
 def daily_dataset(
-        data: types.XR_DATA,
+        data: types.XR,
         data_var: Optional[str] = None,
         days: int = 1,
         coord_var: str = COORD_VAR,
         result_data_var: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        method: Optional[types.FILL_METHOD] = None) -> types.XR_DATA:
+        method: Optional[types.FILL_METHOD] = None) -> types.XR:
     """ transform a dataset to a (n-)day dataset
 
     takes a dataset with datetime coordinate and returns

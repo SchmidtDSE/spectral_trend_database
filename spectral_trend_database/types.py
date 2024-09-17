@@ -5,11 +5,14 @@ import xarray as xr
 
 
 #
-# CUSTOM TYPES
+# DATA UNION TYPES
 #
-XR_DATA: TypeAlias = Union[xr.Dataset, xr.DataArray, dask.array.Array]
-NPXR_ARRAY_DATA: TypeAlias = Union[xr.DataArray, np.ndarray]
-NPXR_DATA: TypeAlias = Union[XR_DATA, np.ndarray]
+NPDASK: TypeAlias = Union[np.ndarray, dask.array.Array]
+XR: TypeAlias = Union[xr.Dataset, xr.DataArray, dask.array.Array]
+NPXR_ARRAY: TypeAlias = Union[xr.DataArray, np.ndarray]
+NPXR: TypeAlias = Union[XR, np.ndarray]
+
+
 ARGS: TypeAlias = Union[Sequence, dict, Literal[False], None]
 VARS: TypeAlias = Union[str, Sequence[Union[str, None]]]
 
@@ -30,9 +33,7 @@ FILL_METHOD: TypeAlias = Literal[
     'backfill',
     'bfill']
 
-NPDASK: TypeAlias = Union[
-    np.ndarray,
-    dask.array.Array]
+
 
 CONV_MODE: TypeAlias = Union[
     Literal['same'],
