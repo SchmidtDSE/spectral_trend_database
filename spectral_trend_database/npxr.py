@@ -163,22 +163,24 @@ def _get_data_var_names(
         tuple (data_var, result_data_var)
     """
     if not data_var:
-        if len(data_var_names) > 1:
-            err = (
-                'ndvi_trends.utils.npxr._get_data_var_names: '
-                '<data_var> required if multiple data_vars exist '
-                f'(data_vars={data_var_names})'
-            )
-            raise ValueError(err)
-        else:
+        if len(data_var_names) == 1:
             data_var = data_var_names[0]
+        # if len(data_var_names) > 1:
+        #     err = (
+        #         'ndvi_trends.utils.npxr._get_data_var_names: '
+        #         '<data_var> required if multiple data_vars exist '
+        #         f'(data_vars={data_var_names})'
+        #     )
+        #     raise ValueError(err)
+        # else:
+        #     data_var = data_var_names[0]
     if not result_data_var:
         result_data_var = data_var
         if result_prefix:
             result_data_var = f'{result_prefix}_{result_data_var}'
         if result_suffix:
             result_data_var = f'{result_data_var}_{result_suffix}'
-    assert isinstance(data_var, str)
+    # assert isinstance(data_var, str)
     return data_var, result_data_var
 
 
@@ -216,7 +218,10 @@ def _preprocess_xarray_data(
             result_prefix,
             result_suffix)
         data_object_type = DATASET_TYPE
-        da = data[data_var]
+        if data_var:
+            da = data[data_var]
+        else:
+            da = data
         coords = da.coords
     else:
         assert isinstance(data, xr.DataArray)

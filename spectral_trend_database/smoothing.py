@@ -41,7 +41,7 @@ SMOOTHING_RESULT_DATA_VARS = [
     'preprocessed_ndvi',
     'sg_ndvi'
 ]
-COORD_VAR = 'time'
+COORD_NAME = 'date'
 DEFAULT_SG_WINDOW_LENGTH = 60
 DEFAULT_SG_POLYORDER = 3
 DEFAULT_WINDOW_CONV_TYPE = MEAN_CONV_TYPE
@@ -49,6 +49,7 @@ DEFAULT_WINDOW_RADIUS = 5
 MACD_DATA_VAR = 'sg_ndvi'
 MACD_RESULT_DATA_VARS = ['ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div']
 EPS = 1e-4
+FNN_NULL_VALUE = np.nan
 
 
 #
@@ -175,21 +176,60 @@ def linearly_interpolate(data: np.ndarray) -> np.ndarray:
         data[notna])
 
 
-@npxr
-def interpolate(
-        data: np.ndarray,
-        kind: str = 'linear',
-        extrapolate: bool = True) -> np.ndarray:
-    """ interpolate series xr.dataset/data_array
+def interpolate_na(
+        data: types.NPXR,
+        coord_name: str = COORD_NAME,
+        method: str = 'linear',
+        extrapolate: bool = True,
+        **kwargs) -> types.NPXR:
+    """ convience wrapper for dataset/data_array interpolate_na and scipy interp1d
 
-    NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
-    doc-strings for details and description of additional args.
+    Note: this wrapper is particualry useful for func_list in npxr.sequencer
+
+    Args:
+        data (types.NPXR): source data
+        coord_name (str = COORD_NAME): (xr only) name of coordinate ,
+        method (str = 'linear'):
+            if np:
+                one of 'linear', 'nearest', 'nearest-up', 'zero', 'slinear',
+                'quadratic', 'cubic', 'previous' or 'next'. for details see
+                https://docs.scipy.org/doc/scipy-1.12.0/reference/generated/
+                    scipy.interpolate.interp1d.html
+            if xr:
+                one of 'linear','nearest','zero','slinear','quadratic','cubic',
+                'polynomial','barycentric','krogh','pchip','spline','akima'
+        extrapolate (bool = True):
+            (np only) use "extrapolate" to allow predictions outside of bounds. note this
+            will override passing 'fill_value' as a kwarg. for details see
+            https://docs.scipy.org/doc/scipy-1.12.0/reference/generated/
+                scipy.interpolate.interp1d.html
+
+    """
+    if isinstance(data, np.ndarray):
+        return np_interpolate_na(
+            data=data,
+            method=method,
+            extrapolate=extrapolate,
+            **kwargs)
+    else:
+        return data.interpolate_na(
+            dim=coord_name,
+            method=method,
+            **kwargs)
+
+
+def np_interpolate_na(
+        data: np.ndarray,
+        method: str = 'linear',
+        extrapolate: bool = True,
+        **kwargs) -> np.ndarray:
+    """ interpolate series np.array
 
     Replaces np.nan in a 1-d array with interpolation
 
     Args:
         data (np.array): source data
-        kind (str):
+        method (str):
             one of 'linear', 'nearest', 'nearest-up', 'zero', 'slinear',
             'quadratic', 'cubic', 'previous' or 'next'. for details see
             https://docs.scipy.org/doc/scipy-1.12.0/reference/generated/
@@ -205,12 +245,14 @@ def interpolate(
     """
     data = data.copy()
     is_nan = np.isnan(data)
-    indices = np.arange(data.shape[0])
+    indices = np.arange(utils.npxr_shape(data)[0])
     if extrapolate:
-        fill_value = 'extrapolate'
-    else:
-        fill_value = None
-    _interp_func = interp1d(indices[~is_nan], data[~is_nan], kind=kind, fill_value=fill_value)
+        kwargs['fill_value'] = 'extrapolate'
+    _interp_func = interp1d(
+        indices[~is_nan],
+        data[~is_nan],
+        kind=method,
+        **kwargs)
     return _interp_func(indices)
 
 
@@ -288,72 +330,60 @@ def nan_mean_window_smoothing(
         radius: int,
         pad_window: Optional[int] = 1,
         pad_value: Optional[float] = None,
-        data_var: Optional[str] = None,
-        result_data_var: Optional[str] = None) -> types.NPXR:
+        data_vars: Optional[Sequence[str]] = None,
+        exclude: Optional[Sequence[str]] = None,
+        rename: dict[str, str] = {}) -> types.NPXR:
     """ mean_window_smoothing that ignores NaNs
 
     Note: @npxr decorator could not be used because of multi-dim array indexing
 
     Args:
-        data (np.array|xr.dataset/data_array): input 1-d array in which to replace data
+        data (types.NPXR): input 1-d array in which to replace data
         radius (int): half-size of window
-        pad_window (int|None):
+        pad_window (Optional[int] = 1):
             used to preserve length of output. calculate left/rigt pad-values by taking
             the mean of the left/right-most values of length <pad_window>
-        pad_value (float):
+        pad_value ( Optional[float]):
             if not <pad_window> use <pad_value> as the left/right pad-values
-        data_var (str|None):
-            [only used for xr.dataset] if exists update
-            the named data_var. if falsey: if only 1
-            data_var exists use that data_var, otherwise
-            throw error.
-        result_data_var (str):
-            [only used for xr.dataset] name of resulting data-var.
+        data_vars (Optional[Sequence[str]]):
+            [only used for xr.dataset] list of data_vars to include
+        exclude (Optional[Sequence[str]]):
+            [only used for xr.dataset] list of data_vars to exclude
+        rename (dict):
+            [only used for xr.dataset] mapping from data_var name to renamed data_var name
     """
     data = data.copy()
-    if isinstance(data, xr.Dataset):
-        if not data_var:
-            data_vars = list(data.data_vars)
-            if len(data_vars) == 1:
-                data_var = data_vars[0]
-            else:
-                err = (
-                    'ndvi_trends.smoothing.nan_mean_window_smoothing: '
-                    'data_var must be provided for datasets with more '
-                    'that 1 data_var'
-                )
-                raise ValueError(err)
-        arr_type = 'dataset'
-        d = data[data_var].data
-    elif isinstance(data, xr.DataArray):
-        arr_type = 'data_array'
-        d = data.data
-    else:
-        arr_type = 'array'
-        d = data
+    if data_vars:
+        data_vars = [v for v in data_vars if v not in (exclude or [])]
+    values = utils.to_ndarray(data, data_vars=data_vars)
     window = 2 * radius + 1
-    pad_len = int(window / 2)
-    left_pad_value, right_pad_value = _left_right_pad_values(d, pad_window, pad_value)
-    d = np.concatenate([[left_pad_value] * pad_len, d, [right_pad_value] * pad_len])
-    win_indices = sliding_window_view(np.arange(d.shape[0]), window_shape=window)
-    win_data = d[win_indices]
-    win_nan = np.isnan(win_data)
-    win_mean = np.nansum(win_data, axis=1) / np.nansum(~win_nan, axis=1)
-    if arr_type == 'array':
-        assert isinstance(data, np.ndarray)
+    pad_length = int(window / 2)
+    values = _left_right_pad(
+        values,
+        pad_length=pad_length,
+        window=pad_window,
+        value=pad_value)
+    windows = sliding_window_view(values, window_shape=(values.shape[0], window))[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        win_mean = np.nanmean(windows, axis=-1).T
+    if isinstance(data, np.ndarray):
         data = win_mean
-    elif arr_type == 'data_array':
-        assert isinstance(data, xr.DataArray)
-        coords = list(data.coords)
-        result_data_var = result_data_var or str(data.name)
-        data = xr.DataArray(win_mean, coords=data.coords).rename(result_data_var or data.name)
+    elif isinstance(data, (xr.DataArray, dask.array.Array)):
+        data.data = win_mean
+        new_name = rename.get(data.name)
+        if new_name :
+            data = data.rename(new_name)
     else:
         assert isinstance(data, xr.Dataset)
-        coords = list(data[data_var].coords)
-        # coords = utils.xr_coord_name(data, data_var=data_var)
-        name = result_data_var or data[data_var].name
-        data[name] = coords, win_mean
+        data = utils.replace_dataset_values(
+            data,
+            values=win_mean,
+            data_vars=data_vars,
+            rename=rename)
     return data
+
+
 
 
 @npxr
@@ -382,21 +412,26 @@ def linear_window_smoothing(
     return kernel_smoothing(data, kernel)
 
 
-@npxr
 def remove_drops(
-        data: types.NPDASK,
+        data: types.NPXR,
         drop_threshold: float = 0.5,
-        smoothing_radius: int = 16) -> types.NPDASK:
+        smoothing_radius: int = 16,
+        smoothing_pad_window: Optional[int] = 1,
+        smoothing_pad_value: Optional[float] = None,
+        rename: dict[str, str] = {}) -> types.NPXR:
     """
     Replaces points in data where the value has a large dip by
 
-    TODO: FIX THE DOC-STRINGS
-
     Args:
-        data (np.array|xr.dataset|xr.data_array): source np.array|xr.dataset|xr.data_array
-        drop_threshold (float): replace data if data/smooth_data <= <drop_ratio>
-        smoothing_radius (int):
+        data (types.NPDASK): source np.array|xr.dataset|xr.data_array
+        drop_threshold (float = 0.5): replace data if data/smooth_data <= <drop_ratio>
+        smoothing_radius (int = 16):
             radius used in `linear_window_smoothing`
+        smoothing_pad_window (Optional[int] = 1):
+            used to preserve length of output. calculate left/rigt pad-values by taking
+            the mean of the left/right-most values of length <pad_window>
+        smoothing_pad_value ( Optional[float]):
+            if not <pad_window> use <pad_value> as the left/right pad-values
 
     Returns:
         data with drops removed and replaced by nan
@@ -404,10 +439,30 @@ def remove_drops(
     data = data.copy()
     if isinstance(data, dask.array.Array):
         data = data.compute()
-    test_data = nan_mean_window_smoothing(data, radius=smoothing_radius)
-    test = (data / test_data) < drop_threshold
-    data[test] = np.nan
+    values = utils.to_ndarray(data)
+    test_data = nan_mean_window_smoothing(
+        values,
+        radius=smoothing_radius,
+        pad_window=smoothing_pad_window,
+        pad_value=smoothing_pad_value)
+    test = (values / test_data) < drop_threshold
+    values[test] = np.nan
+
+    if isinstance(data, np.ndarray):
+        data = values
+    elif isinstance(data, (xr.DataArray, dask.array.Array)):
+        data.data = values
+        new_name = rename.get(data.name)
+        if new_name :
+            data = data.rename(new_name)
+    else:
+        assert isinstance(data, xr.Dataset)
+        data = utils.replace_dataset_values(
+            data,
+            values=values,
+            rename=rename)
     return data
+
 
 
 @npxr
@@ -602,7 +657,7 @@ def savitzky_golay_processor(
     func_list = [
         daily_dataset,
         remove_drops,
-        interpolate,
+        interpolate_na,
         npxr_savitzky_golay
     ]
     args_list = [
@@ -627,7 +682,6 @@ def daily_dataset(
         data: types.XR,
         data_var: Optional[str] = None,
         days: int = 1,
-        coord_var: str = COORD_VAR,
         result_data_var: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
@@ -646,7 +700,6 @@ def daily_dataset(
             if <data_var> is None: <data> must be an xr.data_array.
             otherwise: name of data_var. <data> must be an xr.dataset.
         days (int): number of days between points (defaults to daily)
-        coord_var (str=COORD_VAR): name of coordinate (time)
         result_data_var (str|None):
             if <data_var> is None:
                 if <result_data_var>: return data as xr.dataset with
@@ -666,47 +719,86 @@ def daily_dataset(
     """
     data = data.copy()
     if data_var:
-        da = data[data_var]
+        data = data[data_var]
         if not result_data_var:
             result_data_var = data_var
-    else:
-        da = data
-    coord_name = list(da.coords)[0]
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=UserWarning)
-        da[coord_name] = da[coord_name].data.astype('datetime64[D]')
-    da = da.groupby(coord_name, squeeze=False).mean(skipna=True)
+    coord_name = utils.xr_coord_name(data)
     if not start_date:
         start_date = data[coord_name].data[0]
     if not end_date:
         end_date = data[coord_name].data[-1]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        data[coord_name] = data[coord_name].data.astype('datetime64[D]')
+    data = data.groupby(coord_name, squeeze=False).mean(skipna=True)
+
     daily_dates = np.arange(start_date, end_date, timedelta(days=days)).astype('datetime64[D]')
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=UserWarning)
-        da = da.reindex({coord_var: daily_dates}, method=method)
+        data = data.reindex({coord_name: daily_dates}, method=method)
     if result_data_var:
-        return xr.Dataset(data_vars={result_data_var: da})
+        return xr.Dataset(data_vars={result_data_var: data})
     else:
-        return da
+        return data
 
 
 #
 # INTERNAL
 #
-def _left_right_pad_values(
+def _first_non_nan_1d(arr: np.ndarray) -> float:
+    """ returns first non nan value for 1d array
+
+    To be used in congunction with np.apply_along_axis to get first
+    non nan along axis
+    """
+    values = arr[~np.isnan(arr)]
+    try:
+        return values[0]
+    except IndexError as e:
+        return FNN_NULL_VALUE
+
+
+def _left_right_pad(
         data: np.ndarray,
-        window: Optional[int],
-        value: Optional[float]) -> tuple[float, float]:
-    if window:
-        is_nan = np.isnan(data)
-        if is_nan[:window].all():
-            left_pad_value = data[~is_nan][0]
+        pad_length: int = 0,
+        window: Optional[int] = 1,
+        value: Optional[float] = -1) -> np.ndarray:
+    """ symmetrically pad 1 or 2-d array
+
+    Note: if data is of shape (N, M) the returned array will be
+    of shape (N + <pad_length>, M + <pad_length>).
+
+    Args:
+        data (np.ndarray): 1 or 2-d array to pad
+        pad_length (int = 0): number of padded values to add (per-side)
+        window (Optional[int] = 1):
+            if None use <value> for both left/right pad values
+            otherwise compute left/right means of the edge <pad_length> values to
+            compute the left/right pad values
+        value (Optional[float] = -1):
+            if window is None: use <value> for both left/right pad values
+
+    Returns:
+        (np.ndarray) padded array
+    """
+    if pad_length:
+        ndim = data.ndim
+        if ndim == 1:
+            data = np.exapnd_dims(data, axis=1)
+        if window:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                lmean = np.nanmean(data[:,:window], axis=1)
+                rmean = np.nanmean(data[:,-window:], axis=1)
+            lfnn = np.apply_along_axis(_first_non_nan_1d, axis=1, arr=data)
+            rfnn = np.apply_along_axis(_first_non_nan_1d, axis=1, arr=data[:, ::-1])
+            lpad = np.where(np.isnan(lmean), lfnn, lmean)
+            rpad = np.where(np.isnan(rmean), rfnn, rmean)
+            lpad = np.expand_dims(lpad, axis=1)
+            rpad = np.expand_dims(rpad, axis=1)
         else:
-            left_pad_value = np.nanmean(data[:window])
-        if is_nan[-window:].all():
-            right_pad_value = data[~is_nan][-1]
-        else:
-            right_pad_value = np.nanmean(data[-window:])
-    else:
-        left_pad_value = right_pad_value = value
-    return left_pad_value, right_pad_value
+            lpad = rpad = np.full((ndim, 1), value)
+        data = np.hstack(([lpad] * pad_length) + [data] + ([rpad] * pad_length))
+        if ndim == 1:
+            data = data[:, 0]
+    return data

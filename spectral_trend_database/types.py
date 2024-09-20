@@ -1,6 +1,6 @@
 from typing import Callable, Union, Optional, Literal, TypeAlias, Sequence
 import numpy as np
-import dask
+import dask.array
 import xarray as xr
 
 
