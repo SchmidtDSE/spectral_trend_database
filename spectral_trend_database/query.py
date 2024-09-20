@@ -33,7 +33,8 @@ def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list
 
 
 def named_sql(
-        name: str,
+        name: Optional[str] = None,
+        table: Optional[str] = None,
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
         **values) -> str:
@@ -131,8 +132,25 @@ def named_sql(
         WHERE `dse-regenag.BiomassTrends.SCYM_YIELD`.year = 2020
         ```
 
+        We can also query a single Table without a named query:
+
+        `named_sql(table='raw_indices_v1', year=2010, limit=100)` will output:
+
+        ```sql
+        SELECT * FROM `dse-regenag.BiomassTrends.RAW_INDICES_V1`
+        WHERE `dse-regenag.BiomassTrends.RAW_INDICES_V1`.year = 2010
+        LIMIT 100
+        ```
+
+        Note that the table-name is coerced to all upper case.
+
+
     Args:
-        name (str): name of preconfigured config file
+        name (Optional[str]): name of preconfigured config file
+        table (Optional[str]):
+            (required if name is None) table-name: queries a
+            single table with optional `WHERE` clause added through
+            `values` kwargs.
         config (Union[str,dict]=c.DEFAULT_QUERY_CONFIG):
             configuration dictionary containg sql-config with key <name>
             if (str):
@@ -159,7 +177,25 @@ def named_sql(
         dataset += '.'
     else:
         dataset = ''
-    cfig = {**config.get('defaults', {}), **config['queries'][name]}
+    if name:
+        cfig = {**config.get('defaults', {}), **config['queries'][name]}
+    if table:
+        table = table.upper()
+        cfig = config.get('defaults', {})
+        cfig['table'] = table
+        cfig['where'] = []
+        for k, v in values.items():
+            where_config = {}
+            where_config['key'] = k
+            where_config['table'] = table
+            where_config['value'] = v
+            cfig['where'].append(where_config)
+    else:
+        err = (
+            'ndvi_trends.query.named_sql: '
+            'either <name> or <table> must be non-null'
+        )
+        raise ValueError(err)
     sql = f"SELECT {cfig['select']} FROM `{dataset}{cfig['table']}`"
     for join in cfig.get('join', []):
         jcfig = {**cfig, **join}
@@ -184,6 +220,7 @@ def named_sql(
 
 def run(
         name: Optional[str] = None,
+        table: Optional[str] = None,
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
         sql: Optional[str] = None,
@@ -197,7 +234,11 @@ def run(
     `sql` arg, or by creating a sql-string using the `named_sql` method above.
 
     Args:
-        name (str): name of preconfigured config file
+        name (Optional[str]): name of preconfigured config file
+        table (Optional[str]):
+            (required if name is None) table-name: queries a
+            single table with optional `WHERE` clause added through
+            `values` kwargs.
         config (Union[str,dict]=c.DEFAULT_QUERY_CONFIG):
             configuration dictionary containg sql-config with key <name>
             if (str):
@@ -219,8 +260,8 @@ def run(
     """
     if client is None:
         client = bq.Client(project=project)
-    if name:
-        sql = named_sql(name=name, config=config, limit=limit, **values)
+    if name or table:
+        sql = named_sql(name=name, table=table, config=config, limit=limit, **values)
     assert sql is not None
     if print_sql:
         utils.message(sql, 'query', 'run')
