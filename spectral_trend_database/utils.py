@@ -3,13 +3,14 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Any, Union, Optional, Callable, Iterable
+from typing import Any, Union, Optional, Callable, Iterable, Sequence
 from pathlib import Path
 import pandas as pd
 import numpy as np
 import xarray as xr
 import yaml
 from spectral_trend_database import constants
+from spectral_trend_database import types
 
 
 #
@@ -78,11 +79,11 @@ def pandas_to_xr(
 
 
 def xr_coord_name(
-        data: Union[xr.Dataset, xr.DataArray],
+        data: types.XR,
         data_var: Optional[str] = None) -> str:
     """ extract coord-name from xr data
     Args:
-        data (Union[xr.Dataset, xr.DataArray]): xr data
+        data (types.XR): xr data
         data_var (Optional[str] = None): name of data_var (only use if <data> is xr.Dataset)
 
     Returns:
@@ -91,6 +92,82 @@ def xr_coord_name(
     if data_var:
         data = data[data_var]
     return str(list(data.coords)[0])
+
+
+def npxr_shape(
+        data: types.XR,
+        data_var: Optional[str] = None,
+        data_var_index: Optional[int] = 0) -> tuple:
+    """ convience method for determining shape of ndarray, dataset, or data_array
+    """
+    try:
+        return data.shape
+    except AttributeError as e:
+        if data_var is None:
+            data_var = list(data.data_vars)[data_var_index]
+        return data[data_var].shape
+
+
+def dataset_to_ndarray(
+        data: xr.Dataset,
+        data_vars: Optional[Sequence[str]] = None,
+        exclude: Optional[Sequence[str]] = None) -> np.ndarray:
+    """ converts xr.dataset to ndarray of <data>.data_vars values
+
+    Args:
+        data (xr.Dataset): dataset to extract array
+        data_vars (Optional[Sequence[str]] = None):
+            list of data_var names to include. if None all data_vars will be used
+        exclude (Optional[Sequence[str]] = None):
+            list of data_var names to exclude.
+
+    Returns:
+        numpy array extracted from xr dataset
+    """
+    if not data_vars:
+        data_vars = list(data.data_vars)
+    if exclude:
+        data_vars = [v for v in data_vars if v not in exclude]
+    return np.vstack([data[v].data for v in data_vars])
+
+
+def replace_dataset_values(
+        data: xr.Dataset,
+        values: np.ndarray,
+        data_vars: Optional[Sequence[str]] = None,
+        rename: dict[str, str] = {}) -> xr.Dataset:
+    """ """
+    if data_vars is None:
+        data_vars = list(data.data_vars)
+    assert isinstance(data_vars, list)
+    for i, dvar in enumerate(data_vars):
+        dvar = rename.get(dvar, dvar)
+        data[dvar].data = values[i]
+    return data
+
+
+
+def to_ndarray(
+        data: types.NPXR,
+        data_vars: Optional[Sequence[str]] = None,
+        exclude: Optional[Sequence[str]] = None) -> np.ndarray:
+    """ convience method for converting data to ndarray
+
+    Args:
+        data (types.NPXR): dataset to extract array
+        data_vars (Optional[Sequence[str]] = None):
+            (xr.dataset only) list of data_var names to include. if None all data_vars will be used
+        exclude (Optional[Sequence[str]] = None):
+            (xr.dataset only) list of data_var names to exclude.
+
+    Returns:
+        numpy array extracted from xr data, or original np.array
+    """
+    if isinstance(data, xr.Dataset):
+        data = dataset_to_ndarray(data, data_vars=data_vars, exclude=exclude)
+    elif isinstance(data, xr.DataArray):
+        data = data.data
+    return data
 
 
 def nan_to_safe_nan(values: Union[list, np.ndarray]) -> np.ndarray:
