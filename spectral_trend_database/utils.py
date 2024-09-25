@@ -143,8 +143,10 @@ def replace_dataset_values(
         data_vars = list(data.data_vars)
     assert isinstance(data_vars, list)
     for i, dvar in enumerate(data_vars):
-        dvar = rename.get(dvar, dvar)
         data[dvar].data = values[i]
+    if rename:
+        rename = {k: v for  (k,v) in rename.items() if k in data_vars}
+        data = data.rename(rename)
     return data
 
 
