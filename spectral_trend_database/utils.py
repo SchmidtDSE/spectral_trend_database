@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import xarray as xr
+import dask.array
 import yaml
 from spectral_trend_database import constants
 from spectral_trend_database import types
@@ -95,15 +96,16 @@ def xr_coord_name(
 
 
 def npxr_shape(
-        data: types.XR,
+        data: types.NPDXR,
         data_var: Optional[str] = None,
         data_var_index: Optional[int] = 0) -> tuple:
     """ convience method for determining shape of ndarray, dataset, or data_array
     """
-    try:
+    if isinstance(data, (np.ndarray, dask.array.Array)):
         return data.shape
-    except AttributeError as e:
+    else:
         if data_var is None:
+            assert isinstance(data_var_index, int)
             data_var = list(data.data_vars)[data_var_index]
         return data[data_var].shape
 
@@ -133,7 +135,7 @@ def dataset_to_ndarray(
 
 def replace_dataset_values(
         data: xr.Dataset,
-        values: np.ndarray,
+        values: types.NPD,
         data_vars: Optional[Sequence[str]] = None,
         rename: dict[str, str] = {}) -> xr.Dataset:
     """ """
@@ -147,9 +149,9 @@ def replace_dataset_values(
 
 
 def to_ndarray(
-        data: types.NPXR,
+        data: types.NPDXR,
         data_vars: Optional[Sequence[str]] = None,
-        exclude: Optional[Sequence[str]] = None) -> np.ndarray:
+        exclude: Optional[Sequence[str]] = None) -> types.NPD:
     """ convience method for converting data to ndarray
 
     Args:
@@ -160,12 +162,13 @@ def to_ndarray(
             (xr.dataset only) list of data_var names to exclude.
 
     Returns:
-        numpy array extracted from xr data, or original np.array
+        numpy array extracted from xr data, or original np/dask array
     """
     if isinstance(data, xr.Dataset):
         data = dataset_to_ndarray(data, data_vars=data_vars, exclude=exclude)
     elif isinstance(data, xr.DataArray):
         data = data.data
+    assert isinstance(data, (np.ndarray, dask.array.Array))
     return data
 
 

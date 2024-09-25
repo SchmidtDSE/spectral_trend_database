@@ -179,7 +179,7 @@ def linearly_interpolate(data: np.ndarray) -> np.ndarray:
 def interpolate_na(
         data: types.NPXR,
         coord_name: str = COORD_NAME,
-        method: str = 'linear',
+        method: Union[types.INTERPOLATE_METHOD, types.XR_INTERPOLATE_METHOD] = 'linear',
         extrapolate: bool = True,
         **kwargs) -> types.NPXR:
     """ convience wrapper for dataset/data_array interpolate_na and scipy interp1d
@@ -208,19 +208,19 @@ def interpolate_na(
     if isinstance(data, np.ndarray):
         return np_interpolate_na(
             data=data,
-            method=method,
+            method=method,  # type: ignore[arg-type]
             extrapolate=extrapolate,
             **kwargs)
     else:
         return data.interpolate_na(
             dim=coord_name,
-            method=method,
+            method=method,  # type: ignore[arg-type]
             **kwargs)
 
 
 def np_interpolate_na(
         data: np.ndarray,
-        method: str = 'linear',
+        method: types.INTERPOLATE_METHOD = 'linear',
         extrapolate: bool = True,
         **kwargs) -> np.ndarray:
     """ interpolate series np.array
@@ -367,11 +367,12 @@ def nan_mean_window_smoothing(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         win_mean = np.nanmean(windows, axis=-1).T
+    # TODO USE NPXR?
     if isinstance(data, np.ndarray):
         data = win_mean
     elif isinstance(data, (xr.DataArray, dask.array.Array)):
         data.data = win_mean
-        new_name = rename.get(data.name)
+        new_name = rename.get(str(data.name))
         if new_name:
             data = data.rename(new_name)
     else:
@@ -608,13 +609,14 @@ def macd_processor(
 
 def savitzky_golay_processor(
         data: types.NPXR,
-        data_var: Optional[str] = SMOOTHING_DATA_VAR,
-        result_data_vars: Optional[Sequence[Union[str, None]]] = SMOOTHING_RESULT_DATA_VARS,
         window_length: int = DEFAULT_SG_WINDOW_LENGTH,
         polyorder: int = DEFAULT_SG_POLYORDER,
         daily_args: Optional[types.ARGS_KWARGS] = None,
         remove_drops_args: Optional[types.ARGS_KWARGS] = None,
         interpolate_args: Optional[types.ARGS_KWARGS] = None,
+        data_vars: Optional[Sequence[Union[str, Sequence]]] = None,
+        exclude: Optional[Sequence[Union[str, Sequence]]] = None,
+        rename: Union[dict[str, str], Sequence[dict[str, str]]] = {},
         **kwargs) -> types.NPXR:
     """
 
@@ -651,11 +653,11 @@ def savitzky_golay_processor(
     ]
     return sequencer(
         data,
-        data_var=data_var,
-        # mypy bug: https://github.com/python/mypy/issues/14319
-        func_list=func_list,  # type: ignore[arg-type]
-        args_list=args_list,
-        result_data_vars=result_data_vars)
+        data_vars=data_vars,
+        exclude=exclude,
+        rename=rename,
+        func_list=func_list,
+        args_list=args_list)
 
 
 #
@@ -742,10 +744,10 @@ def _first_non_nan_1d(arr: np.ndarray) -> float:
 
 
 def _left_right_pad(
-        data: np.ndarray,
+        data: types.NPD,
         pad_length: int = 0,
         window: Optional[int] = 1,
-        value: Optional[float] = -1) -> np.ndarray:
+        value: Optional[float] = -1) -> types.NPD:
     """ symmetrically pad 1 or 2-d array
 
     Note: if data is of shape (N, M) the returned array will be

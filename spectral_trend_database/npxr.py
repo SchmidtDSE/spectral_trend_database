@@ -163,19 +163,16 @@ def sequencer(
 def execute_func(
         *args,
         func: Callable,
+        data: Optional[types.NPDXR] = None,
         along_axis: Union[int, Literal[False]] = False,
         data_vars: Optional[Sequence[str]] = None,
         exclude: Optional[Sequence[str]] = None,
         rename: dict[str, str] = {},
         **kwargs) -> types.NPXR:
     """
-    Note: the source data is pulled from <kwargs> or <args>.
-        if <kwargs> contains 'data':
-            args are additional variable length arguments
-            to be passed to <func>
-        else:
-            data = <args>[0] and <args>[1:] becomes additional
-            variable length arguments to be passed to <func>
+    Note: the source data is not passed as a key-word argument
+        it is assumed that the first (variable length) argument
+        is <data>. Namely `data = args[0]`
 
     Args:
         func (Callable):
@@ -187,18 +184,17 @@ def execute_func(
             the decorated function along axis=<along_axis>
             otherwise: apply decorator on the full data
         data_vars (Optional[Sequence[str]] = None):
-            (xr.dataset only) list of data_var names to include. if None all data_vars will be used
+            (xr.dataset only) list of data_var names to include.
+            if <data_vars> is None all data_vars will be used
         exclude (Optional[Sequence[str]] = None):
             (xr.dataset only) list of data_var names to exclude.
         rename (dict):
             [only used for xr data] mapping from data_var name to renamed data_var name
         *args:
-            if <kwargs> contains 'data':
-                args are additional variable length arguments
-                to be passed to <func>
-            else:
-                data = <args>[0] and <args>[1:] becomes additional
-                variable length arguments to be passed to <func>
+            additional variable length arguments to be passed to <func>
+            if <data> is None: data = <args>[0] and <args>[1:]
+            becomes the additional variable length arguments
+
         **kwargs:
             additional kwargs to be passed to <func>. if <kwargs> contains
             'data', that will be popped from kwargs.
@@ -207,13 +203,13 @@ def execute_func(
         data processed by <func>, possibly along an axis, in the same format
         as the initial source data.
     """
-    data = kwargs.pop('data', None)
-    if not data:
+    if data is None:
         data = args[0]
         args = args[1:]
     data = deepcopy(data)
     if isinstance(data, dask.array.Array):
         data = data.compute()
+    assert not isinstance(data, type(None))
     values = utils.to_ndarray(
         data=data,
         data_vars=data_vars,
@@ -221,7 +217,7 @@ def execute_func(
     if along_axis is False:
         values = func(values, *args, **kwargs)
     else:
-        values = np.apply_along_axis(
+        values = np.apply_along_axis(  # type: ignore[call-overload]
             func,
             *args,
             axis=along_axis,
@@ -233,21 +229,21 @@ def execute_func(
         rename=rename)
 
 
-def post_process_npxr_data(data: types.NPXR, values: np.ndarray, rename: dict[str, str] = {}):
+def post_process_npxr_data(data: types.NPDXR, values: types.NPD, rename: dict[str, str] = {}):
     """
     Args:
         data (types.NPXR): source np.array|xr.dataset|xr.data_array
-        values (np.ndarray): processed numpy array
+        values (types.NPD): processed numpy array
         rename (dict):
             [only used for xr data] mapping from data_var name to renamed data_var name
     Returns:
         data with drops removed and replaced by nan
     """
-    if isinstance(data, np.ndarray):
+    if isinstance(data, (np.ndarray, dask.array.Array)):
         data = values
-    elif isinstance(data, (xr.DataArray, dask.array.Array)):
+    elif isinstance(data, xr.DataArray):
         data.data = values
-        new_name = rename.get(data.name)
+        new_name = rename.get(str(data.name))
         if new_name:
             data = data.rename(new_name)
     else:
@@ -274,7 +270,7 @@ def _lists_of(length: int, values: Any) -> list:
     Returns:
         list of length <length>
     """
-    if isinstance(values, Union[tuple, list]):
+    if isinstance(values, (tuple, list)):
         values_length = len(values)
         if length != values_length:
             err = (

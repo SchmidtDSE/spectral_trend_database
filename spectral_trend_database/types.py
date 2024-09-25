@@ -7,17 +7,46 @@ import xarray as xr
 #
 # DATA UNION TYPES
 #
-NPDASK: TypeAlias = Union[np.ndarray, dask.array.Array]
-XR: TypeAlias = Union[xr.Dataset, xr.DataArray, dask.array.Array]
-NPXR_ARRAY: TypeAlias = Union[xr.DataArray, np.ndarray]
+XR: TypeAlias = Union[xr.Dataset, xr.DataArray]
 NPXR: TypeAlias = Union[XR, np.ndarray]
+NPD: TypeAlias = Union[np.ndarray, dask.array.Array]
+NPDXR_ARRAY: TypeAlias = Union[xr.DataArray, NPD]
+NPDXR: TypeAlias = Union[XR, NPD]
 
 
 #
 # LITERAL OPTION TYPES
 #
-FILL_METHOD: TypeAlias = Literal['nearest', 'pad', 'ffill', 'backfill', 'bfill']
 CONV_MODE: TypeAlias = Literal['same', 'valid', 'full']
+FILL_METHOD: TypeAlias = Literal[
+    'nearest',
+    'pad',
+    'ffill',
+    'backfill',
+    'bfill']
+INTERPOLATE_METHOD: TypeAlias = Literal[
+    'linear',
+    'nearest',
+    'nearest-up',
+    'zero',
+    'slinear',
+    'quadratic',
+    'cubic',
+    'previous',
+    'next']
+XR_INTERPOLATE_METHOD: TypeAlias = Literal[
+    'linear',
+    'nearest',
+    'zero',
+    'slinear',
+    'quadratic',
+    'cubic',
+    'polynomial',
+    'barycentric',
+    'krogh',
+    'pchip',
+    'spline',
+    'akima']
 
 
 #
