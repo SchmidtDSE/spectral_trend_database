@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 import dask.array
 from spectral_trend_database import types
+from spectral_trend_database import utils
 
 
 #
@@ -20,6 +21,87 @@ REINDEX_DROP_LAST = 'drop_last'
 #
 # DECORATORS
 #
+#
+# DECORATORS
+#
+def npxr_v2(along_axis: Union[int, Literal[False]] = False) -> Callable:
+    """ npxr_v2
+
+    decorator for functions that take in and return
+    numpy arrays to extend their behavior to xarray.
+
+    Usage:
+
+        ```python
+        @npxr_v2
+        def plus1(arr):
+            return arr + 1
+
+        ds_plus_1 = plus1(ds)               # returns xr.Dataset
+        da_plus_1 = plus1(ds.blah)          # returns xr.DataArray
+        np_plus_1 = plus1(ds.blah.data)     # returns np.data
+        ```
+
+        Now let `values = utils.to_ndarray(ds)` be the array
+        representation of `ds.data_vars`.
+
+        ```python
+        @npxr_v2(along_axis=1)
+        def plus1_along_axis(arr):
+            return arr + 1
+
+        p1 = plus1(values)
+        p1_along_axis = plus1_along_axis(values)
+        ```
+
+        Here `p1` is equal to `values + 1` and
+        `p1_along_axis` is equal to
+
+        ```python
+        np.apply_along_axis(
+            lambda a: a + 1,
+            axis=1,
+            arr=values)
+        ```
+
+
+    Decorator Args:
+        along_axis (Union[int, Literal[False]] = False):
+            if (int): use np.apply_along_axis to apply
+            the decorated function along axis=<along_axis>
+            otherwise: apply decorator on the full data
+
+    Args:
+        data_vars (Optional[Sequence[str]] = None):
+            (xr.dataset only) list of data_var names to include. if None all data_vars will be used
+        exclude (Optional[Sequence[str]] = None):
+            (xr.dataset only) list of data_var names to exclude.
+        rename (dict):
+            [only used for xr data] mapping from data_var name to renamed data_var name
+
+    Returns:
+        decorated function that accepts xr.dataset/data_array as well as np.ndarray
+    """
+    def _wrapper(func: Callable):
+        @wraps(func)
+        def _func(
+                *args,
+                data_vars: Optional[Sequence[str]] = None,
+                exclude: Optional[Sequence[str]] = None,
+                rename: dict[str, str] = {},
+                **kwargs) -> types.NPXR:
+            return execute_func(
+                *args,
+                func=func,
+                along_axis=along_axis,
+                data_vars=data_vars,
+                exclude=exclude,
+                rename=rename,
+                **kwargs)
+        return _func
+    return _wrapper
+
+
 def npxr(func: Callable) -> Callable:
     """ npxr
 
@@ -46,8 +128,7 @@ def npxr(func: Callable) -> Callable:
         data_var (str|None):
             [only used for xr.dataset] if exists update
             the named data_var. if falsey: if only 1
-            data_var exists use that data_var, otherwise
-            throw error.
+            data_var exists use that data_var
         result_data_var (str):
             [only used for xr.dataset] name of resulting data-var.
             if None defaults (and overwrites) <data_var>
@@ -147,6 +228,68 @@ def sequencer(
     return data
 
 
+def execute_func(
+        *args,
+        func: Callable,
+        along_axis: Union[int, Literal[False]] = False,
+        data_vars: Optional[Sequence[str]] = None,
+        exclude: Optional[Sequence[str]] = None,
+        rename: dict[str, str] = {},
+        **kwargs) -> types.NPXR:
+    """
+    """
+    data = kwargs.pop('data', None)
+    if not data:
+        data = args[0]
+        args = args[1:]
+    data = deepcopy(data)
+    if isinstance(data, dask.array.Array):
+        data = data.compute()
+    values = utils.to_ndarray(
+        data=data,
+        data_vars=data_vars,
+        exclude=exclude)
+    if along_axis is False:
+        values = func(values, *args, **kwargs)
+    else:
+        values = np.apply_along_axis(
+            func,
+            axis=along_axis,
+            arr=values,
+            *args,
+            **kwargs)
+    return post_process_npxr_data(
+        data=data,
+        values=values,
+        rename=rename)
+
+
+def post_process_npxr_data(data: types.NPXR, values: np.ndarray, rename: dict[str, str] = {}):
+    """
+    Args:
+        data (types.NPXR): source np.array|xr.dataset|xr.data_array
+        values (np.ndarray): processed numpy array
+        rename (dict):
+            [only used for xr data] mapping from data_var name to renamed data_var name
+    Returns:
+        data with drops removed and replaced by nan
+    """
+    if isinstance(data, np.ndarray):
+        data = values
+    elif isinstance(data, (xr.DataArray, dask.array.Array)):
+        data.data = values
+        new_name = rename.get(data.name)
+        if new_name :
+            data = data.rename(new_name)
+    else:
+        assert isinstance(data, xr.Dataset)
+        data = utils.replace_dataset_values(
+            data,
+            values=values,
+            rename=rename)
+    return data
+
+
 #
 # INTERNEL
 #
@@ -165,22 +308,12 @@ def _get_data_var_names(
     if not data_var:
         if len(data_var_names) == 1:
             data_var = data_var_names[0]
-        # if len(data_var_names) > 1:
-        #     err = (
-        #         'ndvi_trends.utils.npxr._get_data_var_names: '
-        #         '<data_var> required if multiple data_vars exist '
-        #         f'(data_vars={data_var_names})'
-        #     )
-        #     raise ValueError(err)
-        # else:
-        #     data_var = data_var_names[0]
     if not result_data_var:
         result_data_var = data_var
         if result_prefix:
             result_data_var = f'{result_prefix}_{result_data_var}'
         if result_suffix:
             result_data_var = f'{result_data_var}_{result_suffix}'
-    # assert isinstance(data_var, str)
     return data_var, result_data_var
 
 
@@ -224,17 +357,19 @@ def _preprocess_xarray_data(
             da = data
         coords = da.coords
     else:
-        assert isinstance(data, xr.DataArray)
         da = data
-        if isinstance(data, np.ndarray):
+        if isinstance(da, np.ndarray):
+            # assert isinstance(da, np.ndarray)
             data_object_type = NP_ARRAY_TYPE
             result_data_var = None
             coords = None
         else:
+            # assert isinstance(da, xr.DataArray)
             data_object_type = DATA_ARRAY_TYPE
-            if not result_data_var:
+            if result_data_var:
+                da.name = result_data_var
+            else:
                 result_data_var = str(da.name)
-            da.name = result_data_var
             coords = da.coords
     return da, coords, data_object_type, data_var, result_data_var
 
@@ -258,18 +393,25 @@ def _postprocess_xarray_data(
     else:
         cname = str(list(coords)[0])
         coord_values = coords[cname]
-        reindexed_coord_dict = _reindex_coords(
-            reindex,
-            coord_name=cname,
-            coord_values=coord_values,
-            len_out=len(values))
-        da = xr.DataArray(values, coords=reindexed_coord_dict)
-        if data_object_type == DATASET_TYPE:
-            assert data is not None
-            data[result_data_var] = da
-            return data
-        else:
-            return da
+        try:
+            len_out = len(values[cname])
+        except AttributeError as e:
+            len_out = len(values)
+        if len(coord_values) != len_out:
+            raise NotImplementedError('[FIX] reindexing is currently availble')
+        return values
+        # reindexed_coord_dict = _reindex_coords(
+        #     reindex,
+        #     coord_name=cname,
+        #     coord_values=coord_values,
+        #     len_out=len_out)
+        # da = xr.DataArray(values, coords=reindexed_coord_dict)
+        # if data_object_type == DATASET_TYPE:
+        #     assert data is not None
+        #     data[result_data_var] = da
+        #     return data
+        # else:
+        #     return da
 
 
 def _reindex_coords(
@@ -279,6 +421,7 @@ def _reindex_coords(
         len_out: int) -> dict[str, xr.DataArray]:
     len_coord = len(coord_values)
     len_diff = len_coord - len_out
+    print(len_coord, len_out, len_diff, '---')
     if len_diff > 0:
         if reindex == REINDEX_DROP_LAST:
             coord_values = coord_values.isel({coord_name: slice(None, -len_diff)})

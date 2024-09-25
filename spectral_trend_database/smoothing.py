@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d  # type: ignore[import-untyped]
 import scipy.signal as sig  # type: ignore[import-untyped]
 from datetime import timedelta
 from spectral_trend_database import utils
-from spectral_trend_database.npxr import npxr, sequencer
+from spectral_trend_database.npxr import npxr, sequencer, post_process_npxr_data, execute_func, npxr_v2
 from spectral_trend_database import types
 
 
@@ -350,7 +350,7 @@ def nan_mean_window_smoothing(
         exclude (Optional[Sequence[str]]):
             [only used for xr.dataset] list of data_vars to exclude
         rename (dict):
-            [only used for xr.dataset] mapping from data_var name to renamed data_var name
+            [only used for xr data] mapping from data_var name to renamed data_var name
     """
     data = data.copy()
     if data_vars:
@@ -412,13 +412,13 @@ def linear_window_smoothing(
     return kernel_smoothing(data, kernel)
 
 
+@npxr_v2()
 def remove_drops(
         data: types.NPXR,
         drop_threshold: float = 0.5,
         smoothing_radius: int = 16,
         smoothing_pad_window: Optional[int] = 1,
-        smoothing_pad_value: Optional[float] = None,
-        rename: dict[str, str] = {}) -> types.NPXR:
+        smoothing_pad_value: Optional[float] = None) -> types.NPXR:
     """
     Replaces points in data where the value has a large dip by
 
@@ -436,33 +436,14 @@ def remove_drops(
     Returns:
         data with drops removed and replaced by nan
     """
-    data = data.copy()
-    if isinstance(data, dask.array.Array):
-        data = data.compute()
-    values = utils.to_ndarray(data)
     test_data = nan_mean_window_smoothing(
-        values,
+        data,
         radius=smoothing_radius,
         pad_window=smoothing_pad_window,
         pad_value=smoothing_pad_value)
-    test = (values / test_data) < drop_threshold
-    values[test] = np.nan
-
-    if isinstance(data, np.ndarray):
-        data = values
-    elif isinstance(data, (xr.DataArray, dask.array.Array)):
-        data.data = values
-        new_name = rename.get(data.name)
-        if new_name :
-            data = data.rename(new_name)
-    else:
-        assert isinstance(data, xr.Dataset)
-        data = utils.replace_dataset_values(
-            data,
-            values=values,
-            rename=rename)
+    test = (data / test_data) < drop_threshold
+    data[test] = np.nan
     return data
-
 
 
 @npxr
@@ -515,10 +496,14 @@ def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
     return func(data, **kwargs)
 
 
+@npxr_v2(along_axis=1)
 def npxr_savitzky_golay(
-        data: np.ndarray,
+        data: types.NPXR,
+        # data_vars: Optional[Sequence[str]] = None,
+        # exclude: Optional[Sequence[str]] = None,
         window_length: int = 20,
         polyorder: int = 3,
+        # rename: dict[str, str] = {},
         **kwargs) -> np.ndarray:
     """ wrapper for scipy's savitzky-golay filter
 
@@ -538,12 +523,12 @@ def npxr_savitzky_golay(
         polyorder (int):
             The order of the polynomial used to fit the samples. polyorder must be less than
             window_length.
+
         **kwargs (kwargs):
             includes deriv, delta, axis, mode, cval (see scipy docs for details)
     """
-    return npxr_execute(
+    return sig.savgol_filter(
         data,
-        func=sig.savgol_filter,
         window_length=window_length,
         polyorder=polyorder,
         **kwargs)
@@ -784,7 +769,7 @@ def _left_right_pad(
     if pad_length:
         ndim = data.ndim
         if ndim == 1:
-            data = np.exapnd_dims(data, axis=1)
+            data = np.expand_dims(data, axis=1)
         if window:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
