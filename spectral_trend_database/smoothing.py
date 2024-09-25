@@ -457,8 +457,8 @@ def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
 @npxr(along_axis=1)
 def npxr_savitzky_golay(
         data: types.NPXR,
-        window_length: int = 20,
-        polyorder: int = 3,
+        window_length: int = DEFAULT_SG_WINDOW_LENGTH,
+        polyorder: int = DEFAULT_SG_POLYORDER,
         **kwargs) -> np.ndarray:
     """ wrapper for scipy's savitzky-golay filter
 
@@ -611,12 +611,14 @@ def savitzky_golay_processor(
     kwargs['polyorder'] = polyorder
     func_list = [
         daily_dataset,
+        interpolate_na,
         remove_drops,
         interpolate_na,
         npxr_savitzky_golay
     ]
     args_list = [
         daily_args,
+        interpolate_args,
         remove_drops_args,
         interpolate_args,
         kwargs
