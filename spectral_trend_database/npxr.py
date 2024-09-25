@@ -75,7 +75,7 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
     Args:
         data_vars (Optional[Sequence[str]] = None):
             (xr.dataset only) list of data_var names to include. if None all data_vars will be used
-        exclude (Optional[Sequence[str]] = None):
+        exclude (Sequence[str] = []):
             (xr.dataset only) list of data_var names to exclude.
         rename (dict):
             [only used for xr data] mapping from data_var name to renamed data_var name
@@ -88,7 +88,7 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
         def _func(
                 *args,
                 data_vars: Optional[Sequence[str]] = None,
-                exclude: Optional[Sequence[str]] = None,
+                exclude: Sequence[str] = [],
                 rename: dict[str, str] = {},
                 **kwargs) -> types.NPXR:
             return execute_func(
@@ -272,15 +272,18 @@ def _lists_of(length: int, values: Any) -> list:
     """
     if isinstance(values, (tuple, list)):
         values_length = len(values)
-        if length != values_length:
-            err = (
-                'spectral_trend_database.npxr._lists_of: '
-                f'if values is a sequence the length ({values_length}) must be '
-                f'same as key-list ({length}).'
-            )
-            raise ValueError(err)
+        if values_length:
+            if length != values_length:
+                err = (
+                    'spectral_trend_database.npxr._lists_of: '
+                    f'if values is a sequence the length ({values_length}) must be '
+                    f'same as key-list ({length}).'
+                )
+                raise ValueError(err)
+            else:
+                values = list(values)
         else:
-            values = list(values)
+            values = [[]] * length
     else:
         values = [values] * length
     return values
