@@ -176,53 +176,12 @@ def linearly_interpolate(data: np.ndarray) -> np.ndarray:
         data[notna])
 
 
+@npxr(along_axis=1)
 def interpolate_na(
-        data: types.NPXR,
-        coord_name: str = COORD_NAME,
-        method: Union[types.INTERPOLATE_METHOD, types.XR_INTERPOLATE_METHOD] = 'linear',
-        extrapolate: bool = True,
-        **kwargs) -> types.NPXR:
-    """ convience wrapper for dataset/data_array interpolate_na and scipy interp1d
-
-    Note: this wrapper is particualry useful for func_list in npxr.sequencer
-
-    Args:
-        data (types.NPXR): source data
-        coord_name (str = COORD_NAME): (xr only) name of coordinate ,
-        method (str = 'linear'):
-            if np:
-                one of 'linear', 'nearest', 'nearest-up', 'zero', 'slinear',
-                'quadratic', 'cubic', 'previous' or 'next'. for details see
-                https://docs.scipy.org/doc/scipy-1.12.0/reference/generated/
-                    scipy.interpolate.interp1d.html
-            if xr:
-                one of 'linear','nearest','zero','slinear','quadratic','cubic',
-                'polynomial','barycentric','krogh','pchip','spline','akima'
-        extrapolate (bool = True):
-            (np only) use "extrapolate" to allow predictions outside of bounds. note this
-            will override passing 'fill_value' as a kwarg. for details see
-            https://docs.scipy.org/doc/scipy-1.12.0/reference/generated/
-                scipy.interpolate.interp1d.html
-
-    """
-    if isinstance(data, np.ndarray):
-        return np_interpolate_na(
-            data=data,
-            method=method,  # type: ignore[arg-type]
-            extrapolate=extrapolate,
-            **kwargs)
-    else:
-        return data.interpolate_na(
-            dim=coord_name,
-            method=method,  # type: ignore[arg-type]
-            **kwargs)
-
-
-def np_interpolate_na(
-        data: np.ndarray,
+        data: Union[np.ndarray, dask.array.Array],
         method: types.INTERPOLATE_METHOD = 'linear',
         extrapolate: bool = True,
-        **kwargs) -> np.ndarray:
+        **kwargs) -> Union[np.ndarray, dask.array.Array]:
     """ interpolate series np.array
 
     Replaces np.nan in a 1-d array with interpolation
@@ -498,11 +457,8 @@ def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
 @npxr(along_axis=1)
 def npxr_savitzky_golay(
         data: types.NPXR,
-        # data_vars: Optional[Sequence[str]] = None,
-        # exclude: Optional[Sequence[str]] = None,
         window_length: int = 20,
         polyorder: int = 3,
-        # rename: dict[str, str] = {},
         **kwargs) -> np.ndarray:
     """ wrapper for scipy's savitzky-golay filter
 
@@ -615,7 +571,7 @@ def savitzky_golay_processor(
         remove_drops_args: Optional[types.ARGS_KWARGS] = None,
         interpolate_args: Optional[types.ARGS_KWARGS] = None,
         data_vars: Optional[Sequence[Union[str, Sequence]]] = None,
-        exclude: Optional[Sequence[Union[str, Sequence]]] = None,
+        exclude: Sequence[str] = [],
         rename: Union[dict[str, str], Sequence[dict[str, str]]] = {},
         **kwargs) -> types.NPXR:
     """
@@ -632,10 +588,24 @@ def savitzky_golay_processor(
     3. apply a smoothing func (defaults to Savitzky-Golay filter)
 
     Args:
-        TODO:...
+        data (types.NPXR): source data
+        window_length (int = DEFAULT_SG_WINDOW_LENGTH): window_length for sig.savgol_filter
+        polyorder (int = DEFAULT_SG_POLYORDER): polyorder for sig.savgol_filter
+        daily_args (Optional[types.ARGS_KWARGS] = None):
+
+        remove_drops_args (Optional[types.ARGS_KWARGS] = None):
+
+        interpolate_args (Optional[types.ARGS_KWARGS] = None):
+
+        data_vars (Optional[Sequence[Union[str, Sequence]]] = None):
+
+        exclude (Sequence[str] = []):
+
+        rename (Union[dict[str, str], Sequence[dict[str, str]]] = {}):
+        **kwargs: additional kwargs for sig.savgol_filter
 
     Returns:
-        (xr.dataset|xr.data_array) data with smoothed data values
+        (types.NPXR) data with smoothed data values
     """
     kwargs['window_length'] = window_length
     kwargs['polyorder'] = polyorder
@@ -665,12 +635,13 @@ def savitzky_golay_processor(
 #
 def daily_dataset(
         data: types.XR,
-        data_var: Optional[str] = None,
         days: int = 1,
-        result_data_var: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        method: Optional[types.FILL_METHOD] = None) -> types.XR:
+        method: Optional[types.FILL_METHOD] = None,
+        data_vars: Optional[Sequence[Union[str, Sequence]]] = None,
+        exclude: Sequence[str] = [],
+        rename: dict[str, str] = {}) -> types.XR:
     """ transform a dataset to a (n-)day dataset
 
     takes a dataset with datetime coordinate and returns
@@ -681,32 +652,27 @@ def daily_dataset(
 
     Args:
         data (xr.dataset|xr.data_array): data to be transformed
-        data_var (str|None):
-            if <data_var> is None: <data> must be an xr.data_array.
-            otherwise: name of data_var. <data> must be an xr.dataset.
         days (int): number of days between points (defaults to daily)
-        result_data_var (str|None):
-            if <data_var> is None:
-                if <result_data_var>: return data as xr.dataset with
-                    data_var named <result_data_var>
-                otherwise: return data as xr.data_array
-            else:
-                data will be returned as xr.dataset. if <result_data_var>
-                is None, <data_var> will be used as data_var name.
         start/end_date (str['%y-%M-%d']|None):
             start/end_date. if None use first and/or last date in <data>
         method (str):
             one of [None, 'nearest', 'pad'/'ffill', 'backfill'/'bfill'] (for details:
             https://docs.xarray.dev/en/stable/generated/xarray.DataArray.reindex.html).
-
+        data_vars (Optional[Sequence[str]] = None):
+            (xr.dataset only) list of data_var names to include.
+            if <data_vars> is None all data_vars will be used
+        exclude (Optional[Sequence[str]] = None):
+            (xr.dataset only) list of data_var names to exclude.
+        rename (dict):
+            [only used for xr data] mapping from data_var name to renamed data_var name
     Returns:
         xr.dataset or xr.data_arrray with regualry spaced <n-day> series.
     """
     data = data.copy()
-    if data_var:
-        data = data[data_var]
-        if not result_data_var:
-            result_data_var = data_var
+    if data_vars is None:
+        data_vars = list(data.data_vars)
+    data_vars = [d for d in data_vars if d not in exclude]
+    data = data[data_vars]
     coord_name = utils.xr_coord_name(data)
     if not start_date:
         start_date = data[coord_name].data[0]
@@ -716,15 +682,13 @@ def daily_dataset(
         warnings.simplefilter("ignore", category=UserWarning)
         data[coord_name] = data[coord_name].data.astype('datetime64[D]')
     data = data.groupby(coord_name, squeeze=False).mean(skipna=True)
-
     daily_dates = np.arange(start_date, end_date, timedelta(days=days)).astype('datetime64[D]')
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=UserWarning)
         data = data.reindex({coord_name: daily_dates}, method=method)
-    if result_data_var:
-        return xr.Dataset(data_vars={result_data_var: data})
-    else:
-        return data
+    if rename:
+        data = data.rename(rename)
+    return data
 
 
 #
