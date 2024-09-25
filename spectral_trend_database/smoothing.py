@@ -578,7 +578,7 @@ def savitzky_golay_processor(
 
     !!!!!!!!!!!!!!!!! WIP !!!!!!!!!!!!!!!!!
 
-    Wrapper for `ndvi_trends.utils.npxr.sequence` to run a series of smoothing steps
+    Wrapper for `spectral_trend_database.utils.npxr.sequence` to run a series of smoothing steps
 
     Steps:
 

@@ -192,7 +192,7 @@ def named_sql(
             cfig['where'].append(where_config)
     else:
         err = (
-            'ndvi_trends.query.named_sql: '
+            'spectral_trend_database.query.named_sql: '
             'either <name> or <table> must be non-null'
         )
         raise ValueError(err)
