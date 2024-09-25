@@ -146,7 +146,6 @@ def replace_dataset_values(
     return data
 
 
-
 def to_ndarray(
         data: types.NPXR,
         data_vars: Optional[Sequence[str]] = None,

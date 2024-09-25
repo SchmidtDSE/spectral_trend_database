@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d  # type: ignore[import-untyped]
 import scipy.signal as sig  # type: ignore[import-untyped]
 from datetime import timedelta
 from spectral_trend_database import utils
-from spectral_trend_database.npxr import npxr, sequencer, post_process_npxr_data, execute_func, npxr_v2
+from spectral_trend_database.npxr import npxr, sequencer
 from spectral_trend_database import types
 
 
@@ -55,7 +55,7 @@ FNN_NULL_VALUE = np.nan
 #
 # xr-decorated sequencer and methods
 #
-@npxr
+@npxr()
 def ewma(
         data: np.ndarray,
         alpha: Optional[float] = None,
@@ -105,7 +105,7 @@ def ewma(
     if span:
         if alpha:
             err = (
-                'ndvi_trends.smoothing.ewma_array: '
+                'spectral_trend_database.smoothing.ewma_array: '
                 'must pass <span> or <alpha> but not both'
             )
             raise ValueError(err)
@@ -116,7 +116,7 @@ def ewma(
         span = round((2 / alpha) - 1)
     if span < 2:
         err = (
-            'ndvi_trends.smoothing.ewma_array: '
+            'spectral_trend_database.smoothing.ewma_array: '
             f'span [{span}] must be greater than 1'
         )
         raise ValueError(err)
@@ -147,7 +147,7 @@ def ewma(
     return data
 
 
-@npxr
+@npxr()
 def linearly_interpolate(data: np.ndarray) -> np.ndarray:
     """ linearly interpolate time series
 
@@ -256,7 +256,7 @@ def np_interpolate_na(
     return _interp_func(indices)
 
 
-@npxr
+@npxr()
 def simple_moving_average(data: np.ndarray, win_size: int) -> np.ndarray:
     """ simple moving average
 
@@ -281,7 +281,7 @@ def simple_moving_average(data: np.ndarray, win_size: int) -> np.ndarray:
     return numerators / denominators
 
 
-@npxr
+@npxr()
 def kernel_smoothing(data: np.ndarray, kernel: np.ndarray, normalize: bool = True) -> np.ndarray:
     """
 
@@ -305,7 +305,7 @@ def kernel_smoothing(data: np.ndarray, kernel: np.ndarray, normalize: bool = Tru
     return np.convolve(data, kernel, mode=DEFAULT_CONV_MODE)
 
 
-@npxr
+@npxr()
 def mean_window_smoothing(data: np.ndarray, radius: int = DEFAULT_WINDOW_RADIUS) -> np.ndarray:
     """
 
@@ -372,7 +372,7 @@ def nan_mean_window_smoothing(
     elif isinstance(data, (xr.DataArray, dask.array.Array)):
         data.data = win_mean
         new_name = rename.get(data.name)
-        if new_name :
+        if new_name:
             data = data.rename(new_name)
     else:
         assert isinstance(data, xr.Dataset)
@@ -384,9 +384,7 @@ def nan_mean_window_smoothing(
     return data
 
 
-
-
-@npxr
+@npxr()
 def linear_window_smoothing(
         data: np.ndarray,
         radius: int = DEFAULT_WINDOW_RADIUS,
@@ -412,7 +410,7 @@ def linear_window_smoothing(
     return kernel_smoothing(data, kernel)
 
 
-@npxr_v2()
+@npxr()
 def remove_drops(
         data: types.NPXR,
         drop_threshold: float = 0.5,
@@ -446,7 +444,7 @@ def remove_drops(
     return data
 
 
-@npxr
+@npxr()
 def replace_windows(
         data: np.ndarray,
         replacement_data: np.ndarray,
@@ -479,7 +477,7 @@ def replace_windows(
     return data
 
 
-@npxr
+@npxr()
 def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
     """
     Wrapper that extends function that takes and returns np.array to return
@@ -496,7 +494,7 @@ def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
     return func(data, **kwargs)
 
 
-@npxr_v2(along_axis=1)
+@npxr(along_axis=1)
 def npxr_savitzky_golay(
         data: types.NPXR,
         # data_vars: Optional[Sequence[str]] = None,
@@ -773,8 +771,8 @@ def _left_right_pad(
         if window:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                lmean = np.nanmean(data[:,:window], axis=1)
-                rmean = np.nanmean(data[:,-window:], axis=1)
+                lmean = np.nanmean(data[:, :window], axis=1)
+                rmean = np.nanmean(data[:, -window:], axis=1)
             lfnn = np.apply_along_axis(_first_non_nan_1d, axis=1, arr=data)
             rfnn = np.apply_along_axis(_first_non_nan_1d, axis=1, arr=data[:, ::-1])
             lpad = np.where(np.isnan(lmean), lfnn, lmean)
