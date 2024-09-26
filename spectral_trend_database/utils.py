@@ -5,6 +5,7 @@ License:
 """
 from typing import Any, Union, Optional, Callable, Iterable, Sequence
 from pathlib import Path
+from copy import deepcopy
 import pandas as pd
 import numpy as np
 import xarray as xr
@@ -70,13 +71,44 @@ def pandas_to_xr(
     Returns:
         xr.Dataset
     """
-    exclude = list(exclude) + list(data_vars) + [coord]
+    data_vars = [ d for d in data_vars if d not in [coord]+exclude ]
+    attr_exclude = list(exclude) + data_vars + [coord]
     coord_array = row[coord]
     if coord_type:
         coord_array = np.array(coord_array).astype(coord_type)
-    attrs = {v: row[v] for v in row.keys() if v not in exclude}
+    attrs = {v: row[v] for v in row.keys() if v not in attr_exclude}
     data_var_dict = {v: ([coord], row[v]) for v in data_vars}
     return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, coord_array)}, attrs=attrs)
+
+
+def xr_to_row(
+        dataset: xr.Dataset,
+        data_vars: Optional[Sequence[str]] = None,
+        exclude: Sequence[str] = [],
+        as_pandas: bool = True) -> Union[dict, pd.Series]:
+    """ transfor xr.dataset to dict or pd.series
+    Args:
+        row (pd.Series): series containing coordinate, data_vars, and attributes
+        data_vars (list[str]):
+            list of keys for data_vars values. if None use all data_vars
+        exclude (list[str] = []): list of keys to exclude from attributes.
+        as_pandas (bool = True): if true return pd.Series, else return dict
+
+    Returns:
+        dict or pd.series with <dataset> attrs, coords, and data_vars as key/values
+    """
+    data = deepcopy(dataset.attrs)
+    coords = deepcopy(dataset.coords)
+    for coord in coords:
+        data[coord] =  coords[coord].data
+    if data_vars is None:
+        data_vars = list(dataset.data_vars)
+    data_vars = [d for d in data_vars if d not in exclude]
+    for var in data_vars:
+        data[var] =  dataset.data_vars[var].data
+    if as_pandas:
+        data = pd.Series(data)
+    return data
 
 
 def xr_coord_name(
