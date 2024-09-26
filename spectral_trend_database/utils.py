@@ -71,7 +71,7 @@ def pandas_to_xr(
     Returns:
         xr.Dataset
     """
-    data_vars = [ d for d in data_vars if d not in [coord]+exclude ]
+    data_vars = [d for d in data_vars if d not in [coord] + exclude]
     attr_exclude = list(exclude) + data_vars + [coord]
     coord_array = row[coord]
     if coord_type:
@@ -100,12 +100,12 @@ def xr_to_row(
     data = deepcopy(dataset.attrs)
     coords = deepcopy(dataset.coords)
     for coord in coords:
-        data[coord] =  coords[coord].data
+        data[coord] = coords[coord].data
     if data_vars is None:
         data_vars = list(dataset.data_vars)
     data_vars = [d for d in data_vars if d not in exclude]
     for var in data_vars:
-        data[var] =  dataset.data_vars[var].data
+        data[var] = dataset.data_vars[var].data
     if as_pandas:
         data = pd.Series(data)
     return data
@@ -177,7 +177,7 @@ def replace_dataset_values(
     for i, dvar in enumerate(data_vars):
         data[dvar].data = values[i]
     if rename:
-        rename = {k: v for  (k,v) in rename.items() if k in data_vars}
+        rename = {k: v for (k, v) in rename.items() if k in data_vars}
         data = data.rename(rename)
     return data
 
