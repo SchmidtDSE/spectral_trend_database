@@ -581,11 +581,11 @@ def savitzky_golay_processor(
     Wrapper for `spectral_trend_database.utils.npxr.sequence` to run a series of smoothing steps
 
     Steps:
-
-    1. create (n-)daily dataset by filling with np.nan for missing dates
-    1. interpolate to fill np.nan
-    2. remove "dips" - sudden large drops in the data that bounce back
-    3. apply a smoothing func (defaults to Savitzky-Golay filter)
+        1. daily_dataset
+        2. interpolate_na
+        3. remove_drops
+        4. interpolate_na
+        5. npxr_savitzky_golay
 
     Args:
         data (types.NPXR): source data
