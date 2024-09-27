@@ -100,6 +100,7 @@ for year in YEARS:
     print(f'year: {year}')
     print(f'data-shape: {df.shape}')
     df = smooth_indices(df)
+    df[c.DATE_COLUMN] = df[c.DATE_COLUMN].apply(utils.cast_duck_array)
     print(f'output-shape: {df.shape}')
     table_name = c.SMOOTHED_INDICES_TABLE_NAME.upper()
     file_name = f'{table_name.lower()}-{year}.json'
