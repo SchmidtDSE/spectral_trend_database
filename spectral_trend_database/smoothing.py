@@ -35,12 +35,6 @@ DEFAULT_CONV_MODE: types.CONV_MODE = SAME_CONV_MODE
 LINEAR_CONV_TYPE = 'linear'
 MEAN_CONV_TYPE = 'mean'
 SMOOTHING_DATA_VAR = 'ndvi'
-SMOOTHING_RESULT_DATA_VARS = [
-    None,
-    None,
-    'preprocessed_ndvi',
-    'sg_ndvi'
-]
 COORD_NAME = 'date'
 DEFAULT_SG_WINDOW_LENGTH = 60
 DEFAULT_SG_POLYORDER = 3
