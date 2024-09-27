@@ -28,14 +28,16 @@ from spectral_trend_database.config import config as c
 from spectral_trend_database import query
 from spectral_trend_database import smoothing
 from spectral_trend_database import utils
+from spectral_trend_database import paths
+from spectral_trend_database import gcp
+
 
 #
 # CONSTANTS
 #
-# YEARS = range(2000, 2022 + 1)
-YEARS = range(2021, 2022 + 1)
-LIMIT = 10
-
+YEARS = range(2000, 2022 + 1)
+LIMIT = None
+DRY_RUN = False
 
 #
 # METHODS
@@ -90,11 +92,36 @@ def smooth_indices(df: pd.DataFrame) -> pd.DataFrame:
 print('\nsmooth indices:')
 print('-' * 50)
 for year in YEARS:
-    df = query.run(table=c.SOURCE_TABLE_NAME, year=year, limit=LIMIT)
+    df = query.run(
+        table=c.RAW_INDEX_TABLE_NAME,
+        year=year,
+        limit=LIMIT)
     print()
     print(f'year: {year}')
     print(f'data-shape: {df.shape}')
     df = smooth_indices(df)
     print(f'output-shape: {df.shape}')
-    from IPython.display import display
-    display(df)
+    table_name = c.SMOOTHED_INDICES_TABLE_NAME.upper()
+    file_name = f'{table_name.lower()}-{year}.json'
+    local_dest = paths.local(
+        c.DEST_LOCAL_FOLDER,
+        c.SMOOTHED_INDICES_FOLDER,
+        file_name)
+    gcs_dest = paths.gcs(
+        c.DEST_GCS_FOLDER,
+        c.SMOOTHED_INDICES_FOLDER,
+        file_name)
+    uri = gcp.save_ld_json(
+        df,
+        local_dest=local_dest,
+        gcs_dest=gcs_dest,
+        dry_run=DRY_RUN)
+    print(f'- update table [{c.DATASET_NAME}.{table_name}]')
+    if DRY_RUN:
+        print('- dry_run: table not updated')
+    else:
+        assert isinstance(uri, str)
+        gcp.create_or_update_table_from_json(
+            gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
+            name=table_name,
+            uri=uri)
