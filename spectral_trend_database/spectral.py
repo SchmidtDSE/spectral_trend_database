@@ -66,7 +66,7 @@ def index_arrays(
         (list[np.ndarray]) of spectral index values
     """
     from IPython.display import display
-    ds = utils.pandas_to_xr(row, coord=coord, data_vars=bands)
+    ds = utils.row_to_xr(row, coord=coord, data_vars=bands)
     # display(ds)
     # print(list(indices.values()))
     # print('\n'*10)

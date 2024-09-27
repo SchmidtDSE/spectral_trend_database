@@ -47,8 +47,8 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
 #
 # PD/XR/NP
 #
-def pandas_to_xr(
-        row: pd.Series,
+def row_to_xr(
+        row: Union[pd.Series, dict],
         coord: str,
         data_vars: list[str],
         coord_type: Optional[str] = constants.DATETIME_NS,
@@ -85,7 +85,7 @@ def xr_to_row(
         dataset: xr.Dataset,
         data_vars: Optional[Sequence[str]] = None,
         exclude: Sequence[str] = [],
-        as_pandas: bool = True) -> Union[dict, pd.Series]:
+        as_pandas: bool = False) -> Union[dict, pd.Series]:
     """ transfor xr.dataset to dict or pd.series
     Args:
         row (pd.Series): series containing coordinate, data_vars, and attributes

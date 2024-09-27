@@ -30,34 +30,39 @@ from spectral_trend_database import smoothing
 from spectral_trend_database import utils
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
+import mproc
 
 
 #
 # CONSTANTS
 #
-YEARS = range(2000, 2022 + 1)
-LIMIT = None
+# YEARS = range(2000, 2022 + 1)
+# LIMIT = None
+# DRY_RUN = False
+
+YEARS = range(2011, 2012 + 1)
+LIMIT = 100
 DRY_RUN = False
 
 #
 # METHODS
 #
-def get_data_vars(df: pd.DataFrame) -> list[str]:
+def get_data_vars(data: dict) -> list[str]:
     """ get data_var names from dataframe """
     return [
-        column for column in df.columns
+        column for column in data.keys()
         if column not in
         c.META_COLUMNS + [c.COORD_COLUMN]]
 
 
-def smooth_row(row: pd.Series, data_vars: list[str]) -> Union[dict, pd.Series]:
+def smooth_row(row: Union[pd.Series, dict], data_vars: list[str]) -> Union[dict, pd.Series]:
     """
     1. transform pandas row to xr.dataset
     2. mask data by MASK_EQ
     3. smooth with savitzky_golay_processor
     """
     try:
-        ds = utils.pandas_to_xr(
+        ds = utils.row_to_xr(
             df.sample().iloc[0],
             coord=c.COORD_COLUMN,
             data_vars=data_vars)
@@ -66,6 +71,7 @@ def smooth_row(row: pd.Series, data_vars: list[str]) -> Union[dict, pd.Series]:
             ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
         ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
         row = utils.xr_to_row(ds)
+        row[c.DATE_COLUMN] = utils.cast_duck_array(c.DATE_COLUMN)
         error = None
     except Exception as e:
         row = {}
@@ -74,34 +80,27 @@ def smooth_row(row: pd.Series, data_vars: list[str]) -> Union[dict, pd.Series]:
     return row
 
 
-def smooth_indices(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    1. query database for year
-    2. for each row
-        a. get dataset
-        b.
-    """
-    data_vars = get_data_vars(df)
-    rows = df.apply(lambda r: smooth_row(r, data_vars), axis=1)
-    return pd.DataFrame(rows)
-
-
 #
 # RUN
 #
 print('\nsmooth indices:')
 print('-' * 50)
 for year in YEARS:
-    df = query.run(
+    data = query.run(
         table=c.RAW_INDEX_TABLE_NAME,
         year=year,
         limit=LIMIT)
     print()
     print(f'year: {year}')
-    print(f'data-shape: {df.shape}')
-    df = smooth_indices(df)
-    df[c.DATE_COLUMN] = df[c.DATE_COLUMN].apply(utils.cast_duck_array)
-    print(f'output-shape: {df.shape}')
+    print(f'(df) data-shape: {data.shape[0]}')
+    data = data.to_dict('records')
+    data_vars = get_data_vars(data[0])
+    print(f'(list[dict]) data-shape: {len(data)}')
+    data = mproc.map_with_threadpool(
+        lambda row: smooth_row(row, data_vars=data_vars),
+        data,
+        max_processes=c.MAX_PROCESSES)
+    print(f'(list[dict]) output-shape: {len(data)}')
     table_name = c.SMOOTHED_INDICES_TABLE_NAME.upper()
     file_name = f'{table_name.lower()}-{year}.json'
     local_dest = paths.local(
@@ -113,7 +112,7 @@ for year in YEARS:
         c.SMOOTHED_INDICES_FOLDER,
         file_name)
     uri = gcp.save_ld_json(
-        df,
+        pd.DataFrame(data),
         local_dest=local_dest,
         gcs_dest=gcs_dest,
         dry_run=DRY_RUN)
