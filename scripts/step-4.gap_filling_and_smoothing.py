@@ -63,7 +63,7 @@ def smooth_row(row: Union[pd.Series, dict], data_vars: list[str]) -> Union[dict,
     """
     try:
         ds = utils.row_to_xr(
-            df.sample().iloc[0],
+            row,
             coord=c.COORD_COLUMN,
             data_vars=data_vars)
         if c.MASK_EQ:
