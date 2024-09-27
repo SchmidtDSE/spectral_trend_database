@@ -73,7 +73,9 @@ COORD_COLUMN: date
 META_COLUMNS:
   - sample_id
   - year
-SOURCE_TABLE_NAME: raw_indices_v1
+RAW_INDEX_TABLE_NAME: raw_indices_v1
+SMOOTHED_INDICES_TABLE_NAME: smoothed_indices_v1
+SMOOTHED_INDICES_FOLDER: smoothed_indices
 
 
 
