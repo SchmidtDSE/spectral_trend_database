@@ -20,7 +20,9 @@ License:
     BSD, see LICENSE.md
 """
 from typing import Optional, Union, Sequence
+from pathlib import Path
 from pprint import pprint
+import json
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -36,13 +38,14 @@ import mproc
 #
 # CONSTANTS
 #
-# YEARS = range(2000, 2022 + 1)
-# LIMIT = None
-# DRY_RUN = False
-
-YEARS = range(2011, 2012 + 1)
-LIMIT = 100
+YEARS = range(2000, 2022 + 1)
+LIMIT = None
 DRY_RUN = False
+
+# YEARS = range(2003, 2003 + 1)
+# LIMIT = 100
+# DRY_RUN = False
+# TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
 
 #
 # METHODS
@@ -55,7 +58,22 @@ def get_data_vars(data: dict) -> list[str]:
         c.META_COLUMNS + [c.COORD_COLUMN]]
 
 
-def smooth_row(row: Union[pd.Series, dict], data_vars: list[str]) -> Union[dict, pd.Series]:
+def append_ldjson(file_path: str, data: dict):
+    with open(file_path, "a") as file:
+        file.write(json.dumps(data) + "\n")
+
+
+def post_process_row(row: dict, data_vars: list[str]) -> dict:
+    row[c.DATE_COLUMN] = utils.cast_duck_array(row[c.DATE_COLUMN])
+    for var in data_vars+[c.COORD_COLUMN]:
+        row[var] = list(row[var])
+    return row
+
+
+def write_smooth_row(
+        row: Union[pd.Series, dict],
+        data_vars: list[str],
+        file_path: str) -> Union[str, None]:
     """
     1. transform pandas row to xr.dataset
     2. mask data by MASK_EQ
@@ -71,38 +89,14 @@ def smooth_row(row: Union[pd.Series, dict], data_vars: list[str]) -> Union[dict,
             ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
         ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
         row = utils.xr_to_row(ds)
-        row[c.DATE_COLUMN] = utils.cast_duck_array(c.DATE_COLUMN)
-        error = None
+        row = post_process_row(row, data_vars)
+        append_ldjson(file_path=file_path, data=row)
     except Exception as e:
-        row = {}
-        error = str(e)
-    row['error'] = error
-    return row
+        return str(e)
 
 
-#
-# RUN
-#
-print('\nsmooth indices:')
-print('-' * 50)
-for year in YEARS:
-    data = query.run(
-        table=c.RAW_INDEX_TABLE_NAME,
-        year=year,
-        limit=LIMIT)
-    print()
-    print(f'year: {year}')
-    print(f'(df) data-shape: {data.shape[0]}')
-    data = data.to_dict('records')
-    data_vars = get_data_vars(data[0])
-    print(f'(list[dict]) data-shape: {len(data)}')
-    data = mproc.map_with_threadpool(
-        lambda row: smooth_row(row, data_vars=data_vars),
-        data,
-        max_processes=c.MAX_PROCESSES)
-    print(f'(list[dict]) output-shape: {len(data)}')
-    table_name = c.SMOOTHED_INDICES_TABLE_NAME.upper()
-    file_name = f'{table_name.lower()}-{year}.json'
+def get_paths(year: int):
+    file_name = f'{TABLE_NAME.lower()}-{year}.json'
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
         c.SMOOTHED_INDICES_FOLDER,
@@ -111,17 +105,48 @@ for year in YEARS:
         c.DEST_GCS_FOLDER,
         c.SMOOTHED_INDICES_FOLDER,
         file_name)
-    uri = gcp.save_ld_json(
-        pd.DataFrame(data),
-        local_dest=local_dest,
-        gcs_dest=gcs_dest,
-        dry_run=DRY_RUN)
-    print(f'- update table [{c.DATASET_NAME}.{table_name}]')
+    return local_dest, gcs_dest
+
+#
+# RUN
+#
+print('\nsmooth indices:')
+print('-' * 50)
+for year in YEARS:
+    local_dest, gcs_dest = get_paths(year)
+    data = query.run(
+        table=c.RAW_INDEX_TABLE_NAME,
+        year=year,
+        limit=LIMIT)
+    print()
+    print(f'- year: {year}')
+    data = data.to_dict('records')
+    data_vars = get_data_vars(data[0])
+    print(f'- nb_rows: {len(data)}')
+    Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
+    print('- local_dest:', local_dest)
+    # errors = mproc.map_sequential(
+    errors = mproc.map_with_threadpool(
+        lambda row: write_smooth_row(row, data_vars=data_vars, file_path=local_dest),
+        data,
+        max_processes=c.MAX_PROCESSES)
+    if DRY_RUN:
+        print('- gcs_dest:', gcs_dest, '- dry_run')
+    else:
+        uri = gcp.upload_file(local_dest, gcs_dest)
+        print('- gcs_dest:', uri)
+    print(f'- update table [{c.DATASET_NAME}.{TABLE_NAME}]')
     if DRY_RUN:
         print('- dry_run: table not updated')
     else:
         assert isinstance(uri, str)
         gcp.create_or_update_table_from_json(
             gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
-            name=table_name,
+            name=TABLE_NAME,
             uri=uri)
+    errors = [e for e in errors if e]
+    if errors:
+        print(f'- nb_errors: {len(errors)}')
+        for e in list(set(errors)):
+            print(' ', e)
+
