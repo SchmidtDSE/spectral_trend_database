@@ -15,7 +15,12 @@ from spectral_trend_database import constants
 from spectral_trend_database import types
 
 
+#
+# CONSTANTS
+#
 DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'prefix'
+
+
 #
 # I/O
 #
@@ -252,7 +257,7 @@ def stack_data_arrays(data_arrays: list[xr.DataArray]) -> xr.Dataset:
 def npxr_stack(
         data: Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]],
         dim: Optional[str] = None,
-        raise_align_error = False) -> Union[np.ndarray, xr.Dataset, None]:
+        raise_align_error: bool = False) -> Union[np.ndarray, xr.Dataset, None]:
     """ safely stack datasets, data-arrays, or np.arrays
 
     if data is np.ndarray wrapper for np.vstack
@@ -277,7 +282,10 @@ def npxr_stack(
         return stack_data_arrays(data)  # type: ignore[arg-type]
     else:
         assert dtype is xr.Dataset
-        return stack_datasets(data, dim=dim, raise_align_error=raise_align_error)  # type: ignore[arg-type]
+        return stack_datasets(
+            data,  # type: ignore[arg-type]
+            dim=dim,
+            raise_align_error=raise_align_error)
 
 
 def rename_data_array(

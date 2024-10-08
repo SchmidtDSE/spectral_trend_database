@@ -490,7 +490,7 @@ def macd_processor(
         data: types.XR,
         spans: Sequence[int],
         ewma_init_value: types.EWM_INITALIZER = 'sma',
-        result_only: bool = False ) -> Union[types.NPXR, None]:
+        result_only: bool = False) -> Union[types.NPXR, None]:
     """ moving average convergence divergence (divergence)
 
 
@@ -506,8 +506,8 @@ def macd_processor(
             elif len(<spans>) == 3:
                 compute `macd_values` as above and then compute the MACD divergence
                 `macd_div = macd_values - ewma(macd_values, spans[2])`
-        ewma_init_value (types.EWM_INITALIZER): `init_value` argument for `ewma`. see ewma-doc-strings
-            for details.
+        ewma_init_value (types.EWM_INITALIZER): `init_value` argument for `ewma`.
+            see ewma-doc-strings for details.
         result_only (bool = False):
             if True return final output (macd or macd_div)
             otherwise: return stack of data values 'ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div'.

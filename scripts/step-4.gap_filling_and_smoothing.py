@@ -69,7 +69,7 @@ def append_ldjson(file_path: str, data: dict):
 
 def post_process_row(row: dict, data_vars: list[str]) -> dict:
     row[c.DATE_COLUMN] = utils.cast_duck_array(row[c.DATE_COLUMN])
-    for var in data_vars+[c.COORD_COLUMN]:
+    for var in data_vars + [c.COORD_COLUMN]:
         row[var] = list(row[var])
     return row
 
@@ -99,6 +99,7 @@ def write_smooth_row(
         return str(e)
         raise e
 
+
 def get_paths(year: int):
     file_name = f'{TABLE_NAME.lower()}-{year}.json'
     local_dest = paths.local(
@@ -110,6 +111,7 @@ def get_paths(year: int):
         c.SMOOTHED_INDICES_FOLDER,
         file_name)
     return local_dest, gcs_dest
+
 
 #
 # RUN
@@ -152,4 +154,3 @@ for year in YEARS:
         print(f'- nb_errors: {len(errors)}')
         for e in list(set(errors)):
             print(' ', e)
-
