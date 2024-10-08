@@ -41,7 +41,7 @@ DEFAULT_SG_POLYORDER = 3
 DEFAULT_WINDOW_CONV_TYPE = MEAN_CONV_TYPE
 DEFAULT_WINDOW_RADIUS = 5
 MACD_DATA_VAR = 'sg_ndvi'
-MACD_RESULT_DATA_VARS = ['ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div']
+MACD_DATA_VAR_NAMES = ['ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div']
 EPS = 1e-4
 FNN_NULL_VALUE = np.nan
 
@@ -89,9 +89,6 @@ def ewma(
                 have different lengths)
             else:
                 use data[0] as first/0-th term (ewm_0) in exponentially weighted moving average
-        return_computed (bool):
-            if True computed span/alpha along with smoothed data
-
     Returns:
         (np.array) Exponentially weighted moving average.
     """
@@ -333,8 +330,12 @@ def nan_mean_window_smoothing(
         data = utils.replace_dataset_values(
             data,
             values=win_mean,
-            data_vars=data_vars,
-            rename=rename)
+            data_vars=data_vars)
+        if rename:
+            data = utils.rename_dataset(
+                dataset=data,
+                data_vars=data_vars,
+                rename=rename)
     return data
 
 
@@ -489,16 +490,16 @@ def npxr_savitzky_golay(
 def macd_processor(
         data: types.XR,
         spans: Sequence[int],
-        data_var: Optional[str] = MACD_DATA_VAR,
-        result_data_vars: Optional[Sequence[Union[str, None]]] = MACD_RESULT_DATA_VARS,
-        ewma_init_value: types.EWM_INITALIZER = 'sma') -> types.XR:
-    """ moving average convergence divergence
+        ewma_init_value: types.EWM_INITALIZER = 'sma',
+        result_only: bool = False ) -> types.NPXR:
+    """ moving average convergence divergence (divergence)
+
 
     Computes Moving Average Convergence Divergence (MACD). For len(<spans>) == 3,
     it also computes MACD-divergence.
 
     Args:
-        data (xr.dataset|xr.data_array): source np.array|xr.dataset|xr.data_array
+        data (types.XR): source np.array|xr.dataset|xr.data_array
         spans (Sequence[int]): list of window_sizes. Must have exactly 2 or 3 elements.
             if len(<spans>) == 2:
                 compute and return the moving-average-convergence-divergence
@@ -506,54 +507,45 @@ def macd_processor(
             elif len(<spans>) == 3:
                 compute `macd_values` as above and then compute the MACD divergence
                 `macd_div = macd_values - ewma(macd_values, spans[2])`
-        data_var (str): if <data> is xr.dataset, the name of the data_variable to
-            compute macd values from
-        result_data_vars (None|str|list):
-        ewma_init_value (str): `init_value` argument for `ewma`. see ewma-doc-strings
+        ewma_init_value (types.EWM_INITALIZER): `init_value` argument for `ewma`. see ewma-doc-strings
             for details.
+        result_only (bool = False):
+            if True return final output (macd or macd_div)
+            otherwise: return stack of data values 'ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div'.
 
     Returns:
-        if data is np.array: returns macd_values or macd_div_values (depending on len(<spans>))
-        if data is xr.data_array:
-            if result_data_vars is list: returns xr.dataset with ewm_a/b, macd[, ewm_c, macd_div]
-            else: return xr.data_array for macd_values or macd_div_values
-        else:
-            return appended|overwritten xr.dataset
+        (types.NPXR) if <result_only> return final output (macd or macd_div) otherwise
+        return stack of data values 'ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div'.
     """
     len_spans = len(spans)
-    if not result_data_vars:
-        result_data_vars = data_var
-    is_dataset = isinstance(data, xr.Dataset)
-    if is_dataset:
-        da = data[data_var]
+    if isinstance(data, xr.Dataset):
+        along_axis = 1
     else:
-        da = data
-    ewm_a = ewma(da, span=spans[0], init_value=ewma_init_value)
-    ewm_b = ewma(da, span=spans[1], init_value=ewma_init_value)
+        along_axis = False
+    ewm_a = ewma(data,
+        span=spans[0],
+        init_value=ewma_init_value,
+        along_axis=along_axis)
+    ewm_b = ewma(data,
+        span=spans[1],
+        init_value=ewma_init_value,
+        along_axis=along_axis)
     macd_values = ewm_a - ewm_b
     results = [ewm_a, ewm_b, macd_values]
     if len_spans == 3:
-        ewm_c = ewma(macd_values, span=spans[2], init_value=ewma_init_value)
+        ewm_c = ewma(
+            macd_values,
+            span=spans[2],
+            init_value=ewma_init_value,
+            along_axis=along_axis)
         macd_div_values = macd_values - ewm_c
         results.append(ewm_c)
         results.append(macd_div_values)
-    if isinstance(data, np.ndarray):
-        return results[-1]
-    elif is_dataset:
-        if isinstance(result_data_vars, str):
-            data[result_data_vars] = results[-1]
-        elif isinstance(result_data_vars, list):
-            for dvar, values in zip(result_data_vars, results):
-                data[dvar] = values
+    results = [utils.npxr_rename(r, v) for (r, v) in zip(results, MACD_DATA_VAR_NAMES)]
+    if result_only:
+        data = results[-1]
     else:
-        if isinstance(result_data_vars, str):
-            data = results[-1]
-            data.name = result_data_vars
-        elif isinstance(result_data_vars, list):
-            data_value_dict = {dvar: values for (dvar, values) in zip(result_data_vars, results)}
-            if data_var not in result_data_vars:
-                data_value_dict[data_var] = da
-            data = xr.Dataset(data_value_dict)
+        data = utils.npxr_stack(results)
     return data
 
 

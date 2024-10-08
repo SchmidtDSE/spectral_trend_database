@@ -65,6 +65,13 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
             arr=values)
         ```
 
+        Note: this is the same result as
+
+        ```python
+        p1_along_axis_v2 = plus1(values, along_axis=1)
+        ```
+
+        (see **kwargs below).
 
     Decorator Args:
         along_axis (Union[int, Literal[False]] = False):
@@ -79,7 +86,12 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
             (xr.dataset only) list of data_var names to exclude.
         rename (dict):
             [only used for xr data] mapping from data_var name to renamed data_var name
-
+        **kwargs:
+            additional kwargs to be passed to decorated function.
+            - if <kwargs> contains 'data', that will be popped from kwargs.
+            and used as the source data
+            - if <kwargs> contains 'along_axis', that will be popped out and
+            used to override the decorator-arg (along_axis)
     Returns:
         decorated function that accepts xr.dataset/data_array as well as np.ndarray
     """
@@ -90,11 +102,13 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
                 data_vars: Optional[Sequence[str]] = None,
                 exclude: Sequence[str] = [],
                 rename: dict[str, str] = {},
+                along_axis_override: Optional[Union[int, Literal[False]]] = None,
                 **kwargs) -> types.NPXR:
+            _along_axis = kwargs.pop('along_axis', along_axis)
             return execute_func(
                 *args,
                 func=func,
-                along_axis=along_axis,
+                along_axis=_along_axis,
                 data_vars=data_vars,
                 exclude=exclude,
                 rename=rename,
@@ -243,14 +257,14 @@ def post_process_npxr_data(data: types.NPDXR, values: types.NPD, rename: dict[st
         data = values
     elif isinstance(data, xr.DataArray):
         data.data = values
-        new_name = rename.get(str(data.name))
-        if new_name:
-            data = data.rename(new_name)
     else:
         assert isinstance(data, xr.Dataset)
         data = utils.replace_dataset_values(
+            dataset=data,
+            values=values)
+    if rename:
+        data = utils.npxr_rename(
             data,
-            values=values,
             rename=rename)
     return data
 

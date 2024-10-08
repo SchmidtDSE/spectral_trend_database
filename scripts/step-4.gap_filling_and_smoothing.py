@@ -47,6 +47,10 @@ DRY_RUN = False
 # DRY_RUN = False
 
 TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
+MAP_METHOD = mproc.map_sequential
+# MAP_METHOD = mproc.map_with_threadpool
+
+
 #
 # METHODS
 #
@@ -93,7 +97,7 @@ def write_smooth_row(
         append_ldjson(file_path=file_path, data=row)
     except Exception as e:
         return str(e)
-
+        raise e
 
 def get_paths(year: int):
     file_name = f'{TABLE_NAME.lower()}-{year}.json'
@@ -125,8 +129,7 @@ for year in YEARS:
     print(f'- nb_rows: {len(data)}')
     Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
     print('- local_dest:', local_dest)
-    # errors = mproc.map_sequential(
-    errors = mproc.map_with_threadpool(
+    errors = MAP_METHOD(
         lambda row: write_smooth_row(row, data_vars=data_vars, file_path=local_dest),
         data,
         max_processes=c.MAX_PROCESSES)

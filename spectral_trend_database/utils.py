@@ -3,7 +3,7 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Any, Union, Optional, Callable, Iterable, Sequence
+from typing import Any, Union, Optional, Callable, Iterable, Sequence, Literal
 from pathlib import Path
 from copy import deepcopy
 import pandas as pd
@@ -15,6 +15,7 @@ from spectral_trend_database import constants
 from spectral_trend_database import types
 
 
+DEFAULT_ACTION = 'prefix'
 #
 # I/O
 #
@@ -50,7 +51,7 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
 def row_to_xr(
         row: Union[pd.Series, dict],
         coord: str,
-        data_vars: list[str],
+        data_vars: Optional[list[str]] = None,
         coord_type: Optional[str] = constants.DATETIME_NS,
         exclude: list[str] = []) -> xr.Dataset:
     """ converts a pd.Series/row of pd.DataFrame to an xr.Dataset
@@ -71,6 +72,8 @@ def row_to_xr(
     Returns:
         xr.Dataset
     """
+    if data_vars is None:
+        data_vars = list(row.keys())
     data_vars = [d for d in data_vars if d not in [coord] + exclude]
     attr_exclude = list(exclude) + data_vars + [coord]
     coord_array = row[coord]
@@ -166,20 +169,19 @@ def dataset_to_ndarray(
 
 
 def replace_dataset_values(
-        data: xr.Dataset,
+        dataset: xr.Dataset,
         values: types.NPD,
         data_vars: Optional[Sequence[str]] = None,
-        rename: dict[str, str] = {}) -> xr.Dataset:
-    """ """
+        suffix: bool = False) -> xr.Dataset:
+    """
+    TODO
+    """
     if data_vars is None:
-        data_vars = list(data.data_vars)
+        data_vars = list(dataset.data_vars)
     assert isinstance(data_vars, list)
-    for i, dvar in enumerate(data_vars):
-        data[dvar].data = values[i]
-    if rename:
-        rename = {k: v for (k, v) in rename.items() if k in data_vars}
-        data = data.rename(rename)
-    return data
+    for dv, v in zip(data_vars, values):
+        dataset[dv].data = v
+    return dataset
 
 
 def to_ndarray(
@@ -203,6 +205,165 @@ def to_ndarray(
     elif isinstance(data, xr.DataArray):
         data = data.data
     assert isinstance(data, (np.ndarray, dask.array.Array))
+    return data
+
+
+def stack_datasets(
+        datasets: list[xr.Dataset],
+        dim: str = None,
+        raise_align_error: bool = False) -> Union[xr.Dataset, None]:
+    """ safely stack datasets
+    Args:
+        datasets (list[xr.Dataset]): list of datasets to stack
+        dim (str = None):  dim to stack along. if None use coord of first
+            dataset in datasets
+        raise_align_error (bool = False): if True raise error if datasets
+            do not align. Otherwise silently return None
+
+    Returns:
+        dataset stacking datasets along <dim>
+    """
+    if dim is None:
+        dim = xr_coord_name(datasets[0])
+    try:
+        xr.align(*datasets, join='exact')[0]
+        return xr.concat(datasets, dim=dim)
+    except ValueError as e:
+        if raise_align_error:
+            err = (
+                'spectral_trend_database.utils.stack_datasets: '
+                f'datasets must align along dim[{dim}]'
+            )
+            raise ValueError(err)
+
+
+def stack_data_arrays(data_arrays: list[xr.DataArray]) -> xr.Dataset:
+    """ safely stack data-arrays
+    Args:
+        data_arrays (list[xr.DataArray]): list of data_arrays to stack
+
+    Returns:
+        dataset stacking data_arrays
+    """
+    data_value_dict = {str(a.name): a for a in data_arrays}
+    return xr.Dataset(data_value_dict)
+
+
+def npxr_stack(
+        data: Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]],
+        dim: str = None,
+        raise_align_error = False) -> Union[np.ndarray, xr.Dataset]:
+    """ safely stack datasets, data-arrays, or np.arrays
+
+    if data is np.ndarray wrapper for np.vstack
+    elif data is xr.DataArray  wrapper for stack_data_arrays above
+    elif data is xr.Dataset wrapper for stack_datasets above
+
+    Args:
+        data ( Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]]):
+            list of data to stack
+        dim (str = None): [xr.dataset only] dim to stack along. if None use coord of first
+            dataset in datasets
+        raise_align_error (bool = False): [xr.dataset only] if True raise error if datasets
+            do not align. Otherwise silently return None
+
+    Returns:
+        dataset stacking datasets along <dim>
+    """
+    dtype = type(data[0])
+    if dtype is np.ndarray:
+        data = np.vstack(data)
+    elif dtype is xr.DataArray:
+        data = stack_data_arrays(data)
+    elif dtype is xr.Dataset:
+        data = stack_datasets(data, dim=dim, raise_align_error=raise_align_error)
+    return data
+
+
+def rename_data_array(
+        data_array: xr.DataArray,
+        rename: Optional[str] = None,
+        action: Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION) -> xr.DataArray:
+    """ rename data array by prefixing suffixing or replacing value
+    Args:
+        data_array (xr.DataArray): data-array to be renamed
+        rename (Optional[str] = None): prefix, suffix or replacement value for name
+        action (Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION):
+            if prefix name => <rename>_<data_array>.name
+            elif suffix name => <data_array>.name_<rename>
+            elif replace name => <rename>
+    Returns:
+        renamed data-array
+    """
+    if rename:
+        data_array.name = _name_value(data_array.name, rename, action)
+    return data_array
+
+
+def rename_dataset(
+        dataset: xr.Dataset,
+        rename: Optional[Union[dict[str, str], list[str], str]] = None,
+        action: Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION) -> xr.Dataset:
+    """ rename dataset data_vars by prefixing suffixing or replacing value
+    Args:
+        data_array (xr.DataArray): data-array to be renamed
+        rename (Optional[Union[dict[str, str], list[str], str]] = None):
+            if str: rename with <rename> for all data_vars
+            elif list: rename with <rename> values for paired data_var
+            elif dict: rename using dataset.rename(<rename>)
+        action (Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION):
+            if prefix name => <rename>_<data_array>.name
+            elif suffix name => <data_array>.name_<rename>
+            elif replace name => <rename>
+    Returns:
+        renamed data-array
+    """
+    if rename:
+        data_vars = list(dataset.data_vars)
+        if isinstance(rename, str):
+            rename = [rename] * len(data_vars)
+        if isinstance(rename, list):
+            rename = {k: _name_value(k, v, action) for (k, v) in zip(data_vars, rename)}
+        else:
+            rename = {k: _name_value(k, v, action) for (k, v) in rename.items() if k in data_vars}
+        dataset = dataset.rename(rename)
+    return dataset
+
+
+def npxr_rename(
+        data: types.NPXR,
+        rename: Optional[Union[dict[str, str], list[str], str]] = None,
+        action: Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION):
+    """ convince wrapper for rename_dataset/data_array
+
+    Note: if data is np.ndarray this method simply returns the passed data
+
+    Args:
+        data (types.NPXR): np.ndarray (to be passed through) or, data-array/dataset to be renamed
+        rename (Optional[Union[dict[str, str], list[str], str]] = None):
+            if x.Dataset:
+                if str: rename with <rename> for all data_vars
+                elif list: rename with <rename> values for paired data_var
+                elif dict: rename using dataset.rename(<rename>)
+            elif xr.DataArray:
+                prefix, suffix or replacement value for name
+        action (Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION):
+            if prefix name => <rename>_<data_array>.name
+            elif suffix name => <data_array>.name_<rename>
+            elif replace name => <rename>
+    Returns:
+        renamed data-array/dataset or original np.ndarray
+    """
+    if isinstance(data, xr.Dataset):
+        data = rename_dataset(
+            dataset=data,
+            rename=rename,
+            action=action)
+    elif isinstance(data, xr.DataArray):
+        data = rename_data_array(
+            data_array=data,
+            rename=rename,
+            action=action)
     return data
 
 
@@ -312,3 +473,18 @@ def message(
     else:
         print(msg)
         return None
+
+
+#
+# INTERNAL
+#
+def _name_value(
+        name: str,
+        value: str,
+        action: Union[Literal['prefix', 'suffix', 'replace']] = 'prefix',
+        sep: str = '_') -> str:
+    if action == 'suffix':
+        value = f'{name}{sep}{value}'
+    elif action == 'prefix':
+        value = f'{value}{sep}{name}'
+    return value
