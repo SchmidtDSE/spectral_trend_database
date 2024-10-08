@@ -334,7 +334,6 @@ def nan_mean_window_smoothing(
         if rename:
             data = utils.rename_dataset(
                 dataset=data,
-                data_vars=data_vars,
                 rename=rename)
     return data
 
@@ -491,7 +490,7 @@ def macd_processor(
         data: types.XR,
         spans: Sequence[int],
         ewma_init_value: types.EWM_INITALIZER = 'sma',
-        result_only: bool = False ) -> types.NPXR:
+        result_only: bool = False ) -> Union[types.NPXR, None]:
     """ moving average convergence divergence (divergence)
 
 
@@ -543,10 +542,9 @@ def macd_processor(
         results.append(macd_div_values)
     results = [utils.npxr_rename(r, v) for (r, v) in zip(results, MACD_DATA_VAR_NAMES)]
     if result_only:
-        data = results[-1]
+        return results[-1]
     else:
-        data = utils.npxr_stack(results)
-    return data
+        return utils.npxr_stack(results)
 
 
 def savitzky_golay_processor(

@@ -15,7 +15,7 @@ from spectral_trend_database import constants
 from spectral_trend_database import types
 
 
-DEFAULT_ACTION = 'prefix'
+DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'prefix'
 #
 # I/O
 #
@@ -210,12 +210,12 @@ def to_ndarray(
 
 def stack_datasets(
         datasets: list[xr.Dataset],
-        dim: str = None,
+        dim: Optional[str] = None,
         raise_align_error: bool = False) -> Union[xr.Dataset, None]:
     """ safely stack datasets
     Args:
         datasets (list[xr.Dataset]): list of datasets to stack
-        dim (str = None):  dim to stack along. if None use coord of first
+        dim (Optional[str] = None):  dim to stack along. if None use coord of first
             dataset in datasets
         raise_align_error (bool = False): if True raise error if datasets
             do not align. Otherwise silently return None
@@ -227,7 +227,6 @@ def stack_datasets(
         dim = xr_coord_name(datasets[0])
     try:
         xr.align(*datasets, join='exact')[0]
-        return xr.concat(datasets, dim=dim)
     except ValueError as e:
         if raise_align_error:
             err = (
@@ -235,6 +234,7 @@ def stack_datasets(
                 f'datasets must align along dim[{dim}]'
             )
             raise ValueError(err)
+    return xr.concat(datasets, dim=dim)
 
 
 def stack_data_arrays(data_arrays: list[xr.DataArray]) -> xr.Dataset:
@@ -251,8 +251,8 @@ def stack_data_arrays(data_arrays: list[xr.DataArray]) -> xr.Dataset:
 
 def npxr_stack(
         data: Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]],
-        dim: str = None,
-        raise_align_error = False) -> Union[np.ndarray, xr.Dataset]:
+        dim: Optional[str] = None,
+        raise_align_error = False) -> Union[np.ndarray, xr.Dataset, None]:
     """ safely stack datasets, data-arrays, or np.arrays
 
     if data is np.ndarray wrapper for np.vstack
@@ -262,7 +262,7 @@ def npxr_stack(
     Args:
         data ( Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]]):
             list of data to stack
-        dim (str = None): [xr.dataset only] dim to stack along. if None use coord of first
+        dim (Optional[str] = None): [xr.dataset only] dim to stack along. if None use coord of first
             dataset in datasets
         raise_align_error (bool = False): [xr.dataset only] if True raise error if datasets
             do not align. Otherwise silently return None
@@ -272,12 +272,12 @@ def npxr_stack(
     """
     dtype = type(data[0])
     if dtype is np.ndarray:
-        data = np.vstack(data)
+        return np.vstack(data)  # type: ignore[arg-type]
     elif dtype is xr.DataArray:
-        data = stack_data_arrays(data)
-    elif dtype is xr.Dataset:
-        data = stack_datasets(data, dim=dim, raise_align_error=raise_align_error)
-    return data
+        return stack_data_arrays(data)  # type: ignore[arg-type]
+    else:
+        assert dtype is xr.Dataset
+        return stack_datasets(data, dim=dim, raise_align_error=raise_align_error)  # type: ignore[arg-type]
 
 
 def rename_data_array(
@@ -296,7 +296,7 @@ def rename_data_array(
         renamed data-array
     """
     if rename:
-        data_array.name = _name_value(data_array.name, rename, action)
+        data_array.name = _name_value(str(data_array.name), rename, action)
     return data_array
 
 
@@ -331,7 +331,7 @@ def rename_dataset(
 
 
 def npxr_rename(
-        data: types.NPXR,
+        data: types.NPDXR,
         rename: Optional[Union[dict[str, str], list[str], str]] = None,
         action: Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION):
     """ convince wrapper for rename_dataset/data_array
@@ -339,7 +339,7 @@ def npxr_rename(
     Note: if data is np.ndarray this method simply returns the passed data
 
     Args:
-        data (types.NPXR): np.ndarray (to be passed through) or, data-array/dataset to be renamed
+        data (types.DNPXR): np.ndarray (to be passed through) or, data-array/dataset to be renamed
         rename (Optional[Union[dict[str, str], list[str], str]] = None):
             if x.Dataset:
                 if str: rename with <rename> for all data_vars
@@ -360,6 +360,7 @@ def npxr_rename(
             rename=rename,
             action=action)
     elif isinstance(data, xr.DataArray):
+        assert isinstance(rename, str) or (rename is None)
         data = rename_data_array(
             data_array=data,
             rename=rename,
