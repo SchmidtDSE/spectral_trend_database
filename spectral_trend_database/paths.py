@@ -6,6 +6,7 @@ License:
 from typing import Optional
 import secrets
 from spectral_trend_database.config import config as c
+from spectral_trend_database import types
 
 
 #
@@ -19,19 +20,24 @@ URL = 'url'
 # METHODS
 #
 def local(
-        *args: str,
+        *args: types.PATH_PARTS,
         root_dir: Optional[str] = c.ROOT_DIR,
-        local_dir: Optional[str] = c.LOCAL_DATA_DIR) -> str:
+        local_dir: Optional[str] = c.LOCAL_DATA_DIR,
+        ext: Optional[str] = None) -> str:
     parts = [root_dir, local_dir] + list(args)
-    return '/'.join([p for p in parts if p])
+    path = '/'.join([str(p) for p in parts if p])
+    if ext:
+        path = f'{path}.{ext}'
+    return path
 
 
 def gcs(
-        *args: str,
+        *args: types.PATH_PARTS,
         bucket: Optional[str] = c.GCS_BUCKET,
         folder: Optional[str] = c.GCS_ROOT_FOLDER,
         prefix: Optional[str] = URI,
-        kill_cache: bool = False) -> str:
+        kill_cache: bool = False,
+        ext: Optional[str] = None) -> str:
     path = local(*args, root_dir=bucket, local_dir=folder)
     if prefix:
         if prefix == URI:
@@ -39,6 +45,8 @@ def gcs(
         elif prefix == URL:
             prefix = c.URL_PREFIX
         path = f'{prefix}{path}'
+    if ext:
+        path = f'{path}.{ext}'
     if kill_cache:
         path = f'{path}?kill_cache={secrets.token_urlsafe(16)}'
     return path

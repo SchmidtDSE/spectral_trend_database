@@ -35,6 +35,7 @@ def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list
 def named_sql(
         name: Optional[str] = None,
         table: Optional[str] = None,
+        table_config: dict = {},
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
         **values) -> str:
@@ -182,6 +183,7 @@ def named_sql(
     if table:
         table = table.upper()
         cfig = config.get('defaults', {})
+        cfig.update(table_config)
         cfig['table'] = table
         cfig['where'] = []
         for k, v in values.items():
@@ -227,7 +229,8 @@ def run(
         print_sql: bool = False,
         project: Optional[str] = None,
         client: Optional[bq.Client] = None,
-        **values) -> pd.DataFrame:
+        to_dataframe: bool = True,
+        **values) -> Union[bq.QueryJob, pd.DataFrame]:
     """ queries bigquery
 
     Executes a bigquery query either through an explicit sql string, using the
@@ -265,4 +268,9 @@ def run(
     assert sql is not None
     if print_sql:
         utils.message(sql, 'query', 'run')
-    return client.query(sql).to_dataframe()
+    resp = client.query(sql)
+    print(resp)
+    if to_dataframe:
+        return resp.to_dataframe()
+    else:
+        return resp

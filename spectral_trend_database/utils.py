@@ -6,6 +6,7 @@ License:
 from typing import Any, Union, Optional, Callable, Iterable, Sequence, Literal
 from pathlib import Path
 from copy import deepcopy
+import json
 import pandas as pd
 import numpy as np
 import xarray as xr
@@ -48,6 +49,20 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
         for k in key_path:
             obj = obj[k]
         return obj
+
+
+def append_ldjson(file_path: str, data: dict):
+    """ append/create line to line deliminated json file """
+    with open(file_path, "a") as file:
+        file.write(json.dumps(data) + "\n")
+
+
+#
+# CORE
+#
+def list_prefixes(src: list[str], prefixes: list[str]):
+    """ prefix list with lists """
+    return [f'{p}_{s}' for s in src for p in prefixes]
 
 
 #
@@ -213,47 +228,6 @@ def to_ndarray(
     return data
 
 
-def stack_datasets(
-        datasets: list[xr.Dataset],
-        dim: Optional[str] = None,
-        raise_align_error: bool = False) -> Union[xr.Dataset, None]:
-    """ safely stack datasets
-    Args:
-        datasets (list[xr.Dataset]): list of datasets to stack
-        dim (Optional[str] = None):  dim to stack along. if None use coord of first
-            dataset in datasets
-        raise_align_error (bool = False): if True raise error if datasets
-            do not align. Otherwise silently return None
-
-    Returns:
-        dataset stacking datasets along <dim>
-    """
-    if dim is None:
-        dim = xr_coord_name(datasets[0])
-    try:
-        xr.align(*datasets, join='exact')[0]
-    except ValueError as e:
-        if raise_align_error:
-            err = (
-                'spectral_trend_database.utils.stack_datasets: '
-                f'datasets must align along dim[{dim}]'
-            )
-            raise ValueError(err)
-    return xr.concat(datasets, dim=dim)
-
-
-def stack_data_arrays(data_arrays: list[xr.DataArray]) -> xr.Dataset:
-    """ safely stack data-arrays
-    Args:
-        data_arrays (list[xr.DataArray]): list of data_arrays to stack
-
-    Returns:
-        dataset stacking data_arrays
-    """
-    data_value_dict = {str(a.name): a for a in data_arrays}
-    return xr.Dataset(data_value_dict)
-
-
 def npxr_stack(
         data: Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]],
         dim: Optional[str] = None,
@@ -277,15 +251,18 @@ def npxr_stack(
     """
     dtype = type(data[0])
     if dtype is np.ndarray:
-        return np.vstack(data)  # type: ignore[arg-type]
-    elif dtype is xr.DataArray:
-        return stack_data_arrays(data)  # type: ignore[arg-type]
+        stack = np.vstack(data)  # type: ignore[arg-type]
+    elif (dtype is xr.DataArray) or (dtype is xr.Dataset):
+        stack = xr.combine_by_coords(data, join='exact')  # type: ignore[assignment, arg-type]
     else:
-        assert dtype is xr.Dataset
-        return stack_datasets(
-            data,  # type: ignore[arg-type]
-            dim=dim,
-            raise_align_error=raise_align_error)
+        stack = None
+        err = (
+            'spectral_trend_database.utils.npxr_stack: '
+            f'element data-types ({dtype}) must be one of '
+            f'np.ndarray, xr.DataArray or xr.Dataset'
+        )
+        raise ValueError(err)
+    return stack
 
 
 def rename_data_array(

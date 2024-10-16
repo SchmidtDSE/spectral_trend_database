@@ -32,6 +32,7 @@ from spectral_trend_database import smoothing
 from spectral_trend_database import utils
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
+from spectral_trend_database import types
 import mproc
 
 
@@ -54,7 +55,7 @@ MAP_METHOD = mproc.map_sequential
 #
 # METHODS
 #
-def get_data_vars(data: dict) -> list[str]:
+def get_data_vars(data: types.DICTABLE) -> list[str]:
     """ get data_var names from dataframe """
     return [
         column for column in data.keys()
