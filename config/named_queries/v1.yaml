@@ -21,3 +21,4 @@ queries:
     where:
     - key: year
       table: SCYM_YIELD
+

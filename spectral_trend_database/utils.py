@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 import dask.array
+from scipy import stats  # type: ignore[import-untyped]
 import yaml
 from spectral_trend_database import constants
 from spectral_trend_database import types
@@ -20,6 +21,7 @@ from spectral_trend_database import types
 # CONSTANTS
 #
 DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'prefix'
+LIST_LIKE_TYPES: tuple = (list, tuple, np.ndarray, xr.DataArray, pd.Series)
 
 
 #
@@ -73,7 +75,7 @@ def row_to_xr(
         coord: str,
         data_vars: Optional[list[str]] = None,
         coord_type: Optional[str] = constants.DATETIME_NS,
-        exclude: list[str] = []) -> xr.Dataset:
+        attrs: Union[bool, list[str], dict[str, Any]] = True) -> xr.Dataset:
     """ converts a pd.Series/row of pd.DataFrame to an xr.Dataset
 
     Creates a Dataset whose data_var values are given by <data_vars> keys, paramatrized by
@@ -87,20 +89,27 @@ def row_to_xr(
         coord_type (Optional[str] = c.DATETIME_NS):
             if passed coord_array will be cast to <coord_type>. used to avoid
             'non-nanosecond precision' warning from xarray
-        exclude (list[str] = []): list of keys to exclude from attributes.
+        attrs (Union[bool, list[str], dict[str, Any]] = True):
+            TODO ...list of keys to  ... from attributes.
 
     Returns:
         xr.Dataset
     """
     if data_vars is None:
         data_vars = list(row.keys())
-    data_vars = [d for d in data_vars if d not in [coord] + exclude]
-    attr_exclude = list(exclude) + data_vars + [coord]
     coord_array = row[coord]
     if coord_type:
         coord_array = np.array(coord_array).astype(coord_type)
-    attrs = {v: row[v] for v in row.keys() if v not in attr_exclude}
-    data_var_dict = {v: ([coord], row[v]) for v in data_vars}
+    vars_values = [(v, row[v]) for v in data_vars if v != coord]
+    alignable = [_alignable(coord_array, d) for v, d in vars_values]
+    if not isinstance(attrs, dict):
+        if isinstance(attrs, list):
+            attrs = {k: row[k] for k in attrs}
+        elif attrs:
+            attrs = {k: v for (k, v), a in zip(vars_values, alignable) if not a}
+        else:
+            attrs = {}
+    data_var_dict = {k: ([coord], v) for (k, v), a in zip(vars_values, alignable) if a}
     return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, coord_array)}, attrs=attrs)
 
 
@@ -148,6 +157,55 @@ def xr_coord_name(
     if data_var:
         data = data[data_var]
     return str(list(data.coords)[0])
+
+
+def xr_stats(
+        dataset: xr.Dataset,
+        data_vars: Optional[Sequence[str]] = None,
+        axis: Optional[int] = -1,
+        skew_kurtosis: bool = True) -> xr.Dataset:
+    """ compute stats for dataset
+
+        Args:
+            dataset (xr.Dataset): dataset on which to compute stats
+            data_vars (Optional[Sequence[str]] = None):
+                data_vars to compute stats on. if none use all data_vars
+            axis (Optional[int] = -1): axis along which to compute stats
+            skew_kurtosis (bool = True): if true also include skew, kurtosis in stats
+
+        Returns:
+            (xr.Dataset) dataset whose data_vars are stats values
+    """
+    if data_vars is None:
+        data_vars = list(dataset.data_vars)
+    arr = dataset_to_ndarray(dataset)
+    stat_values = [
+        arr.mean(axis=axis),
+        np.median(arr, axis=axis),
+        arr.min(axis=axis),
+        arr.max(axis=axis)
+    ]
+    dvar_names = [
+        [f'{n}_mean' for n in data_vars],
+        [f'{n}_median' for n in data_vars],
+        [f'{n}_min' for n in data_vars],
+        [f'{n}_max' for n in data_vars]
+    ]
+    dvar_names = [
+        _suffix_list(data_vars, 'mean'),
+        _suffix_list(data_vars, 'median'),
+        _suffix_list(data_vars, 'min'),
+        _suffix_list(data_vars, 'max')]
+    if skew_kurtosis:
+        stat_values += [stats.skew(arr, axis=axis), stats.kurtosis(arr, axis=axis)]
+        dvar_names += [_suffix_list(data_vars, 'skew'), _suffix_list(data_vars, 'kurtosis')]
+    datasets = []
+    for names, values in zip(dvar_names, stat_values):
+        datasets.append(
+            xr.Dataset(data_vars={
+                n: ([], v)
+                for (n, v) in zip(names, values)}))
+    return xr.combine_by_coords(datasets, join='exact')  # type: ignore[return-value]
 
 
 def npxr_shape(
@@ -474,3 +532,14 @@ def _name_value(
     elif action == 'prefix':
         value = f'{value}{sep}{name}'
     return value
+
+
+def _suffix_list(values: Sequence[str], suffix: str, sep: str = '_') -> list[str]:
+    return [f'{v}{sep}{suffix}' for v in values]
+
+
+def _alignable(ref_list: list, value: Any) -> bool:
+    if isinstance(value, LIST_LIKE_TYPES):
+        return len(ref_list) == len(value)
+    else:
+        return False
