@@ -160,7 +160,15 @@ def named_sql(
         limit (int=None):
             if exits add "LIMIT <limit>" to end of SQL call
         **values:
-            values for where clause (see usage above)
+            values for where clause (see usage above).
+
+            note: if kwarg ends in "_op" it is used as the comparison operator
+            (otherwise the operator) is "=".
+
+            for example:
+                `year=2010` =>  "... WHERE year=2010", but
+                `year=2010, year_op="<"` => "... WHERE year<2010"
+
 
     Returns:
         (str) sql command
@@ -186,11 +194,13 @@ def named_sql(
         cfig.update(table_config)
         cfig['table'] = table
         cfig['where'] = []
-        for k, v in values.items():
+        keys_values = [(k, v) for k, v in values.items() if not re.search('_op$', k)]
+        for k, v in keys_values:
             where_config = {}
             where_config['key'] = k
             where_config['table'] = table
-            where_config['value'] = v
+            where_config['value'] = _sql_query_value(v)
+            where_config['operator'] = values.get(f'{k}_op', "=")
             cfig['where'].append(where_config)
     else:
         err = (
@@ -206,6 +216,7 @@ def named_sql(
     for i, where in enumerate(cfig.get('where', [])):
         table = where['table']
         key = where['key']
+        op = where.get('operator', '=')
         try:
             value = where['value']
         except:
@@ -214,7 +225,7 @@ def named_sql(
             where_sql = ' AND'
         else:
             where_sql = ' WHERE'
-        sql += f'{where_sql} `{dataset}{table}`.{key} = {value}'
+        sql += f'{where_sql} `{dataset}{table}`.{key} {op} {value}'
     if limit:
         sql += f' LIMIT {limit}'
     return sql
@@ -269,8 +280,17 @@ def run(
     if print_sql:
         utils.message(sql, 'query', 'run')
     resp = client.query(sql)
-    print(resp)
     if to_dataframe:
         return resp.to_dataframe()
     else:
         return resp
+
+
+#
+# INTERNAL
+#
+def _sql_query_value(value: Union[str, int, float]):
+    if isinstance(value, (int, float)):
+        return value
+    else:
+        return f'"{value}"'
