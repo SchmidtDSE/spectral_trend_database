@@ -35,6 +35,7 @@ def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list
 def named_sql(
         name: Optional[str] = None,
         table: Optional[str] = None,
+        select: Optional[str] = None,
         table_config: dict = {},
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
@@ -208,7 +209,7 @@ def named_sql(
             'either <name> or <table> must be non-null'
         )
         raise ValueError(err)
-    sql = f"SELECT {cfig['select']} FROM `{dataset}{cfig['table']}`"
+    sql = f"SELECT {select or cfig['select']} FROM `{dataset}{cfig['table']}`"
     for join in cfig.get('join', []):
         jcfig = {**cfig, **join}
         sql += f" {jcfig['how']} JOIN `{dataset}{jcfig['table']}`"
