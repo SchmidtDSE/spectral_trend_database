@@ -49,7 +49,7 @@ def process_gcs_path(
         bucket = parts[0]
         parts = parts[1:]
     parts = parts + list(args)
-    if parts:
+    if bucket:
         path = '/'.join(parts)
         return bucket, path
     else:
