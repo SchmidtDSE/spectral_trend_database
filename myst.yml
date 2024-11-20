@@ -1,0 +1,37 @@
+version: 1
+site:
+  title: Spectral Trend Database
+  template: book-theme
+  hide_toc: true
+  hide_outline: true
+  options:
+    favicon: assets/favicon.ico
+    logo: assets/dse-2.black-crop.small.png
+    logo_dark: assets/dse-2.white-crop.small.png
+project:
+  title: Spectral Trend Database
+  subtitle: a historcal database spectral indices
+  authors:
+    - name: Brookie Guzder-Williams
+      orcid: 0000-0001-6855-8260
+      corresponding: true
+      email: bguzder-williams@berkeley.edu
+      affiliations:
+        - dse
+        - ucb
+    - name: Maya Weltman-Fahs
+      affiliations:
+        - dse
+        - ucb
+  affiliations:
+    - id: dse
+      institution: The Eric and Wendy Schmidt Center for Data Science & Environment
+    - id: ucb
+      institution: University of California, Berkeley
+  github: https://github.com/SchmidtDSE/map_something
+  toc:
+    - file: myst/main.md
+    - file: myst/sections/intro.md
+    - file: myst/sections/data.md
+    - file: myst/sections/scripts.md
+

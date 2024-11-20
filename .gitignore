@@ -13,6 +13,10 @@ downloads/
 logs/
 config/user.yaml
 
+# IGNORE MYST BUILD (FOR NOW - WILL HOOKS PRODUCE NEW ONE?)
+_build/
+# IGNORE NOTES (FOR NOW)
+notes/
 #***************************************************************************
 # Mac
 #***************************************************************************
