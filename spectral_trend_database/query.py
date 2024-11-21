@@ -3,12 +3,115 @@
 License:
     BSD, see LICENSE.md
 """
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Sequence
 import re
 import pandas as pd
 from google.cloud import bigquery as bq
 from spectral_trend_database.config import config as c
 from spectral_trend_database import utils
+
+
+#
+# CLASSES
+#
+OPERATOR_SUFFIX: str = 'op'
+DEFAULT_OPERATOR: str = '='
+
+
+class QueryConstructor(object):
+
+    def __init__(self, table, on=None, using=None, limit=None):
+        self.reset()
+        self._table = table
+        self._default_on = on
+        self._default_using = using
+
+    def select(self, *columns, **columns_as):
+        self._select_list += list(columns) + [f'{k} as {v}' for k, v in columns_as.items()]
+
+    def join(self, table, *using, on: Optional[Union[Sequence, str]]=None, join_table: Optional[str]=None):
+        self._join_list.append(self._join_element(table, join_table or self._table, using, on))
+
+    def where(self, table: Optional[str]=None, **kwargs):
+        if not table:
+            table = self._table
+        keys_values = [(k, v) for k, v in kwargs.items() if not re.search(f'_{OPERATOR_SUFFIX}$', k)]
+        for k, v in keys_values:
+            self._where_list.append({
+                'key': k,
+                'table': table,
+                'value': self._sql_query_value(v),
+                'operator': kwargs.get(f'{k}_{OPERATOR_SUFFIX}', DEFAULT_OPERATOR)})
+
+    def append(self, *values: str):
+        self._append_list += values
+
+    def limit(self, max_rows: Optional[int]=None):
+        self._limit = max_rows
+
+    def sql(self, force: bool=True) -> str:
+        if force or (not self._sql):
+            self._sql = self._construct_sql()
+        return self._sql
+
+    def reset(self):
+        self._sql = None
+        self._select_list = []
+        self._join_list = []
+        self._where_list = []
+        self._append_list = []
+        self._limit = None
+
+
+    #
+    # INTERNAL
+    #
+    def _construct_sql(self):
+        if self._select_list:
+            self._select = 'SELECT ' + ', '.join(self._select_list)
+        else:
+            self._select = 'SELECT *'
+        self._join = ' '.join(self._join_list)
+        sql_statement = self._select  + ' ' + self._join
+        if self._where_list:
+            where_statements = [self._process_where(**kw) for kw in self._where_list]
+            sql_statement += 'WHERE ' + ' AND '.join(where_statements)
+        if self._append_list:
+            sql_statement += ' ' + ' '.join(self._append_list)
+        if self._limit:
+            sql_statement += f' LIMIT {self._limit}'
+        return sql_statement
+
+
+    def _join_element(self, table, join_table, using, on):
+        _statement = f'JOIN {table}'
+        if not (using or on):
+            if self._default_using:
+                using = self._default_using
+            else:
+                on = self._default_on
+        if using:
+            _statement += f' USING ({", ".join(using)})'
+        elif on:
+            on = [self._process_on(v, table, join_table) for v in on]
+            _statement += ' ON ' + ' AND '.join(on)
+        else:
+            raise ValueError('statement required')
+        return _statement
+
+    def _process_where(self, table, key, value, operator):
+        return f'{table}.{key} {operator} {value}'
+
+    def _process_on(self, value, table, join_table):
+        if isinstance(value, str):
+            value = value, value
+        return f'{join_table}.{value[0]} = {table}.{value[1]}'
+
+    def _sql_query_value(self, value: Union[str, int, float]) ->Union[str, int, float]:
+        if isinstance(value, (int, float)):
+            return value
+        else:
+            return f'"{value}"'
 
 
 #
@@ -189,7 +292,7 @@ def named_sql(
         dataset = ''
     if name:
         cfig = {**config.get('defaults', {}), **config['queries'][name]}
-    if table:
+    elif table:
         table = table.upper()
         cfig = config.get('defaults', {})
         cfig.update(table_config)
