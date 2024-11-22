@@ -34,7 +34,6 @@ OPERATOR_SUFFIX: str = 'op'
 DEFAULT_OPERATOR: str = '='
 
 
-
 class QueryConstructor(object):
     """ class for constructing SQL queries
 
@@ -67,7 +66,7 @@ class QueryConstructor(object):
         """
         config = deepcopy(config)
         init = config.get('init')
-        lim=config.get('limit')
+        lim = config.get('limit')
         sqlc = cls(**init)
         for _cfig in cls._args_as_list(config, 'select', []):
             args, kwargs = cls._process_args_kwargs(_cfig)
@@ -89,12 +88,11 @@ class QueryConstructor(object):
             sqlc.limit(lim)
         return sqlc
 
-
     def __init__(self,
             table: str,
-            how: JOINS='LEFT',
-            on: Optional[SEQUENCE_STRS]=None,
-            using: Optional[SEQUENCE_STRS]=None):
+            how: JOINS = 'LEFT',
+            on: Optional[SEQUENCE_STRS] = None,
+            using: Optional[SEQUENCE_STRS] = None):
         """
         Args:
             table (str): table-name
@@ -112,7 +110,6 @@ class QueryConstructor(object):
         self._default_how = how
         self._default_on = self._as_list(on)
         self._default_using = self._as_list(using)
-
 
     def select(self, *columns: str, **columns_as) -> None:
         """ add select columns
@@ -132,16 +129,13 @@ class QueryConstructor(object):
         """
         self._select_list += list(columns) + [f'{k} as {v}' for k, v in columns_as.items()]
 
-
     def join(self,
             table: str,
             *using: str,
-            how: Optional[str]=None,
-            on: Optional[Union[Sequence, str]]=None,
-            join_table: Optional[str]=None) -> None:
+            how: Optional[str] = None,
+            on: Optional[Union[Sequence, str]] = None,
+            join_table: Optional[str] = None) -> None:
         """ add join
-
-        TODO: manage joins on with different column names
 
         When constructing JOINs we prioritze <using> over <on>. Namely:
             1. If <using> use <using>
@@ -167,8 +161,7 @@ class QueryConstructor(object):
         join_element = self._join_element(table, join_table, how, using, on)
         self._join_list.append(join_element)
 
-
-    def where(self, table: Optional[str]=None, **kwargs: Union[str, int, float]) -> None:
+    def where(self, table: Optional[str] = None, **kwargs: Union[str, int, float]) -> None:
         """ add where statement
 
         Sets where statement through key value pairs.
@@ -205,7 +198,6 @@ class QueryConstructor(object):
                 'value': self._sql_query_value(v),
                 'operator': kwargs.get(f'{k}_{OPERATOR_SUFFIX}', DEFAULT_OPERATOR)})
 
-
     def append(self, *values: str) -> None:
         """ append strings seperated by a space to end of sql statement
 
@@ -219,8 +211,7 @@ class QueryConstructor(object):
         """
         self._append_list += values
 
-
-    def limit(self, max_rows: Optional[int]=None) -> None:
+    def limit(self, max_rows: Optional[int] = None) -> None:
         """ limit number of rows
 
         Args:
@@ -228,8 +219,7 @@ class QueryConstructor(object):
         """
         self._limit = max_rows
 
-
-    def sql(self, force: bool=False) -> str:
+    def sql(self, force: bool = False) -> str:
         """ get sql statement
 
         This will construct (if not yet constructed or `force=True`) the sql statment and return
@@ -244,7 +234,6 @@ class QueryConstructor(object):
             self._sql = self._construct_sql()
         return self._sql
 
-
     def reset(self) -> None:
         """ resets/initializes instance """
         self._sql = None
@@ -253,7 +242,6 @@ class QueryConstructor(object):
         self._where_list = []
         self._append_list = []
         self._limit = None
-
 
     #
     # INTERNAL (STATIC & CLASS)
@@ -266,13 +254,12 @@ class QueryConstructor(object):
         elif isinstance(value, dict):
             args = []
             kwargs = value
-        elif isinstance(value, tuple) and (len(value)==2):
+        elif isinstance(value, tuple) and (len(value) == 2):
             args, kwargs = value
         else:
             args = [value]
             kwargs = {}
         return args, kwargs
-
 
     @staticmethod
     def _as_list(value):
@@ -280,12 +267,10 @@ class QueryConstructor(object):
             value = [value]
         return value
 
-
     @classmethod
     def _args_as_list(cls, config, key, default=None):
         value = config.get(key, default)
         return cls._as_list(value)
-
 
     #
     # INTERNAL (INSTANCE)
@@ -299,7 +284,7 @@ class QueryConstructor(object):
             self._select = 'SELECT *'
         self._select += f' FROM {self._table}'
         self._join = ' '.join(self._join_list)
-        sql_statement = self._select  + ' ' + self._join
+        sql_statement = self._select + ' ' + self._join
         if self._where_list:
             where_statements = [self._process_where(**kw) for kw in self._where_list]
             sql_statement += ' WHERE ' + ' AND '.join(where_statements)
@@ -308,7 +293,6 @@ class QueryConstructor(object):
         if self._limit:
             sql_statement += f' LIMIT {self._limit}'
         return sql_statement
-
 
     def _join_element(self, table, join_table, how, using, on) -> str:
         """ construct JOIN-statement part """
@@ -332,11 +316,9 @@ class QueryConstructor(object):
             raise ValueError('statement required')
         return _statement
 
-
     def _process_where(self, table, key, value, operator) -> str:
         """ construct WHERE-statement part """
         return f'{table}.{key} {operator} {value}'
-
 
     def _process_on(self, value, table, join_table) -> str:
         """ construct ON-statement part """
@@ -354,7 +336,6 @@ class QueryConstructor(object):
                 'a string containg no more than one comma')
             raise ValueError(err)
         return f'{join_table}.{v1} = {table}.{v2}'
-
 
     def _sql_query_value(self, value: Union[str, int, float]) -> Union[str, int, float]:
         """ safe query value
