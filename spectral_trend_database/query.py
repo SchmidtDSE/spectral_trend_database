@@ -34,6 +34,7 @@ OPERATOR_SUFFIX: str = 'op'
 DEFAULT_OPERATOR: str = '='
 
 
+
 class QueryConstructor(object):
     """ class for constructing SQL queries
 
@@ -339,9 +340,20 @@ class QueryConstructor(object):
 
     def _process_on(self, value, table, join_table) -> str:
         """ construct ON-statement part """
-        if not isinstance(value, (list, tuple)):
-            value = value, value
-        return f'{join_table}.{value[0]} = {table}.{value[1]}'
+        if isinstance(value, str):
+            value = [v.strip() for v in value.split(',')]
+        nb_parts = len(value)
+        if nb_parts == 2:
+            v1, v2 = value
+        elif nb_parts == 1:
+            v1, v2 = value[0], value[0]
+        else:
+            err = (
+                'query.QueryConstructor._process_on'
+                'value must be tuple of len 2, or'
+                'a string containg no more than one comma')
+            raise ValueError(err)
+        return f'{join_table}.{v1} = {table}.{v2}'
 
 
     def _sql_query_value(self, value: Union[str, int, float]) -> Union[str, int, float]:
