@@ -27,11 +27,13 @@ JOINS: TypeAlias = Literal[
 SEQUENCE_STRS: TypeAlias = Union[Sequence[str], str]
 
 
+
 #
 # CLASSES
 #
 OPERATOR_SUFFIX: str = 'op'
 DEFAULT_OPERATOR: str = '='
+TABLE_KEYS: list[str] = ['table', 'join_table']
 
 
 class QueryConstructor(object):
@@ -350,6 +352,23 @@ class QueryConstructor(object):
 #
 # METHODS
 #
+def process_query_config(config, query_name):
+    config = deepcopy(config)
+    defaults = config.get('defaults',{})
+    project = config.get('project')
+    dataset = config.get('dataset')
+    config = config['queries'][query_name]
+    prefix = '.'.join([v for v in [project, dataset] if v])
+    config['init'] = {**defaults, **config.get('init',{})}
+    _config = {}
+    for k, v in config.items():
+        if isinstance(v, list):
+            _config[k] = [_safe_prepend_keys(prefix, elm) for elm in v]
+        else:
+            _config[k] = _safe_prepend_keys(prefix, v)
+    return _config
+
+
 def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list['str']:
     """ list of queries in config file
 
@@ -626,6 +645,14 @@ def run(
 #
 # INTERNAL
 #
+def _safe_prepend_keys(prefix, value, keys=TABLE_KEYS):
+    if isinstance(value, dict):
+        for key in keys:
+            v = value.get(key)
+            if isinstance(v, str) and ('.' not in v):
+                value[key] = f'{prefix}.{v}'
+    return value
+
 def _sql_query_value(value: Union[str, int, float]):
     if isinstance(value, (int, float)):
         return value
