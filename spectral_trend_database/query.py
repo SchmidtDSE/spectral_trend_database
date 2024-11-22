@@ -62,6 +62,9 @@ class QueryConstructor(object):
         LIMIT 100
         ```
     """
+    #
+    # CLASS METHODS
+    #
     @classmethod
     def from_config(cls, config):
         """ generate QueryConstructor instance from config file
@@ -69,27 +72,30 @@ class QueryConstructor(object):
         config = deepcopy(config)
         init = config.get('init')
         lim = config.get('limit')
-        sqlc = cls(**init)
+        qc = cls(**init)
         for _cfig in cls._args_as_list(config, 'select', []):
             args, kwargs = cls._process_args_kwargs(_cfig)
-            sqlc.select(*args, **kwargs)
+            qc.select(*args, **kwargs)
         for _cfig in cls._args_as_list(config, 'join', []):
             table = _cfig.pop('table')
-            sqlc.join(
+            qc.join(
                 table,
                 *cls._as_list(_cfig.get('using', [])),
                 how=_cfig.get('how'),
                 on=_cfig.get('on'),
                 join_table=_cfig.get('join_table'))
         for _cfig in cls._args_as_list(config, 'where', []):
-            table = _cfig.pop('table')
-            sqlc.where(table, **_cfig)
+            safe_table = [t for t in [_cfig.pop('table',None)] if t]
+            qc.where(*safe_table, **_cfig)
         for _cfig in cls._args_as_list(config, 'append', []):
-            sqlc.append(_cfig)
+            qc.append(_cfig)
         if lim:
-            sqlc.limit(lim)
-        return sqlc
+            qc.limit(lim)
+        return qc
 
+    #
+    # PUBLIC
+    #
     def __init__(self,
             table: str,
             how: JOINS = 'LEFT',
@@ -394,6 +400,7 @@ def named_sql(
         table_config: dict = {},
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
+        uppercase_table: bool = True,
         **values) -> str:
     """ generate sql command from config file
 
@@ -404,25 +411,36 @@ def named_sql(
     project: dse-regenag
     dataset: BiomassTrends
     defaults:
-      how: LEFT
-      select: '*'
       using: sample_id
     queries:
-      scym_raw_all:
-        table: SAMPLE_POINTS
+      raw_landsat:
+        init:
+            table: SAMPLE_POINTS
         join:
-          - table: SCYM_YIELD
-          - table: LANDSAT_RAW_MASKED
-            using: sample_id, year
+            table: LANDSAT_RAW_MASKED
+      raw_landsat_between_2020_and_2020:
+        init:
+            table: SAMPLE_POINTS
+        join:
+            table: LANDSAT_RAW_MASKED
+        where:
+            - year: 2010
+              year_op: >=
+            - year: 2020
+              year_op: <
+      scym_raw_landsat:
+        init:
+            table: SAMPLE_POINTS
+        join:
+            - table: SCYM_YIELD
+            - table: LANDSAT_RAW_MASKED
+              using: sample_id, year
     ```
 
-    - The gcp project and dataset are set using the `project`/`dataset` values.
-    - The `defaults` dict gives default values to add to each query (if the query) doesn't
-      explicitly provide them. For example the above yaml says to always use a
-      LEFT join, however if in one of the named `queries` (see below) contains `how: RIGHT`
-      a RIGHT join will be used instead.  Similarly this will by default use
-      `SELECT * ...`, but if a query contains `select: a, b, c` the query will be
-      `SELECT a, b, c ...`.
+    - The gcp project and dataset are set using the `project`/`dataset` values. These will
+      be used to prepend table/join_table names if the table/join_table names do not contain '.'
+    - The `defaults` dict can set default `how`, `on`, and `using` passed to the
+      QueryConstructor initializer
     - `queries` is a dictionary with all the named queries. We start my adding creating a
       select statement 'SELECT {select} FROM {table}', where "{}" indicate the value
       subtracted from the named-query dict or the defaults dict. Then we sequentially loop
@@ -533,58 +551,20 @@ def named_sql(
         if not re.search(r'(yaml|yml)$', config):
             config = f'{c.NAMED_QUERY_DIR}/{config}.yaml'
         config = utils.read_yaml(config)
+    elif not config:
+        config = {}
     assert isinstance(config, dict)
-    project = config.get('project')
-    dataset = config.get('dataset')
-    if dataset:
-        if project:
-            dataset = f'{project}.{dataset}'
-        dataset += '.'
+    if table:
+        if uppercase_table:
+            table = table.upper()
+        config['init'] = {'table': table}
     else:
-        dataset = ''
-    if name:
-        cfig = {**config.get('defaults', {}), **config['queries'][name]}
-    elif table:
-        table = table.upper()
-        cfig = config.get('defaults', {})
-        cfig.update(table_config)
-        cfig['table'] = table
-        cfig['where'] = []
-        keys_values = [(k, v) for k, v in values.items() if not re.search('_op$', k)]
-        for k, v in keys_values:
-            where_config = {}
-            where_config['key'] = k
-            where_config['table'] = table
-            where_config['value'] = _sql_query_value(v)
-            where_config['operator'] = values.get(f'{k}_op', "=")
-            cfig['where'].append(where_config)
-    else:
-        err = (
-            'spectral_trend_database.query.named_sql: '
-            'either <name> or <table> must be non-null'
-        )
-        raise ValueError(err)
-    sql = f"SELECT {select or cfig['select']} FROM `{dataset}{cfig['table']}`"
-    for join in cfig.get('join', []):
-        jcfig = {**cfig, **join}
-        sql += f" {jcfig['how']} JOIN `{dataset}{jcfig['table']}`"
-        sql += f" USING ({jcfig['using']})"
-    for i, where in enumerate(cfig.get('where', [])):
-        table = where['table']
-        key = where['key']
-        op = where.get('operator', '=')
-        try:
-            value = where['value']
-        except:
-            value = values[key]
-        if i:
-            where_sql = ' AND'
-        else:
-            where_sql = ' WHERE'
-        sql += f'{where_sql} `{dataset}{table}`.{key} {op} {value}'
-    if limit:
-        sql += f' LIMIT {limit}'
-    return sql
+        config = process_query_config(config, name)
+    qc = QueryConstructor.from_config(config)
+    if values:
+        qc.where(**values)
+    return qc.sql()
+
 
 
 def run(
