@@ -98,12 +98,21 @@ class QueryConstructor(object):
     #
     def __init__(self,
             table: str,
+            table_prefix: Optional[str] = None,
+            table_escape: Optional[str] = '`',
             how: JOINS = 'LEFT',
             on: Optional[SEQUENCE_STRS] = None,
-            using: Optional[SEQUENCE_STRS] = None):
+            using: Optional[SEQUENCE_STRS] = None) -> None:
         """
         Args:
             table (str): table-name
+            table_prefix (Optional[str] = None):
+                prefix to be added to table/joint_table names.
+                if <table_prefix> and '.' not in <table>/<joint_table>
+                then <table>/<joint_table> => <table_prefix>.<table>/<joint_table>
+            table_escape (Optional[str] = '`'):
+                if exists escape table names using this value.
+                ie if table_escape = '`': TABLE_NAME => `TABLE_NAME`
             how (JOINS='LEFT'):
                 default type of join [LEFT, RIGHT, INNER, OUTER]
                 note: lower case allowed
@@ -114,10 +123,12 @@ class QueryConstructor(object):
                 note: <using> takes precedence over <on>
         """
         self.reset()
-        self._table = table
         self._default_how = how
         self._default_on = self._as_list(on)
         self._default_using = self._as_list(using)
+        self._table_prefix = table_prefix
+        self._table_escape = table_escape
+        self._table = self._table_name(table)
 
     def select(self, *columns: str, **columns_as) -> None:
         """ add select columns
@@ -166,6 +177,8 @@ class QueryConstructor(object):
                 name of table to join with
                 uses <table> passed in initialization method if None
         """
+        table = self._table_name(table)
+        join_table = self._table_name(join_table)
         join_element = self._join_element(table, join_table, how, using, on)
         self._join_list.append(join_element)
 
@@ -194,8 +207,7 @@ class QueryConstructor(object):
             sqlc.sql() # => '... WHERE table2.year < 2020 AND table2.sample_id = "asd23ragwd"'
             ```
         """
-        if not table:
-            table = self._table
+        table = self._table_name(table)
         keys_values = [
             (k, v) for k, v in kwargs.items()
             if not re.search(f'_{OPERATOR_SUFFIX}$', k)]
@@ -243,7 +255,7 @@ class QueryConstructor(object):
         return self._sql
 
     def reset(self) -> None:
-        """ resets/initializes instance """
+        """ resets instance """
         self._sql = None
         self._select_list = []
         self._join_list = []
@@ -283,6 +295,18 @@ class QueryConstructor(object):
     #
     # INTERNAL (INSTANCE)
     #
+    def _table_name(self, table):
+        if table:
+            if self._table_prefix and ('.' not in table):
+                table = f'{self._table_prefix}.{table}'
+        else:
+            table = self._table
+        if table and self._table_escape:
+            rgx = f'{self._table_escape}.+{self._table_escape}$'
+            if not re.search(rgx, table):
+                table = f'{self._table_escape}{table}{self._table_escape}'
+        return table
+
     def _construct_sql(self) -> str:
         """ construct (and return) the sql-statement
         """
@@ -304,8 +328,6 @@ class QueryConstructor(object):
 
     def _join_element(self, table, join_table, how, using, on) -> str:
         """ construct JOIN-statement part """
-        if not join_table:
-            join_table = self._table
         if not how:
             how = self._default_how
         _statement = f'{how.upper()} JOIN {table}'
@@ -358,21 +380,31 @@ class QueryConstructor(object):
 #
 # METHODS
 #
-def process_query_config(config, query_name):
+def process_named_query_config(config: dict, query_name: str) -> dict:
+    """
+    Extracts named query from queries config, and adds defaults.
+    as well as table_prefix.
+
+    Args:
+        config (dict): queries-config as described above
+        query_name (str):
+            key for query in queries-config
+            to extract: config['queries'][<query_name>]
+    Returns:
+        (dict) query-config that can be passed to
+        QueryConstructor.from_config(...)
+    """
     config = deepcopy(config)
     defaults = config.get('defaults',{})
-    project = config.get('project')
-    dataset = config.get('dataset')
+    table_prefix = defaults.get('table_prefix')
+    if not table_prefix:
+        project = config.get('project')
+        dataset = config.get('dataset')
+        table_prefix = '.'.join([v for v in [project, dataset] if v])
     config = config['queries'][query_name]
-    prefix = '.'.join([v for v in [project, dataset] if v])
     config['init'] = {**defaults, **config.get('init',{})}
-    _config = {}
-    for k, v in config.items():
-        if isinstance(v, list):
-            _config[k] = [_safe_prepend_keys(prefix, elm) for elm in v]
-        else:
-            _config[k] = _safe_prepend_keys(prefix, v)
-    return _config
+    config['init']['table_prefix'] = config['init'].get('table_prefix', table_prefix)
+    return config
 
 
 def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list['str']:
@@ -404,15 +436,41 @@ def named_sql(
         **values) -> str:
     """ generate sql command from config file
 
-    Consider the named queries config file:
+    queries-config files have the following parts
 
     ```yaml
-    # config/named_queries/example.yaml
-    project: dse-regenag
-    dataset: BiomassTrends
-    defaults:
-      using: sample_id
-    queries:
+    project: |
+        [optional] (str) gcp project-name used to generate default table_prefix if table_prefix absent
+        ie table_prefix = project.dataset
+
+    dataset: |
+        [optional] (str) gcp dataset-name used to generate default table_prefix if table_prefix absent
+        ie table_prefix = project.dataset
+
+    defaults: |
+        [optional] (dict) default init values for all named queries. may contain all arguments to
+        QueryConstructor(...) except `table`. namely: `table_prefix`, `how`, `on`, and `using`.
+
+        notes:
+            - if table_prefix is absent/empty and `project` and/or `dataset` exist a
+              table_prefix = project.dataset will be added.
+            - `init` dicts in `queries` dicts below will override the defaults
+
+    queries: |
+        (dict) key-value pairs of query-name, query-config. the key value pairs are
+
+        key: (str) name of query
+        value: |
+            (dict | list[dict]) dicts of args/kwargs to QueryConstructor __init__ method (key = `init`)
+            as well as each of QueryConstructor main public methods. Namely:
+            `select`, `join`, `where`, `append`, and `limit`.
+
+            if value is dict the dict args will be passed to named method
+            if value is list[dict] for each element of value the dict args
+            will be passed to named method
+
+
+    Example:
       raw_landsat:
         init:
             table: SAMPLE_POINTS
@@ -425,9 +483,10 @@ def named_sql(
             table: LANDSAT_RAW_MASKED
         where:
             - year: 2010
-              year_op: >=
+              year_op: '>='
             - year: 2020
               year_op: <
+        limit: 23
       scym_raw_landsat:
         init:
             table: SAMPLE_POINTS
@@ -439,6 +498,7 @@ def named_sql(
 
     - The gcp project and dataset are set using the `project`/`dataset` values. These will
       be used to prepend table/join_table names if the table/join_table names do not contain '.'
+
     - The `defaults` dict can set default `how`, `on`, and `using` passed to the
       QueryConstructor initializer
     - `queries` is a dictionary with all the named queries. We start my adding creating a
@@ -557,9 +617,10 @@ def named_sql(
     if table:
         if uppercase_table:
             table = table.upper()
-        config['init'] = {'table': table}
+        config['init'] = config.get('defaults',{})
+        config['table'] = table
     else:
-        config = process_query_config(config, name)
+        config = process_named_query_config(config, name)
     qc = QueryConstructor.from_config(config)
     if values:
         qc.where(**values)
