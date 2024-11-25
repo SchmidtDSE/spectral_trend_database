@@ -60,6 +60,15 @@ MAP_METHOD: TypeAlias = Literal[
     'sequential',
     'threadpool',
     'pool']
+JOINS: TypeAlias = Literal[
+    'LEFT',
+    'RIGHT',
+    'INNER',
+    'OUTER',
+    'left',
+    'right',
+    'inner',
+    'outer']
 CONV_MODE_ARGS: list[Any] = type_args(CONV_MODE)
 FILL_METHOD_ARGS: list[Any] = type_args(FILL_METHOD)
 INTERPOLATE_METHOD_ARGS: list[Any] = type_args(INTERPOLATE_METHOD)
