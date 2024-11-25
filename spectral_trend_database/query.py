@@ -410,11 +410,14 @@ class QueryConstructor(object):
         else:
             self._select = 'SELECT *'
         self._select += f' FROM {self._table}'
-        self._join = ' '.join(self._join_list)
-        sql_statement = self._select + ' ' + self._join
+        sql_statement = self._select
+        if self._join_list:
+            self._join = ' '.join(self._join_list)
+            sql_statement += ' ' + self._join
         if self._where_list:
             where_statements = [self._process_where(**kw) for kw in self._where_list]
-            sql_statement += ' WHERE ' + ' AND '.join(where_statements)
+            self._where = ' AND '.join(where_statements)
+            sql_statement += ' WHERE ' + self._where
         if self._append_list:
             sql_statement += ' ' + ' '.join(self._append_list)
         if self._limit:
@@ -520,7 +523,7 @@ def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list
     return list(config['queries'].keys())
 
 
-def named_sql(
+def sql(
         name: Optional[str] = None,
         table: Optional[str] = None,
         select: Optional[str] = None,
