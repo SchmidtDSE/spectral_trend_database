@@ -523,7 +523,7 @@ def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list
     return list(config['queries'].keys())
 
 
-def sql(
+def named_sql(
         name: Optional[str] = None,
         table: Optional[str] = None,
         select: Optional[str] = None,
