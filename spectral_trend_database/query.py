@@ -732,6 +732,45 @@ def named_sql(
     return qc.sql()
 
 
+def table_names(
+        project: str = c.GCP_PROJECT,
+        database: str = c.DATASET_NAME,
+        select: str = 'table_name',
+        run_query: bool = True,
+        to_list: bool = True,
+        to_dataframe: bool = True) -> Union[str, bq.QueryJob, pd.DataFrame]:
+    sql = f"select {select} from `{project}.{database}.INFORMATION_SCHEMA.TABLES`"
+    if run_query:
+        result = run(sql=sql, to_dataframe=to_dataframe or to_list)
+        if to_list:
+            return result.table_name.tolist()
+        else:
+            return result
+    else:
+        return sql
+
+
+def column_names(
+        table: str,
+        project: str = c.GCP_PROJECT,
+        database: str = c.DATASET_NAME,
+        select: str = 'column_name',
+        run_query: bool = True,
+        to_list: bool = True,
+        to_dataframe: bool = True) -> Union[str, bq.QueryJob, pd.DataFrame]:
+    sql = f"select {select} from `{project}.{database}.INFORMATION_SCHEMA.COLUMNS`"
+    if table.upper() not in ['*', 'ALL']:
+        sql += f' WHERE table_name = "{table}"'
+    if run_query:
+        result = run(sql=sql, to_dataframe=to_dataframe or to_list)
+        if to_list:
+            return result.column_name.tolist()
+        else:
+            return result
+    else:
+        return sql
+
+
 def run(
         name: Optional[str] = None,
         table: Optional[str] = None,
@@ -775,7 +814,10 @@ def run(
     """
     if client is None:
         client = bq.Client(project=project)
-    if name or table:
+    if sql:
+        if limit:
+            sql += f' LIMIT {limit}'
+    elif name or table:
         sql = named_sql(name=name, table=table, config=config, limit=limit, **values)
     assert sql is not None
     if print_sql:
