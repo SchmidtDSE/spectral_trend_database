@@ -814,9 +814,8 @@ def run(
     """
     if client is None:
         client = bq.Client(project=project)
-    if sql:
-        if limit:
-            sql += f' LIMIT {limit}'
+    if sql and limit:
+        sql += f' LIMIT {limit}'
     elif name or table:
         sql = named_sql(name=name, table=table, config=config, limit=limit, **values)
     assert sql is not None
