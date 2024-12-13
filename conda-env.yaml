@@ -1,4 +1,4 @@
-name: spectral_trend_database
+name: stdb
 channels:
   - conda-forge
   - apple
@@ -6,6 +6,7 @@ channels:
 dependencies:
   # base
   - python=3.10
+  - tensorflow-deps
   - pip
   - pycodestyle
   - mypy
@@ -17,6 +18,8 @@ dependencies:
   - pandas
   - scipy
   - xarray
+  - dask
+  - h3-py
   - matplotlib
   - seaborn
   - click
@@ -32,7 +35,9 @@ dependencies:
   - rioxarray
   - earthengine-api
   - twine
+  - sphinx
   - mystmd
+  - myst-parser
   - jupyterlab-myst
   - altair-all
   - vega_datasets
@@ -48,6 +53,8 @@ dependencies:
   - jupyter-dash
   - types-requests
   - pip:
+    - tensorflow-macos
+    - tensorflow-metal
     - python-geohash
     - xee
     - build
