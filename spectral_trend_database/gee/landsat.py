@@ -115,7 +115,7 @@ def cloud_masked_rescaled_image(
     _im = ee.Image(im)
     qa_mask = _im.select('QA_PIXEL').bitwiseAnd(0b11111).eq(0)
     saturation_mask = _im.select('QA_RADSAT').eq(0)
-    _im.updateMask(qa_mask).updateMask(saturation_mask)
+    _im = _im.updateMask(qa_mask).updateMask(saturation_mask)
     _im = _im.select(bands).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET)
     if mission:
         _im = _im.set('mission', mission)
