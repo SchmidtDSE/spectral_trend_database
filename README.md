@@ -15,14 +15,6 @@ MODULES AND SCRIPTS TO:
 	- green (or wet or soil ... days)
 	- other
 
----
-
-#### INSTALL
-
-```python
-...
-```
-
 --- 
 
 #### REQUIREMENTS
@@ -35,6 +27,16 @@ mamba env create -f conda-env.yaml
 
 # update
 mamba env update -f conda-env.yaml --prune
+```
+
+---
+
+#### INSTALL
+
+
+```bash
+conda activate stdb
+pip install -e .
 ```
 
 --- 
