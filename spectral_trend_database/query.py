@@ -149,7 +149,7 @@ class QueryConstructor(object):
                 PyYaml converts "on" to True (even for keys). i've allowed
                 for "on"-key in 3 ways:
                     1. make string explicit with quotes. ie `'on': sample_id`
-                    2. use "on_columns": ie `'on': sample_id`
+                    2. use "on_columns": ie `on_columns: sample_id`
                     3. leave it as on. the config will show up `True: sample_id`, but
                        within a join this will be converted to "on".
 
@@ -234,7 +234,7 @@ class QueryConstructor(object):
         self._append_list: list = []
         self._limit: Optional[int] = None
 
-    def select(self, *columns: str, **columns_as) -> None:
+    def select(self, *columns: str, table: Optional[str]=None, **columns_as) -> None:
         """ add select columns
 
         Note: if not called select will revert to `SELECT *`
@@ -250,6 +250,9 @@ class QueryConstructor(object):
             sqlc.sql() # => 'SELECT column_1, column_2, column_3 as c3 FROM ...'
             ```
         """
+        if table:
+            columns = [f'{self._table_name(table)}.{col}' for col in columns]
+            columns_as = {f'{self._table_name(table)}.{k}': v for k, v in columns_as.items()}
         self._select_list += list(columns) + [f'{k} as {v}' for k, v in columns_as.items()]
 
     def join(self,
@@ -316,11 +319,12 @@ class QueryConstructor(object):
             (k, v) for k, v in kwargs.items()
             if not re.search(f'_{OPERATOR_SUFFIX}$', k)]
         for k, v in keys_values:
+            op = kwargs.get(f'{k}_{OPERATOR_SUFFIX}', DEFAULT_OPERATOR)
             self._where_list.append({
                 'key': k,
                 'table': table,
-                'value': self._sql_query_value(v),
-                'operator': kwargs.get(f'{k}_{OPERATOR_SUFFIX}', DEFAULT_OPERATOR)})
+                'value': self._sql_query_value(v, op=op),
+                'operator': op})
 
     def append(self, *values: str) -> None:
         """ append strings seperated by a space to end of sql statement
@@ -465,11 +469,11 @@ class QueryConstructor(object):
             raise ValueError(err)
         return f'{join_table}.{v1} = {table}.{v2}'
 
-    def _sql_query_value(self, value: Union[str, int, float]) -> Union[str, int, float]:
+    def _sql_query_value(self, value: Union[str, int, float], op: str) -> Union[str, int, float]:
         """ safe query value
-        if value not int or float return in quotes
+        if value not int or float or "on"-operator return in quotes
         """
-        if isinstance(value, (int, float)):
+        if isinstance(value, (int, float)) or (op.lower() == 'in'):
             return value
         else:
             return f'"{value}"'
@@ -478,7 +482,7 @@ class QueryConstructor(object):
 #
 # METHODS
 #
-def process_named_query_config(config: dict, query_name: str) -> dict:
+def process_named_query_config(config: dict, query_name: Optional[str] = None) -> dict:
     """
     Extracts named query from queries config, and adds defaults.
     as well as table_prefix.
@@ -499,8 +503,9 @@ def process_named_query_config(config: dict, query_name: str) -> dict:
         project = config.get('project')
         dataset = config.get('dataset')
         table_prefix = '.'.join([v for v in [project, dataset] if v])
-    config = config['queries'][query_name]
-    config['init'] = {**defaults, **config.get('init', {})}
+    if query_name:
+        config = config['queries'][query_name]
+        config['init'] = {**defaults, **config.get('init', {})}
     config['init']['table_prefix'] = config['init'].get('table_prefix', table_prefix)
     return config
 
@@ -719,7 +724,8 @@ def named_sql(
         if uppercase_table:
             table = table.upper()
         config['init'] = config.get('defaults', {})
-        config['table'] = table
+        config['init']['table'] = table
+        config = process_named_query_config(config, name)
     elif name:
         config = process_named_query_config(config, name)
     qc = QueryConstructor.from_config(config)
@@ -774,6 +780,7 @@ def column_names(
 def run(
         name: Optional[str] = None,
         table: Optional[str] = None,
+        select: Optional[str] = None,
         config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG,
         limit: Optional[int] = None,
         sql: Optional[str] = None,
@@ -817,7 +824,13 @@ def run(
     if sql and limit:
         sql += f' LIMIT {limit}'
     elif name or table:
-        sql = named_sql(name=name, table=table, config=config, limit=limit, **values)
+        sql = named_sql(
+            name=name,
+            table=table,
+            select=select,
+            config=config,
+            limit=limit,
+            **values)
     assert sql is not None
     if print_sql:
         utils.message(sql, 'query', 'run')
@@ -838,10 +851,3 @@ def _safe_prepend_keys(prefix, value, keys=TABLE_KEYS):
             if isinstance(v, str) and ('.' not in v):
                 value[key] = f'{prefix}.{v}'
     return value
-
-
-def _sql_query_value(value: Union[str, int, float]):
-    if isinstance(value, (int, float)):
-        return value
-    else:
-        return f'"{value}"'
