@@ -113,6 +113,54 @@ def row_to_xr(
     return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, coord_array)}, attrs=attrs)
 
 
+def rows_to_xr(
+        rows: pd.DataFrame,
+        coord: str,
+        attr_cols: list = [],
+        list_attrs: list = [],
+        sel: Optional[Union[Callable, dict]] = None,
+        **sel_kwargs: dict[str, Any]) -> xr.Dataset:
+    """
+    Generate a xr.dataset from dataframe
+
+    Args:
+        rows (pd.DataFrame): data to convert to xarray dataset
+        coord (str): coordinate row
+        attr_cols (list = []): columns to use for attrs with shared values across rows
+        list_attrs (list = []): columns to use for attrs that become list of row values
+        sel (Optional[Union[Callable, dict]] = None):
+            dict or method that takes the row (**and sel_kwargs) and returns a dict
+            to be used as `ds.sel` kwargs.
+        **sel_kwargs (dict[str, Any]):
+            if <sel> above is callable, <sel> is called with
+            the row along with these kwargs: ie `sel(row, **sel_kwargs)`
+
+    Returns:
+        rows data as xr.Dataset
+    """
+    if attr_cols:
+        attrs = rows.loc[0, attr_cols].to_dict()
+    else:
+        attrs = {}
+    for a in list_attrs:
+        attrs[a] = list(rows[a].values)
+    datasets = []
+    for _, row in rows.iterrows():
+        ds = row_to_xr(row, coord=coord)
+        if sel:
+            if callable(sel):
+                _kwargs = sel(row, **sel_kwargs)
+            else:
+                _kwargs = sel
+            ds = ds.sel(**_kwargs)
+        ds.attrs = {}
+        datasets.append(ds)
+    ds = xr.concat(datasets, dim=coord)
+    if attrs:
+        ds.attrs = attrs
+    return ds
+
+
 def xr_to_row(
         dataset: xr.Dataset,
         data_vars: Optional[Sequence[str]] = None,
