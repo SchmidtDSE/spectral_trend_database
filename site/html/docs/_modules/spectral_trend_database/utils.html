@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>spectral_trend_database.utils &#8212; Spectral Trend Database 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spectral_trend_database.utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; utility methods</span>
+
+<span class="sd">License:</span>
+<span class="sd">    BSD, see LICENSE.md</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+<span class="kn">import</span> <span class="nn">dask.array</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">stats</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">spectral_trend_database</span> <span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">from</span> <span class="nn">spectral_trend_database</span> <span class="kn">import</span> <span class="n">types</span>
+
+
+<span class="c1">#</span>
+<span class="c1"># CONSTANTS</span>
+<span class="c1">#</span>
+<span class="n">DEFAULT_ACTION</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;prefix&#39;</span>
+<span class="n">LIST_LIKE_TYPES</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span>
+
+
+<span class="c1">#</span>
+<span class="c1"># I/O</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="read_yaml">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.read_yaml">[docs]</a>
+<span class="k">def</span> <span class="nf">read_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">key_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">safe</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Reads (and optionally extracts part of) yaml file</span>
+
+<span class="sd">    Usage:</span>
+
+<span class="sd">    ```python</span>
+<span class="sd">    data = read_yaml(path)</span>
+<span class="sd">    data_with_key_path = read_yaml(path,&#39;a&#39;,&#39;b&#39;,&#39;c&#39;)</span>
+<span class="sd">    data[&#39;a&#39;][&#39;b&#39;][&#39;c&#39;] == data_with_key_path # ==&gt; True</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): path to yaml file</span>
+<span class="sd">        *key_path (*str): key-path to extract</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dictionary, or data extracted, from yaml file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">safe</span> <span class="ow">or</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">key_path</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+
+
+
+<div class="viewcode-block" id="append_ldjson">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.append_ldjson">[docs]</a>
+<span class="k">def</span> <span class="nf">append_ldjson</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; append/create line to line deliminated json file &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1">#</span>
+<span class="c1"># CORE</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="list_prefixes">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.list_prefixes">[docs]</a>
+<span class="k">def</span> <span class="nf">list_prefixes</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">prefixes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; prefix list with lists &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">src</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prefixes</span><span class="p">]</span></div>
+
+
+
+<span class="c1">#</span>
+<span class="c1"># PD/XR/NP</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="row_to_xr">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.row_to_xr">[docs]</a>
+<span class="k">def</span> <span class="nf">row_to_xr</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+        <span class="n">coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data_vars</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">coord_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">DATETIME_NS</span><span class="p">,</span>
+        <span class="n">attrs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; converts a pd.Series/row of pd.DataFrame to an xr.Dataset</span>
+
+<span class="sd">    Creates a Dataset whose data_var values are given by &lt;data_vars&gt; keys, paramatrized by</span>
+<span class="sd">    coordinate &lt;coord&gt;.  All other values in &lt;row&gt; are added as attributes unless they are</span>
+<span class="sd">    contained in &lt;exclude&gt;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        row (pd.Series): series containing coordinate, data_vars, and attributes</span>
+<span class="sd">        coord (str): key for coordinate value</span>
+<span class="sd">        data_vars (list[str]): list of keys for data_vars values</span>
+<span class="sd">        coord_type (Optional[str] = c.DATETIME_NS):</span>
+<span class="sd">            if passed coord_array will be cast to &lt;coord_type&gt;. used to avoid</span>
+<span class="sd">            &#39;non-nanosecond precision&#39; warning from xarray</span>
+<span class="sd">        attrs (Union[bool, list[str], dict[str, Any]] = True):</span>
+<span class="sd">            TODO ...list of keys to  ... from attributes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        xr.Dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">coord_array</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">coord_type</span><span class="p">:</span>
+        <span class="n">coord_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coord_array</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">coord_type</span><span class="p">)</span>
+    <span class="n">vars_values</span> <span class="o">=</span> <span class="p">[(</span><span class="n">v</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="n">v</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data_vars</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">coord</span><span class="p">]</span>
+    <span class="n">alignable</span> <span class="o">=</span> <span class="p">[</span><span class="n">_alignable</span><span class="p">(</span><span class="n">coord_array</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">vars_values</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vars_values</span><span class="p">,</span> <span class="n">alignable</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">data_var_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">([</span><span class="n">coord</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vars_values</span><span class="p">,</span> <span class="n">alignable</span><span class="p">)</span> <span class="k">if</span> <span class="n">a</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">data_vars</span><span class="o">=</span><span class="n">data_var_dict</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="n">coord</span><span class="p">:</span> <span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">coord_array</span><span class="p">)},</span> <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rows_to_xr">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.rows_to_xr">[docs]</a>
+<span class="k">def</span> <span class="nf">rows_to_xr</span><span class="p">(</span>
+        <span class="n">rows</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">attr_cols</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">list_attrs</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">sel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">sel_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a xr.dataset from dataframe</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rows (pd.DataFrame): data to convert to xarray dataset</span>
+<span class="sd">        coord (str): coordinate row</span>
+<span class="sd">        attr_cols (list = []): columns to use for attrs with shared values across rows</span>
+<span class="sd">        list_attrs (list = []): columns to use for attrs that become list of row values</span>
+<span class="sd">        sel (Optional[Union[Callable, dict]] = None):</span>
+<span class="sd">            dict or method that takes the row (**and sel_kwargs) and returns a dict</span>
+<span class="sd">            to be used as `ds.sel` kwargs.</span>
+<span class="sd">        **sel_kwargs (dict[str, Any]):</span>
+<span class="sd">            if &lt;sel&gt; above is callable, &lt;sel&gt; is called with</span>
+<span class="sd">            the row along with these kwargs: ie `sel(row, **sel_kwargs)`</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rows data as xr.Dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">attr_cols</span><span class="p">:</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">attr_cols</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">list_attrs</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">row_to_xr</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="n">coord</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sel</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">sel</span><span class="p">):</span>
+                <span class="n">_kwargs</span> <span class="o">=</span> <span class="n">sel</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="o">**</span><span class="n">sel_kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_kwargs</span> <span class="o">=</span> <span class="n">sel</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="o">**</span><span class="n">_kwargs</span><span class="p">)</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">coord</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">attrs</span><span class="p">:</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+
+
+<div class="viewcode-block" id="xr_to_row">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.xr_to_row">[docs]</a>
+<span class="k">def</span> <span class="nf">xr_to_row</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">data_vars</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exclude</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">as_pandas</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; transfor xr.dataset to dict or pd.series</span>
+<span class="sd">    Args:</span>
+<span class="sd">        row (pd.Series): series containing coordinate, data_vars, and attributes</span>
+<span class="sd">        data_vars (list[str]):</span>
+<span class="sd">            list of keys for data_vars values. if None use all data_vars</span>
+<span class="sd">        exclude (list[str] = []): list of keys to exclude from attributes.</span>
+<span class="sd">        as_pandas (bool = True): if true return pd.Series, else return dict</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict or pd.series with &lt;dataset&gt; attrs, coords, and data_vars as key/values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">if</span> <span class="n">data_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+    <span class="n">data_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data_vars</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data_vars</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">if</span> <span class="n">as_pandas</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+
+<div class="viewcode-block" id="xr_coord_name">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.xr_coord_name">[docs]</a>
+<span class="k">def</span> <span class="nf">xr_coord_name</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">XR</span><span class="p">,</span>
+        <span class="n">data_var</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; extract coord-name from xr data</span>
+<span class="sd">    Args:</span>
+<span class="sd">        data (types.XR): xr data</span>
+<span class="sd">        data_var (Optional[str] = None): name of data_var (only use if &lt;data&gt; is xr.Dataset)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (str) coord name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data_var</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data_var</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">coords</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="xr_stats">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.xr_stats">[docs]</a>
+<span class="k">def</span> <span class="nf">xr_stats</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">data_vars</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">axis</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">skew_kurtosis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; compute stats for dataset</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dataset (xr.Dataset): dataset on which to compute stats</span>
+<span class="sd">            data_vars (Optional[Sequence[str]] = None):</span>
+<span class="sd">                data_vars to compute stats on. if none use all data_vars</span>
+<span class="sd">            axis (Optional[int] = -1): axis along which to compute stats</span>
+<span class="sd">            skew_kurtosis (bool = True): if true also include skew, kurtosis in stats</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (xr.Dataset) dataset whose data_vars are stats values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">dataset_to_ndarray</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">stat_values</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">dvar_names</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">_mean&#39;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">],</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">_median&#39;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">],</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">_min&#39;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">],</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">_max&#39;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">dvar_names</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">_suffix_list</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">),</span>
+        <span class="n">_suffix_list</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="s1">&#39;median&#39;</span><span class="p">),</span>
+        <span class="n">_suffix_list</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">),</span>
+        <span class="n">_suffix_list</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">skew_kurtosis</span><span class="p">:</span>
+        <span class="n">stat_values</span> <span class="o">+=</span> <span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span> <span class="n">stats</span><span class="o">.</span><span class="n">kurtosis</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)]</span>
+        <span class="n">dvar_names</span> <span class="o">+=</span> <span class="p">[</span><span class="n">_suffix_list</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="s1">&#39;skew&#39;</span><span class="p">),</span> <span class="n">_suffix_list</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="s1">&#39;kurtosis&#39;</span><span class="p">)]</span>
+    <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">names</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dvar_names</span><span class="p">,</span> <span class="n">stat_values</span><span class="p">):</span>
+        <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">data_vars</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">n</span><span class="p">:</span> <span class="p">([],</span> <span class="n">v</span><span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">values</span><span class="p">)}))</span>
+    <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_by_coords</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;exact&#39;</span><span class="p">)</span>  <span class="c1"># type: ignore[return-value]</span></div>
+
+
+
+<div class="viewcode-block" id="npxr_shape">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.npxr_shape">[docs]</a>
+<span class="k">def</span> <span class="nf">npxr_shape</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NPDXR</span><span class="p">,</span>
+        <span class="n">data_var</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data_var_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; convience method for determining shape of ndarray, dataset, or data_array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dask</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">Array</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_var</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_var_index</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="n">data_var</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)[</span><span class="n">data_var_index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="n">data_var</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span></div>
+
+
+
+<div class="viewcode-block" id="dataset_to_ndarray">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.dataset_to_ndarray">[docs]</a>
+<span class="k">def</span> <span class="nf">dataset_to_ndarray</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">data_vars</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exclude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; converts xr.dataset to ndarray of &lt;data&gt;.data_vars values</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (xr.Dataset): dataset to extract array</span>
+<span class="sd">        data_vars (Optional[Sequence[str]] = None):</span>
+<span class="sd">            list of data_var names to include. if None all data_vars will be used</span>
+<span class="sd">        exclude (Optional[Sequence[str]] = None):</span>
+<span class="sd">            list of data_var names to exclude.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy array extracted from xr dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">data_vars</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">exclude</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data_vars</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="replace_dataset_values">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.replace_dataset_values">[docs]</a>
+<span class="k">def</span> <span class="nf">replace_dataset_values</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">values</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NPD</span><span class="p">,</span>
+        <span class="n">data_vars</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">suffix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">dv</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="n">dv</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+
+
+<div class="viewcode-block" id="to_ndarray">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.to_ndarray">[docs]</a>
+<span class="k">def</span> <span class="nf">to_ndarray</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NPDXR</span><span class="p">,</span>
+        <span class="n">data_vars</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exclude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">NPD</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; convience method for converting data to ndarray</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (types.NPXR): dataset to extract array</span>
+<span class="sd">        data_vars (Optional[Sequence[str]] = None):</span>
+<span class="sd">            (xr.dataset only) list of data_var names to include. if None all data_vars will be used</span>
+<span class="sd">        exclude (Optional[Sequence[str]] = None):</span>
+<span class="sd">            (xr.dataset only) list of data_var names to exclude.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy array extracted from xr data, or original np/dask array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dataset_to_ndarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">data_vars</span><span class="o">=</span><span class="n">data_vars</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">exclude</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dask</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">Array</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+
+<div class="viewcode-block" id="npxr_stack">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.npxr_stack">[docs]</a>
+<span class="k">def</span> <span class="nf">npxr_stack</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">]],</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">raise_align_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; safely stack datasets, data-arrays, or np.arrays</span>
+
+<span class="sd">    if data is np.ndarray wrapper for np.vstack</span>
+<span class="sd">    elif data is xr.DataArray  wrapper for stack_data_arrays above</span>
+<span class="sd">    elif data is xr.Dataset wrapper for stack_datasets above</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data ( Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]]):</span>
+<span class="sd">            list of data to stack</span>
+<span class="sd">        dim (Optional[str] = None): [xr.dataset only] dim to stack along. if None use coord of first</span>
+<span class="sd">            dataset in datasets</span>
+<span class="sd">        raise_align_error (bool = False): [xr.dataset only] if True raise error if datasets</span>
+<span class="sd">            do not align. Otherwise silently return None</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dataset stacking datasets along &lt;dim&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">dtype</span> <span class="ow">is</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">dtype</span> <span class="ow">is</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+        <span class="n">stack</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_by_coords</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s1">&#39;exact&#39;</span><span class="p">)</span>  <span class="c1"># type: ignore[assignment, arg-type]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stack</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s1">&#39;spectral_trend_database.utils.npxr_stack: &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;element data-types (</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s1">) must be one of &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;np.ndarray, xr.DataArray or xr.Dataset&#39;</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">stack</span></div>
+
+
+
+<div class="viewcode-block" id="rename_data_array">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.rename_data_array">[docs]</a>
+<span class="k">def</span> <span class="nf">rename_data_array</span><span class="p">(</span>
+        <span class="n">data_array</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
+        <span class="n">rename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">action</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">DEFAULT_ACTION</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; rename data array by prefixing suffixing or replacing value</span>
+<span class="sd">    Args:</span>
+<span class="sd">        data_array (xr.DataArray): data-array to be renamed</span>
+<span class="sd">        rename (Optional[str] = None): prefix, suffix or replacement value for name</span>
+<span class="sd">        action (Union[Literal[&#39;prefix&#39;, &#39;suffix&#39;, &#39;replace&#39;]] = DEFAULT_ACTION):</span>
+<span class="sd">            if prefix name =&gt; &lt;rename&gt;_&lt;data_array&gt;.name</span>
+<span class="sd">            elif suffix name =&gt; &lt;data_array&gt;.name_&lt;rename&gt;</span>
+<span class="sd">            elif replace name =&gt; &lt;rename&gt;</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        renamed data-array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">rename</span><span class="p">:</span>
+        <span class="n">data_array</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">_name_value</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">data_array</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">rename</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data_array</span></div>
+
+
+
+<div class="viewcode-block" id="rename_dataset">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.rename_dataset">[docs]</a>
+<span class="k">def</span> <span class="nf">rename_dataset</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">rename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">action</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">DEFAULT_ACTION</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; rename dataset data_vars by prefixing suffixing or replacing value</span>
+<span class="sd">    Args:</span>
+<span class="sd">        data_array (xr.DataArray): data-array to be renamed</span>
+<span class="sd">        rename (Optional[Union[dict[str, str], list[str], str]] = None):</span>
+<span class="sd">            if str: rename with &lt;rename&gt; for all data_vars</span>
+<span class="sd">            elif list: rename with &lt;rename&gt; values for paired data_var</span>
+<span class="sd">            elif dict: rename using dataset.rename(&lt;rename&gt;)</span>
+<span class="sd">        action (Union[Literal[&#39;prefix&#39;, &#39;suffix&#39;, &#39;replace&#39;]] = DEFAULT_ACTION):</span>
+<span class="sd">            if prefix name =&gt; &lt;rename&gt;_&lt;data_array&gt;.name</span>
+<span class="sd">            elif suffix name =&gt; &lt;data_array&gt;.name_&lt;rename&gt;</span>
+<span class="sd">            elif replace name =&gt; &lt;rename&gt;</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        renamed data-array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">rename</span><span class="p">:</span>
+        <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rename</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">rename</span> <span class="o">=</span> <span class="p">[</span><span class="n">rename</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_vars</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rename</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">rename</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_name_value</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="n">rename</span><span class="p">)}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rename</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_name_value</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">rename</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">}</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">rename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+
+
+<div class="viewcode-block" id="npxr_rename">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.npxr_rename">[docs]</a>
+<span class="k">def</span> <span class="nf">npxr_rename</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NPDXR</span><span class="p">,</span>
+        <span class="n">rename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">action</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">DEFAULT_ACTION</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; convince wrapper for rename_dataset/data_array</span>
+
+<span class="sd">    Note: if data is np.ndarray this method simply returns the passed data</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (types.DNPXR): np.ndarray (to be passed through) or, data-array/dataset to be renamed</span>
+<span class="sd">        rename (Optional[Union[dict[str, str], list[str], str]] = None):</span>
+<span class="sd">            if x.Dataset:</span>
+<span class="sd">                if str: rename with &lt;rename&gt; for all data_vars</span>
+<span class="sd">                elif list: rename with &lt;rename&gt; values for paired data_var</span>
+<span class="sd">                elif dict: rename using dataset.rename(&lt;rename&gt;)</span>
+<span class="sd">            elif xr.DataArray:</span>
+<span class="sd">                prefix, suffix or replacement value for name</span>
+<span class="sd">        action (Union[Literal[&#39;prefix&#39;, &#39;suffix&#39;, &#39;replace&#39;]] = DEFAULT_ACTION):</span>
+<span class="sd">            if prefix name =&gt; &lt;rename&gt;_&lt;data_array&gt;.name</span>
+<span class="sd">            elif suffix name =&gt; &lt;data_array&gt;.name_&lt;rename&gt;</span>
+<span class="sd">            elif replace name =&gt; &lt;rename&gt;</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        renamed data-array/dataset or original np.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">rename_dataset</span><span class="p">(</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">rename</span><span class="o">=</span><span class="n">rename</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">rename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">rename_data_array</span><span class="p">(</span>
+            <span class="n">data_array</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">rename</span><span class="o">=</span><span class="n">rename</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+
+<div class="viewcode-block" id="nan_to_safe_nan">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.nan_to_safe_nan">[docs]</a>
+<span class="k">def</span> <span class="nf">nan_to_safe_nan</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; replace nan values with a &quot;safe&quot; bigquery value</span>
+
+<span class="sd">    BigQuery was not working with mixed none/float array valued columns.</span>
+<span class="sd">    `nan_to_safe_nan` and `safe_nan_to_nan` allow one to transfer back</span>
+<span class="sd">    and forth between np.nan and constants.SAFE_NAN_VALUE</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">values</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">SAFE_NAN_VALUE</span>
+    <span class="k">return</span> <span class="n">values</span></div>
+
+
+
+<div class="viewcode-block" id="safe_nan_to_nan">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.safe_nan_to_nan">[docs]</a>
+<span class="k">def</span> <span class="nf">safe_nan_to_nan</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; replace &quot;safe&quot; bigquery value with nan</span>
+
+<span class="sd">    BigQuery was not working with mixed none/float array valued columns.</span>
+<span class="sd">    `nan_to_safe_nan` and `safe_nan_to_nan` allow one to transfer back</span>
+<span class="sd">    and forth between np.nan and constants.SAFE_NAN_VALUE</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">values</span><span class="p">[</span><span class="n">values</span> <span class="o">==</span> <span class="n">constants</span><span class="o">.</span><span class="n">SAFE_NAN_VALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="n">values</span></div>
+
+
+
+<div class="viewcode-block" id="infinite_along_axis">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.infinite_along_axis">[docs]</a>
+<span class="k">def</span> <span class="nf">infinite_along_axis</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Convience wrapper of np.isfinite, that negates to</span>
+<span class="sd">    find infinite values along axis. Note that this finds np.nans,</span>
+<span class="sd">    and if arr -&gt; arr.astype(np.float64) Nones also</span>
+<span class="sd">    become np.nans.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (np.ndarray): np.array</span>
+<span class="sd">        axis (int = 0): axis to check along</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="filter_list_valued_columns">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.filter_list_valued_columns">[docs]</a>
+<span class="k">def</span> <span class="nf">filter_list_valued_columns</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">test</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">coord_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data_cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; remove values within array-valued columns</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        row (pd.Series): series containing &lt;coord_col&gt;, and &lt;data_cols&gt;,</span>
+<span class="sd">        test (Callable):</span>
+<span class="sd">            function which takes an array and returns an boolean array with</span>
+<span class="sd">            True values for data that should be removed and</span>
+<span class="sd">            False values for data that should remain</span>
+<span class="sd">        coord_col (str): coordinate array column</span>
+<span class="sd">        data_cols (list[str]): data array columns</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of value lists [[coord_values],data_values]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">coord_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">coord_col</span><span class="p">])</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span><span class="p">[</span><span class="n">data_cols</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">]</span>
+    <span class="n">data_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>  <span class="c1"># type: ignore[call-overload]</span>
+    <span class="n">should_be_removed</span> <span class="o">=</span> <span class="n">test</span><span class="p">(</span><span class="n">data_values</span><span class="p">)</span>
+    <span class="n">coord_values</span> <span class="o">=</span> <span class="n">coord_values</span><span class="p">[</span><span class="o">~</span><span class="n">should_be_removed</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">data_values</span> <span class="o">=</span> <span class="n">data_values</span><span class="p">[:,</span> <span class="o">~</span><span class="n">should_be_removed</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">coord_values</span><span class="p">]</span> <span class="o">+</span> <span class="n">data_values</span></div>
+
+
+
+<div class="viewcode-block" id="cast_duck_array">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.cast_duck_array">[docs]</a>
+<span class="k">def</span> <span class="nf">cast_duck_array</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convience method to cast array. The main purpuse is avoiding</span>
+<span class="sd">    lambdas in `dataframe.apply(...)`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        arr (Iterable): array-like object to cast</span>
+<span class="sd">        dtype (str = &#39;str&#39;): dtype to cast to</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy array with type &lt;dtype&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span></div>
+
+
+
+<span class="c1">#</span>
+<span class="c1"># PRINTING/LOGGING</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="message">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.utils.message">[docs]</a>
+<span class="k">def</span> <span class="nf">message</span><span class="p">(</span>
+        <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">level</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;info&#39;</span><span class="p">,</span>
+        <span class="n">return_str</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; print or return message</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">ROOT_MODULE</span>
+    <span class="k">if</span> <span class="n">level</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">constants</span><span class="o">.</span><span class="n">INFO_TYPES</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[</span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s1">] </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;.</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">if</span> <span class="n">return_str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">msg</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<span class="c1">#</span>
+<span class="c1"># INTERNAL</span>
+<span class="c1">#</span>
+<span class="k">def</span> <span class="nf">_name_value</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">action</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="s1">&#39;prefix&#39;</span><span class="p">,</span>
+        <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s1">&#39;suffix&#39;</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">sep</span><span class="si">}{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s1">&#39;prefix&#39;</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">value</span><span class="si">}{</span><span class="n">sep</span><span class="si">}{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span> <span class="nf">_suffix_list</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">v</span><span class="si">}{</span><span class="n">sep</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_alignable</span><span class="p">(</span><span class="n">ref_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">LIST_LIKE_TYPES</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Spectral Trend Database</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Brookie Guzder-Williams.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

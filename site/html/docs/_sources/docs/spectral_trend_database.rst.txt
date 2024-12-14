@@ -1,0 +1,109 @@
+spectral\_trend\_database package
+=================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   spectral_trend_database.gee
+
+Submodules
+----------
+
+spectral\_trend\_database.config module
+---------------------------------------
+
+.. automodule:: spectral_trend_database.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.constants module
+------------------------------------------
+
+.. automodule:: spectral_trend_database.constants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.gcp module
+------------------------------------
+
+.. automodule:: spectral_trend_database.gcp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.npxr module
+-------------------------------------
+
+.. automodule:: spectral_trend_database.npxr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.paths module
+--------------------------------------
+
+.. automodule:: spectral_trend_database.paths
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.query module
+--------------------------------------
+
+.. automodule:: spectral_trend_database.query
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.runner module
+---------------------------------------
+
+.. automodule:: spectral_trend_database.runner
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.smoothing module
+------------------------------------------
+
+.. automodule:: spectral_trend_database.smoothing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.spectral module
+-----------------------------------------
+
+.. automodule:: spectral_trend_database.spectral
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.types module
+--------------------------------------
+
+.. automodule:: spectral_trend_database.types
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+spectral\_trend\_database.utils module
+--------------------------------------
+
+.. automodule:: spectral_trend_database.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: spectral_trend_database
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>spectral_trend_database.gcp &#8212; Spectral Trend Database 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spectral_trend_database.gcp</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; convience methods for bigquery</span>
+
+<span class="sd">License:</span>
+<span class="sd">    BSD, see LICENSE.md</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">storage</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">bigquery</span> <span class="k">as</span> <span class="n">bq</span>
+<span class="kn">from</span> <span class="nn">spectral_trend_database.config</span> <span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">c</span>
+<span class="kn">from</span> <span class="nn">spectral_trend_database</span> <span class="kn">import</span> <span class="n">utils</span>
+
+
+<span class="c1">#</span>
+<span class="c1"># CLOUD STORAGE</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="process_gcs_path">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.gcp.process_gcs_path">[docs]</a>
+<span class="k">def</span> <span class="nf">process_gcs_path</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">URI_PREFIX</span><span class="p">,</span>
+        <span class="n">bucket</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; process gcs path</span>
+
+<span class="sd">    Converts path string, or path string plus additional args, to a</span>
+<span class="sd">    cloud storage bucket, filepath tuple</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">        process_gcs_path(&#39;gs://a/b/c.json&#39;) -&gt; &#39;a&#39;, &#39;b/c.json&#39;</span>
+<span class="sd">        process_gcs_path(&#39;a/b/c.json&#39;) -&gt; &#39;a&#39;, &#39;b/c.json&#39;</span>
+<span class="sd">        process_gcs_path(&#39;gs://a&#39;, &#39;b&#39;, &#39;c.json&#39;) -&gt; &#39;a&#39;, &#39;b/c.json&#39;</span>
+<span class="sd">        process_gcs_path(&#39;b&#39;, &#39;c.json&#39;, bucket=&#39;a&#39;) -&gt; &#39;a&#39;, &#39;b/c.json&#39;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): file-path may or may not include scheme</span>
+<span class="sd">        *args (str): ordered additional parts to path (see Usage above)</span>
+<span class="sd">        prefix (str = c.URI_PREFIX):</span>
+<span class="sd">            if exists strip prefix from begining of string. For</span>
+<span class="sd">            URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (tuple) name of gcs bucket, gcs filename-prefix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;^</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bucket</span><span class="p">:</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">parts</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bucket</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">path</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;spectral_trend_database.gcp.process_gcs_path: path is empty&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="gcs_list">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.gcp.gcs_list">[docs]</a>
+<span class="k">def</span> <span class="nf">gcs_list</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">bucket</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">search</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">URI_PREFIX</span><span class="p">,</span>
+        <span class="n">project</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; list cloud storage objects</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): file-path may or may not include scheme</span>
+<span class="sd">        *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)</span>
+<span class="sd">        search (Optional[str] = None): only return paths containing &lt;search&gt;</span>
+<span class="sd">        prefix (str = c.URI_PREFIX):</span>
+<span class="sd">            if exists add prefix to begining of string. For</span>
+<span class="sd">            URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.</span>
+<span class="sd">        project (Optional[str] = None): gcp project name</span>
+<span class="sd">        client Optional[bq.Client] = None):</span>
+<span class="sd">            instance of bigquery client</span>
+<span class="sd">            if None a new one will be instantiated</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of cloud storage object paths</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">)</span>
+    <span class="n">bucket</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">process_gcs_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
+    <span class="n">blobs</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">list_blobs</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">b</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">blobs</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">search</span><span class="p">:</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">search</span><span class="p">,</span> <span class="n">p</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">p</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">paths</span></div>
+
+
+
+<div class="viewcode-block" id="upload_file">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.gcp.upload_file">[docs]</a>
+<span class="k">def</span> <span class="nf">upload_file</span><span class="p">(</span>
+        <span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">bucket_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">search</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">URI_PREFIX</span><span class="p">,</span>
+        <span class="n">project</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; upload file to cloud storage</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        src: (str): local source file-path</span>
+<span class="sd">        path (str): destination gcp file-path may or may not include scheme</span>
+<span class="sd">        *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)</span>
+<span class="sd">        search (Optional[str] = None): only return paths containing &lt;search&gt;</span>
+<span class="sd">        prefix (str = c.URI_PREFIX):</span>
+<span class="sd">            if exists add prefix to begining of string. For</span>
+<span class="sd">            URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.</span>
+<span class="sd">        project (Optional[str] = None): gcp project name</span>
+<span class="sd">        client Optional[bq.Client] = None):</span>
+<span class="sd">            instance of bigquery client</span>
+<span class="sd">            if None a new one will be instantiated</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (str) destination uri of uploaded object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">)</span>
+    <span class="n">bucket_name</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">process_gcs_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">bucket</span><span class="o">=</span><span class="n">bucket_name</span><span class="p">)</span>
+    <span class="n">dest_uri</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">URI_PREFIX</span><span class="si">}{</span><span class="n">bucket_name</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
+    <span class="n">blob</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">blob</span><span class="o">.</span><span class="n">upload_from_filename</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dest_uri</span></div>
+
+
+
+<div class="viewcode-block" id="save_ld_json">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.gcp.save_ld_json">[docs]</a>
+<span class="k">def</span> <span class="nf">save_ld_json</span><span class="p">(</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">local_dest</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">gcs_dest</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gcs_bucket</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">create_dirs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; save dataframe locally and (optionally) to GCS as line-deliminated JSON</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df (pd.DataFrame): source dataframe</span>
+<span class="sd">        local_dest (str): local dest</span>
+<span class="sd">        gcs_dest (Optional[str]): if exists export to gcs</span>
+<span class="sd">        gcs_bucket (Optional[str]): gcs_bucket (only usde if gcs-dest exists)</span>
+<span class="sd">        dry_run (bool = True): if true print message but don&#39;t save</span>
+<span class="sd">        create_dirs (bool = True): if true create local parent dirs if needed</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        if not dry_run return destination uri if &lt;gcs_dest&gt; is passed,</span>
+<span class="sd">        otherwise return the &lt;local_dest&gt;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;save [</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">]:&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;- local:&#39;</span><span class="p">,</span> <span class="n">local_dest</span><span class="p">,</span> <span class="s1">&#39;(dry-run)&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;- gcs:&#39;</span><span class="p">,</span> <span class="n">gcs_dest</span><span class="p">,</span> <span class="s1">&#39;(dry-run)&#39;</span><span class="p">)</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;- local:&#39;</span><span class="p">,</span> <span class="n">local_dest</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">create_dirs</span><span class="p">:</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">local_dest</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">local_dest</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="n">local_dest</span>
+        <span class="k">if</span> <span class="n">gcs_dest</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;- gcs:&#39;</span><span class="p">,</span> <span class="n">gcs_dest</span><span class="p">)</span>
+            <span class="n">dest</span> <span class="o">=</span> <span class="n">upload_file</span><span class="p">(</span><span class="n">local_dest</span><span class="p">,</span> <span class="n">gcs_dest</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dest</span></div>
+
+
+
+<span class="c1">#</span>
+<span class="c1"># BIG QUERY</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="load_or_create_dataset">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.gcp.load_or_create_dataset">[docs]</a>
+<span class="k">def</span> <span class="nf">load_or_create_dataset</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">DEFAULT_LOCATION</span><span class="p">,</span>
+        <span class="n">project</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">bq</span><span class="o">.</span><span class="n">Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
+        <span class="n">warn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">bq</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; load or create bigquery dataset</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): name of dataset</span>
+<span class="sd">        location (str=&#39;US&#39;): gcp location</span>
+<span class="sd">        project (Optional[str] = None): gcp project name</span>
+<span class="sd">        client Optional[bq.Client] = None):</span>
+<span class="sd">            instance of bigquery client</span>
+<span class="sd">            if None a new one will be instantiated</span>
+<span class="sd">        timeout (int=30): timeout (seconds)</span>
+<span class="sd">        warn (bool = False): print message if dataset exist</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bigquery dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">bq</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;DATASET </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> EXSITS&#39;</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;gcp&#39;</span><span class="p">,</span> <span class="s1">&#39;load_or_create_dataset&#39;</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">dataset_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">bq</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">dataset_id</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">location</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Created dataset </span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_id</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;gcp&#39;</span><span class="p">,</span> <span class="s1">&#39;load_or_create_dataset&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+
+
+<div class="viewcode-block" id="create_or_update_table_from_json">
+<a class="viewcode-back" href="../../docs/spectral_trend_database.html#spectral_trend_database.gcp.create_or_update_table_from_json">[docs]</a>
+<span class="k">def</span> <span class="nf">create_or_update_table_from_json</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">bq</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">wait</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">project</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">bq</span><span class="o">.</span><span class="n">Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">DEFAULT_TIMEOUT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">bq</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; create/update table from (line deliminated) json</span>
+
+<span class="sd">    Note: list valued columns failed if they contained NaNs. Substitue NaNs</span>
+<span class="sd">        with value (such as -99999) and replace after loading table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset (bq.Dataset): instance of bigquery dataset to create table in</span>
+<span class="sd">        name (str): name for table</span>
+<span class="sd">        uri (str): cloud-storage uri of line-deliminated-json</span>
+<span class="sd">        wait (bool = True): wait from creation to complete before continuing</span>
+<span class="sd">        return_table (bool = False): if true return bigquery table instance</span>
+<span class="sd">        project (Optional[str] = None): gcp project name</span>
+<span class="sd">        client Optional[bq.Client] = None):</span>
+<span class="sd">            instance of bigquery client</span>
+<span class="sd">            if None a new one will be instantiated</span>
+<span class="sd">        timeout (int=30): timeout (seconds)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        if &lt;return table&gt;: bigquery table instance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">bq</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">)</span>
+    <span class="n">table_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="n">job_config</span> <span class="o">=</span> <span class="n">bq</span><span class="o">.</span><span class="n">LoadJobConfig</span><span class="p">(</span>
+        <span class="n">autodetect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">source_format</span><span class="o">=</span><span class="n">bq</span><span class="o">.</span><span class="n">SourceFormat</span><span class="o">.</span><span class="n">NEWLINE_DELIMITED_JSON</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">load_table_from_uri</span><span class="p">(</span>
+        <span class="n">uri</span><span class="p">,</span>
+        <span class="n">table_id</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">client</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
+        <span class="n">job_config</span><span class="o">=</span><span class="n">job_config</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wait</span><span class="p">:</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">return_table</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">client</span><span class="o">.</span><span class="n">get_table</span><span class="p">(</span><span class="n">table_id</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Spectral Trend Database</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Brookie Guzder-Williams.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,7 @@
+spectral_trend_database
+=======================
+
+.. toctree::
+   :maxdepth: 4
+
+   spectral_trend_database

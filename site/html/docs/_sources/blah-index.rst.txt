@@ -1,0 +1,23 @@
+Spectral Trend Database Documentation
+=====================================
+
+Add your content using ``reStructuredText`` syntax. See the
+`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
+documentation for details.
+
+.. automodule:: spectral_trend_database
+    :members:
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   docs/spectral_trend_database
+   .. docs/spectral_trend_database.gee
+   :ref:`modindex`
+
+.. Indices and Tables
+.. ==================
+.. * :ref:`modindex`
+.. * :ref:`genindex`
