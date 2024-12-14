@@ -40,7 +40,7 @@ jobs:
           pip install sphinx furo myst_parser
       - name: Sphinx build
         run: |
-            sphinx-apidoc -o docs ../spectral_trend_database/
+            (cd docs && sphinx-apidoc -o docs ../spectral_trend_database/)
             (cd docs && make)
       - name: Build HTML Assets
         run: python scripts/deploy.py
