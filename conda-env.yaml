@@ -56,6 +56,7 @@ dependencies:
     - tensorflow-macos
     - tensorflow-metal
     - python-geohash
+    - furo
     - xee
     - build
     - mproc
