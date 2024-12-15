@@ -53,11 +53,17 @@ jobs:
             echo 345
             ls docs
       - name: Build HTML Assets
-        run: python scripts/deploy.py
+        run: |
+            echo 123111
+            ls
+            python scripts/deploy.py
+            echo 345111
+            ls
+            ls v1
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './site'
+          path: './v1'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

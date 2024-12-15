@@ -2,7 +2,7 @@ from pathlib import Path
 import shutil
 
 # Create a Path object representing the directory you want to create
-directory_path = Path("site/docs")
+directory_path = Path("v1/docs")
 
 # Create the directory
 # directory_path.mkdir(parents=True, exist_ok=True)
@@ -10,13 +10,13 @@ directory_path = Path("site/docs")
 
 print('1.')
 source_dir = Path("_build/html")
-destination_dir = Path("site")
+destination_dir = Path("v1")
 
 shutil.copytree(source_dir, destination_dir)
 
 print('2.')
 source_dir = Path("docs/_build/html")
-destination_dir = Path("site/docs")
+destination_dir = Path("v1/docs")
 
 shutil.copytree(source_dir, destination_dir)
 
