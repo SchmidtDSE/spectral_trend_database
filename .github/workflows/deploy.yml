@@ -46,8 +46,12 @@ jobs:
           pip install sphinx furo myst_parser
       - name: Sphinx build
         run: |
+            echo 123
+            ls docs
             (cd docs && sphinx-apidoc -o docs ../spectral_trend_database/)
             (cd docs && make)
+            echo 345
+            ls docs
       - name: Build HTML Assets
         run: python scripts/deploy.py
       - name: Upload artifact
