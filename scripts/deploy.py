@@ -16,7 +16,7 @@ shutil.copytree(source_dir, destination_dir)
 
 print('2.')
 source_dir = Path("docs/_build/html")
-destination_dir = Path("./_site/docs")
+destination_dir = Path("./_site/apidocs")
 
 shutil.copytree(source_dir, destination_dir)
 
