@@ -98,6 +98,10 @@ jobs:
             echo 678111
             ls _site/apidocs
             echo boom
+      - name: Upload Site Artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./_site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
