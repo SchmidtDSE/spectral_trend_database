@@ -37,10 +37,11 @@ jobs:
         run: npm install -g mystmd
       - name: Build HTML Assets
         run: myst build --html
-      - name: Upload artifact
+      - name: Upload MyST Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './_build/html'
+          source: ./_build/html
+          destination: ./_site
       - name: Install Sphinx
         run: |
           pip install sphinx furo myst_parser
@@ -52,13 +53,22 @@ jobs:
             (cd docs && make html)
             echo 345
             ls docs
-      - name: Build HTML Assets
+      - name: Upload MyST Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          source: ./docs/_build/html
+          destination: ./_site/apidocs
+
+      - name: Check
         run: |
             echo 123111
             ls
-            python scripts/deploy.py
+            # python scripts/deploy.py
             echo 345111
-            ls
+            ls _site
+            echo 678111
+            ls _site/apidocs
+            echo boom
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
