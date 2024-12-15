@@ -59,13 +59,6 @@ jobs:
             python scripts/deploy.py
             echo 345111
             ls
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './v1'
-      - name: mv it
-        run: |
-            cp v1/ .
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
