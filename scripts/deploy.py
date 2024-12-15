@@ -9,8 +9,8 @@ destination_dir = Path("./_site")
 shutil.copytree(source_dir, destination_dir)
 
 print('1b.')
-source_dir = Path("myst/nb")
-destination_dir = Path("./_site/myst/nb")
+source_dir = Path("nb/public")
+destination_dir = Path("./_site/nb/public")
 
 shutil.copytree(source_dir, destination_dir)
 

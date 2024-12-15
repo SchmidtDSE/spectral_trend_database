@@ -34,5 +34,5 @@ project:
     - file: myst/sections/intro.md
     - file: myst/sections/data.md
     - file: myst/sections/scripts.md
-    - file: myst/nb/spectral_trends.ipynb
+    - file: nb/public/spectral_trends.ipynb
 
