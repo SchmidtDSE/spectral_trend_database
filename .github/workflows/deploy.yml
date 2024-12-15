@@ -33,15 +33,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18.x
+      - name: Check1
+        run: |
+            echo 1.
+            ls
+            echo 2.
+            ls _site
       - name: Install MyST Markdown
         run: npm install -g mystmd
       - name: Build HTML Assets
         run: myst build --html
+      - name: Check2
+        run: |
+            echo 1.
+            ls
+            echo 2.
+            ls _site
+            echo 3.
+            ls _build
       - name: Upload MyST Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          source: ./_build/html
-          destination: ./_site
+          path: ./_build/html
+      - name: Check3
+        run: |
+            echo 1.
+            ls
+            echo 2.
+            ls _site
+            echo 3.
+            ls docs
       - name: Install Sphinx
         run: |
           pip install sphinx furo myst_parser
@@ -53,13 +74,27 @@ jobs:
             (cd docs && make html)
             echo 345
             ls docs
+      - name: Check4
+        run: |
+            echo 1.
+            ls
+            echo 2.
+            ls _site
+            echo 3.
+            ls docs/
       - name: Upload MyST Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          source: ./docs/_build/html
-          destination: ./_site/apidocs
-
-      - name: Check
+          path: ./docs/_build/html
+      - name: Check5
+        run: |
+            echo 1.
+            ls
+            echo 2.
+            ls _site
+            echo 3.
+            ls _build
+      - name: Check ---
         run: |
             echo 123111
             ls
