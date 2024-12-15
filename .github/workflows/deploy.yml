@@ -38,7 +38,6 @@ jobs:
             echo 1.
             ls
             echo 2.
-            ls _site
       - name: Install MyST Markdown
         run: npm install -g mystmd
       - name: Build HTML Assets
@@ -48,7 +47,6 @@ jobs:
             echo 1.
             ls
             echo 2.
-            ls _site
             echo 3.
             ls _build
       - name: Upload MyST Artifact
@@ -60,7 +58,6 @@ jobs:
             echo 1.
             ls
             echo 2.
-            ls _site
             echo 3.
             ls docs
       - name: Install Sphinx
@@ -79,7 +76,6 @@ jobs:
             echo 1.
             ls
             echo 2.
-            ls _site
             echo 3.
             ls docs/
       - name: Upload MyST Artifact
@@ -91,7 +87,6 @@ jobs:
             echo 1.
             ls
             echo 2.
-            ls _site
             echo 3.
             ls _build
       - name: Check ---
@@ -100,7 +95,6 @@ jobs:
             ls
             # python scripts/deploy.py
             echo 345111
-            ls _site
             echo 678111
             ls _site/apidocs
             echo boom
