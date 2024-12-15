@@ -49,10 +49,10 @@ jobs:
             echo 2.
             echo 3.
             ls _build
-      - name: Upload MyST Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./_build/html
+      # - name: Upload MyST Artifact
+      #   uses: actions/upload-pages-artifact@v3
+      #   with:
+      #     path: ./_build/html
       - name: Check3
         run: |
             echo 1.
@@ -78,10 +78,10 @@ jobs:
             echo 2.
             echo 3.
             ls docs/
-      - name: Upload MyST Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./docs/_build/html
+      # - name: Upload MyST Artifact
+      #   uses: actions/upload-pages-artifact@v3
+      #   with:
+      #     path: ./docs/_build/html
       - name: Check5
         run: |
             echo 1.
@@ -93,7 +93,7 @@ jobs:
         run: |
             echo 123111
             ls
-            # python scripts/deploy.py
+            python scripts/deploy.py
             echo 345111
             echo 678111
             ls _site/apidocs
