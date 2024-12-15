@@ -49,7 +49,7 @@ jobs:
             echo 123
             ls docs
             (cd docs && sphinx-apidoc -o docs ../spectral_trend_database/)
-            (cd docs && make --html)
+            (cd docs && make html)
             echo 345
             ls docs
       - name: Build HTML Assets
