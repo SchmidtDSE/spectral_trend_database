@@ -12,6 +12,11 @@ print('1.')
 source_dir = Path("_build/html")
 destination_dir = Path("./_site")
 
+
+print('1b.')
+source_dir = Path("myst/nb")
+destination_dir = Path("./_site/myst/nb")
+
 shutil.copytree(source_dir, destination_dir)
 
 print('2.')
