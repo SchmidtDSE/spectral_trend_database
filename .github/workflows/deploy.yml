@@ -35,9 +35,9 @@ jobs:
         run: npm install -g mystmd
       - name: Build MyST HTML Assets
         run: myst build --html
-      - name: Install Sphinx
+      - name: Install Sphinx and Dependencies
         run: |
-          pip install sphinx furo myst_parser
+          pip install sphinx sphinx-autodoc2 furo myst_parser
       - name: Sphinx Build HTML
         run: |
             (cd docs && make html)
