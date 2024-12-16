@@ -22,7 +22,20 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
-	'sphinx.ext.autodoc']
+	'autodoc2']
+
+autodoc2_output_dir = 'docs'
+
+autodoc2_packages = [
+    {
+        "path": "../spectral_trend_database",
+        "auto_mode": True,
+    }
+]
+
+autodoc2_docstring_parser_regexes = [
+    (r".*", "myst")
+]
 
 source_suffix = {
     '.rst': 'restructuredtext',

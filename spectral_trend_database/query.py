@@ -29,72 +29,67 @@ class QueryConstructor(object):
 
     Usage:
 
-        Constructs SQL queries
+    Constructs SQL queries
 
-        using python:
+    using python:
 
-        ```python
-        sqlc = QueryConstructor('table1', using='sample_id')
-        sqlc.select('sample_id', 'c1', 'c2', c3='c_three')
-        sqlc.join('table2', how='right', on='c2')
-        sqlc.join('table3', on=('c2', 'c3p2'))
-        sqlc.join('table4')
-        sqlc.where(c2=123456)
-        sqlc.where('table3', c_three=1234, c_three_op='<=')
-        sqlc.limit(100)
-        print(sqlc.sql())
-        ```
+    ```python
+    sqlc = QueryConstructor('table1', using='sample_id')
+    sqlc.select('sample_id', 'c1', 'c2', c3='c_three')
+    sqlc.join('table2', how='right', on='c2')
+    sqlc.join('table3', on=('c2', 'c3p2'))
+    sqlc.join('table4')
+    sqlc.where(c2=123456)
+    sqlc.where('table3', c_three=1234, c_three_op='<=')
+    sqlc.limit(100)
+    print(sqlc.sql())
+    ```
 
-        or using a config file:
+    or using a config file:
 
-        ```yaml
-        # example.yaml
-        init:
-            table: table1
-            using: sample_id
-            table_escape: null
-        select:
-            - c1, c2
-            - c3: as c_three
-        join:
-            - table: table2
-              how: right
-              on: c2
-            - table: table3
-              on:
-                - c2
-                - c3p2
-            - table: table 4
-        where:
-            - c2: 123456
-            - table: table3
-              c_three: 1234
-              c_three_op: '<='
-        limit: 100
-        ```
+    ```yaml
+    init:
+        table: table1
+        using: sample_id
+        table_escape: null
+    select:
+        - c1, c2
+        - c3: as c_three
+    join:
+        - table: table2
+          how: right
+          on: c2
+        - table: table3
+          on:
+            - c2
+            - c3p2
+        - table: table 4
+    where:
+        - c2: 123456
+        - table: table3
+          c_three: 1234
+          c_three_op: '<='
+    limit: 100
+    ```
 
-        ```python
-        sqlc = QueryConstructor.from_config('table1', using='sample_id')
-        print(sqlc.sql())
-        ```
+    and then:
 
-        resulting in
+    ```python
+    sqlc = QueryConstructor.from_config('table1', using='sample_id')
+    print(sqlc.sql())
+    ```
 
-        ```sql
-        SELECT sample_id, c1, c2, c3 as c_three FROM table1
-        RIGHT JOIN table2 ON table1.c2 = table2.c2
-        LEFT JOIN table3 ON table1.c2 = table3.c3p2
-        LEFT JOIN table4 USING (sample_id)
-        WHERE table1.c2 = 123456 AND table3.c_three <= 1234
-        LIMIT 100
+    resulting in
 
-        'SELECT c1, c2, c3 as as c_three FROM `table1`
-        RIGHT JOIN `table2` USING (sample_id)
-        LEFT JOIN `table3` USING (sample_id)
-        LEFT JOIN `table 4` USING (sample_id)
-        WHERE `table1`.c2 = 123456 AND `table3`.c_three <= 1234
-        LIMIT 100'
-        ```
+    ```sql
+    SELECT sample_id, c1, c2, c3 as c_three FROM table1
+    RIGHT JOIN table2 ON table1.c2 = table2.c2
+    LEFT JOIN table3 ON table1.c2 = table3.c3p2
+    LEFT JOIN table4 USING (sample_id)
+    WHERE table1.c2 = 123456 AND table3.c_three <= 1234
+    LIMIT 100
+    ```
+
     """
     #
     # CLASS METHODS
@@ -111,58 +106,57 @@ class QueryConstructor(object):
 
         EXAMPLE:
 
-            ```yaml
-            # example.yaml
-            init:
-                table: table1
-                using: sample_id
-                table_escape: null
-            join:
-                - table: table2
-                - table: table3
-                - table: table3
-                  using:
-                    - sample_id
-                    - year
-            where:
-                - year: 2020
-                - year_op: '<='
-            ```
+        ```yaml
+        # example.yaml
+        init:
+            table: table1
+            using: sample_id
+            table_escape: null
+        join:
+            - table: table2
+            - table: table3
+            - table: table3
+              using:
+                - sample_id
+                - year
+        where:
+            - year: 2020
+            - year_op: '<='
+        ```
 
-            ```python
-            config = load_yaml('example.yaml')
-            sqlc = QueryConstructor.from_config(config)
-            print(sqlc.sql())
-            ```
+        ```python
+        config = load_yaml('example.yaml')
+        sqlc = QueryConstructor.from_config(config)
+        print(sqlc.sql())
+        ```
 
-            ```sql
-            SELECT * FROM table1
-            LEFT JOIN table2 USING (sample_id)
-            LEFT JOIN table3 USING (sample_id)
-            LEFT JOIN table3 USING (sample_id, year)
-            WHERE table1.year <= 2020
-            ```
+        ```sql
+        SELECT * FROM table1
+        LEFT JOIN table2 USING (sample_id)
+        LEFT JOIN table3 USING (sample_id)
+        LEFT JOIN table3 USING (sample_id, year)
+        WHERE table1.year <= 2020
+        ```
 
         Notes:
 
-            - JOIN note on "on":
-                PyYaml converts "on" to True (even for keys). i've allowed
-                for "on"-key in 3 ways:
-                    1. make string explicit with quotes. ie `'on': sample_id`
-                    2. use "on_columns": ie `on_columns: sample_id`
-                    3. leave it as on. the config will show up `True: sample_id`, but
-                       within a join this will be converted to "on".
+        - JOIN note on "on":
+            PyYaml converts "on" to True (even for keys). i've allowed
+            for "on"-key in 3 ways:
+                1. make string explicit with quotes. ie `'on': sample_id`
+                2. use "on_columns": ie `on_columns: sample_id`
+                3. leave it as on. the config will show up `True: sample_id`, but
+                   within a join this will be converted to "on".
+        - WHERE note on "_op":
+            As discussed below: in the `where` method if kwarg ends in "_op" it is
+            used as the comparison operator (otherwise the operator) is "=".
 
-            - WHERE note on "_op":
-                As discussed below: in the `where` method if kwarg ends in "_op" it is
-                used as the comparison operator (otherwise the operator) is "=".
+            for example:
+                `year=2010` =>  "... WHERE year=2010", but
+                `year=2010, year_op="<"` => "... WHERE year<2010"
 
-                for example:
-                    `year=2010` =>  "... WHERE year=2010", but
-                    `year=2010, year_op="<"` => "... WHERE year<2010"
-
-                this will be problamatic in a yaml file for some operators. escape these values
-                with quotes: ie `year_op: '<='`
+            this will be problamatic in a yaml file for some operators. escape these values
+            with quotes: ie `year_op: '<='`
         """
         config = deepcopy(config)
         init = config.get('init')
@@ -200,6 +194,7 @@ class QueryConstructor(object):
             using: Optional[types.STRINGS] = None) -> None:
         """
         Args:
+
             table (str): table-name
             table_prefix (Optional[str] = None):
                 prefix to be added to table/joint_table names.
@@ -240,10 +235,12 @@ class QueryConstructor(object):
         Note: if not called select will revert to `SELECT *`
 
         Args:
+
             *columns (str): names of columns to include
             **columns_as (str): key (name) value (as-name) pairs for renaming columns
 
         Usage:
+
             ```python
             sqlc.select('column_1', 'column_2', column_3='c3')
             ...
@@ -270,6 +267,7 @@ class QueryConstructor(object):
             4. Else If <self._default_on> use <self._default_on>
 
         Args:
+
             table (str): table name to join
             *using (str):
                 column names for `JOIN ... USING`
@@ -302,12 +300,14 @@ class QueryConstructor(object):
             `year=2010, year_op="<"` => "... WHERE year<2010"
 
         Args:
+
             table (str): table name used in where statement
             **kwargs (Union[str, int, float]):
                 key value pairs for where statement
                 operators set using "_op" as described above
 
         Usage:
+
             ```python
             sqlc.where('table2', year=2020, year_op='<', sample_id='asd23ragwd')
             ...
@@ -333,6 +333,7 @@ class QueryConstructor(object):
         may not be possible with current API.
 
         Args:
+
             *values (str):
                 append each element of <values> to end of sql statement
                 but before LIMIT
@@ -343,6 +344,7 @@ class QueryConstructor(object):
         """ limit number of rows
 
         Args:
+
             max_rows (Optional[int]=None): if exists limit number of rows
         """
         self._limit = max_rows
@@ -354,7 +356,9 @@ class QueryConstructor(object):
         the string.
 
         Args:
+
             force (bool=False): if true (re)construct sql statement even if it already exists
+
         Returns:
             (str) SQL statement
         """
@@ -483,16 +487,17 @@ class QueryConstructor(object):
 # METHODS
 #
 def process_named_query_config(config: dict, query_name: Optional[str] = None) -> dict:
-    """
-    Extracts named query from queries config, and adds defaults.
-    as well as table_prefix.
+    """ Extracts named query from queries config
 
     Args:
+
         config (dict): queries-config as described above
         query_name (str):
             key for query in queries-config
             to extract: config['queries'][<query_name>]
+
     Returns:
+
         (dict) query-config that can be passed to
         QueryConstructor.from_config(...)
     """
@@ -514,6 +519,7 @@ def queries(config: Union[dict[str, Any], str] = c.DEFAULT_QUERY_CONFIG) -> list
     """ list of queries in config file
 
     Args:
+
         - config (Union[str,dict]=c.DEFAULT_QUERY_CONFIG):
             configuration dictionary containg sql-config with key <name>
             if (str):
@@ -549,82 +555,80 @@ def named_sql(
 
     Config Description:
 
-        queries-config files have the following parts
+    queries-config files have the following parts
 
-        ```yaml
-        project: |
-            [optional] (str) gcp project-name used to generate default table_prefix
-            if table_prefix absent. ie table_prefix = project.dataset
+    ```yaml
+    project: |
+        [optional] (str) gcp project-name used to generate default table_prefix
+        if table_prefix absent. ie table_prefix = project.dataset
 
-        dataset: |
-            [optional] (str) gcp dataset-name used to generate default table_prefix
-            if table_prefix absent. ie table_prefix = project.dataset
+    dataset: |
+        [optional] (str) gcp dataset-name used to generate default table_prefix
+        if table_prefix absent. ie table_prefix = project.dataset
 
-        defaults: |
-            [optional] (dict) default init values for all named queries. may contain
-            all arguments to QueryConstructor(...) except `table`.
-            namely: `table_prefix`, `how`, `on`, and `using`.
+    defaults: |
+        [optional] (dict) default init values for all named queries. may contain
+        all arguments to QueryConstructor(...) except `table`.
+        namely: `table_prefix`, `how`, `on`, and `using`.
 
-            notes:
-                - if table_prefix is absent/empty and `project` and/or `dataset` exist a
-                  table_prefix = project.dataset will be added.
-                - `init` dicts in `queries` dicts below will override the defaults
+        notes:
+            - if table_prefix is absent/empty and `project` and/or `dataset` exist a
+              table_prefix = project.dataset will be added.
+            - `init` dicts in `queries` dicts below will override the defaults
 
-        queries: |
-            (dict) key-value pairs of query-name, query-config. the key value pairs are
+    queries: |
+        (dict) key-value pairs of query-name, query-config. the key value pairs are
 
-            key: (str) name of query
-            value: |
-                (dict | list[dict]) dicts of args/kwargs to QueryConstructor __init__
-                method (key = `init`) as well as each of QueryConstructor main public methods.
-                Namely: `select`, `join`, `where`, `append`, and `limit`.
+        key: (str) name of query
+        value: |
+            (dict | list[dict]) dicts of args/kwargs to QueryConstructor __init__
+            method (key = `init`) as well as each of QueryConstructor main public methods.
+            Namely: `select`, `join`, `where`, `append`, and `limit`.
 
-                if value is dict the dict args will be passed to named method
-                if value is list[dict] for each element of value the dict args
-                will be passed to named method
+            if value is dict the dict args will be passed to named method
+            if value is list[dict] for each element of value the dict args
+            will be passed to named method
+    ```
 
+    Example:
 
-            Example:
+    ```yaml
 
-                ```yaml
+    ...
 
-                ...
-
-                queries:
-                  raw_landsat:
-                    init:
-                        table: SAMPLE_POINTS
-                        using: sample_id
-                    join:
-                        table: LANDSAT_RAW_MASKED
-                  raw_landsat_between_2020_and_2020:
-                    init:
-                        table: SAMPLE_POINTS
-                    join:
-                        table: LANDSAT_RAW_MASKED
-                    where:
-                        - year: 2010
-                          year_op: '>='
-                        - year: 2020
-                          year_op: <
-                    limit: 23
-                  scym_raw_landsat:
-                    init:
-                        table: SAMPLE_POINTS
-                    join:
-                        - table: SCYM_YIELD
-                        - table: LANDSAT_RAW_MASKED
-                          using: sample_id, year
-                ```
+    queries:
+      raw_landsat:
+        init:
+            table: SAMPLE_POINTS
+            using: sample_id
+        join:
+            table: LANDSAT_RAW_MASKED
+      raw_landsat_between_2020_and_2020:
+        init:
+            table: SAMPLE_POINTS
+        join:
+            table: LANDSAT_RAW_MASKED
+        where:
+            - year: 2010
+              year_op: '>='
+            - year: 2020
+              year_op: <
+        limit: 23
+      scym_raw_landsat:
+        init:
+            table: SAMPLE_POINTS
+        join:
+            - table: SCYM_YIELD
+            - table: LANDSAT_RAW_MASKED
+              using: sample_id, year
+    ```
 
     Notes:
 
         - The gcp project and dataset are set using the `project`/`dataset` values. These will
           be used to prepend table/join_table names if the table/join_table names do not contain '.'
-
         - The `defaults` dict can set default `how`, `on`, and `using` passed to the
           QueryConstructor initializer
-
         - `queries` is a dictionary with all the named queries. We start my adding creating a
           select statement 'SELECT {select} FROM {table}', where "{}" indicate the value
           subtracted from the named-query dict or the defaults dict. Then we sequentially loop
@@ -632,57 +636,58 @@ def named_sql(
 
     Examples:
 
-        for:
+    for
 
-        ```yaml
-        project: dse-regenag
-        dataset: BiomassTrends
-        defaults:
-            using: sample_id
-        queries:
-            raw_landsat:
-                init:
-                    table: SAMPLE_POINTS
-                join:
-                    table: LANDSAT_RAW_MASKED
-                    using: sample_id, year
-        ```
-
-        `named_sql('raw_landsat')` will output
-
-        ```sql
-        SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
-        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED`
-        USING (sample_id, year)
-        ```
-
-        We can also add a `where` key:
-
-        ``` yaml
-          scym_raw_for_2012:
-            table: SAMPLE_POINTS
+    ```yaml
+    project: dse-regenag
+    dataset: BiomassTrends
+    defaults:
+        using: sample_id
+    queries:
+        raw_landsat:
+            init:
+                table: SAMPLE_POINTS
             join:
-              - table: SCYM_YIELD
-              - table: LANDSAT_RAW_MASKED
+                table: LANDSAT_RAW_MASKED
                 using: sample_id, year
-            where:
-                year: 2012
-        ```
+    ```
 
-        now `named_sql('scym_raw_for_2012')` will output
+    `named_sql('raw_landsat')` will output
 
-        ```sql
-        SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
-        LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED`
-        USING (sample_id, year)
-        WHERE `dse-regenag.BiomassTrends.SAMPLE_POINTS`.year = 2012
-        ```
+    ```sql
+    SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
+    LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED`
+    USING (sample_id, year)
+    ```
 
-        That said, hard coding the where might not be what is desired you can
-        also do this `named_sql('raw_landsat', year=2012)` to achieve the same
-        result.
+    We can also add a `where` key:
+
+    ``` yaml
+      scym_raw_for_2012:
+        table: SAMPLE_POINTS
+        join:
+          - table: SCYM_YIELD
+          - table: LANDSAT_RAW_MASKED
+            using: sample_id, year
+        where:
+            year: 2012
+    ```
+
+    now `named_sql('scym_raw_for_2012')` will output
+
+    ```sql
+    SELECT * FROM `dse-regenag.BiomassTrends.SAMPLE_POINTS`
+    LEFT JOIN `dse-regenag.BiomassTrends.LANDSAT_RAW_MASKED`
+    USING (sample_id, year)
+    WHERE `dse-regenag.BiomassTrends.SAMPLE_POINTS`.year = 2012
+    ```
+
+    That said, hard coding the where might not be what is desired you can
+    also do this `named_sql('raw_landsat', year=2012)` to achieve the same
+    result.
 
     Args:
+
         name (Optional[str]=None): name of preconfigured config file
         table (Optional[str]=None):
             (required if name is None) table-name: queries a
@@ -711,6 +716,7 @@ def named_sql(
                 `year=2010, year_op="<"` => "... WHERE year<2010"
 
     Returns:
+
         (str) sql command
     """
     if isinstance(config, str):
@@ -795,6 +801,7 @@ def run(
     `sql` arg, or by creating a sql-string using the `named_sql` method above.
 
     Args:
+
         name (Optional[str]): name of preconfigured config file
         table (Optional[str]):
             (required if name is None) table-name: queries a
@@ -817,6 +824,7 @@ def run(
             values for where clause (see usage above)
 
     Returns:
+
         (str) sql command
     """
     if client is None:

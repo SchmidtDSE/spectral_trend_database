@@ -17,7 +17,7 @@ pages/query
 :caption: Modules
 :hidden:
 
-_docs/modules
+_docs/index.rst
 ```
 
 ```{toctree}
@@ -29,4 +29,3 @@ Site <https://schmidtdse.github.io/spectral_trend_database>
 Code Repository <https://github.com/SchmidtDSE/spectral_trend_database>
 DSE <https://dse.berkeley.edu>
 ```
-

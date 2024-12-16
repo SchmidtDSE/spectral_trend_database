@@ -16,7 +16,7 @@ config/user.yaml
 # IGNORE MYST/SPHINX BUILDS
 _build/
 # IGNORE SPHINX AUTODOCS
-_docs/
+docs/docs/
 # IGNORE NOTES (FOR NOW)
 notes/
 #***************************************************************************

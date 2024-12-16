@@ -36,6 +36,7 @@ dependencies:
   - earthengine-api
   - twine
   - sphinx
+  - sphinx-autodoc2
   - mystmd
   - myst-parser
   - jupyterlab-myst

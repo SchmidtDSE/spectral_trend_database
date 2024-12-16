@@ -30,7 +30,9 @@ Edit `conf.py` to:
     c. [sphinx.ext.napoleon](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html): numpy/google doc strings
     d. [sphinx.ext.autosummary](https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html): note sure what this is doing
 	e. [sphinx.ext.autodoc](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html): add auto-doc
-3. use autodoc
+3. use output_dir `docs/` note this should be added to `.gitignore` so it is created on gh-action
+4. add the pacage for autodoc2
+3. use markdown for `.md/.text` files
 4. use [furo-theme](https://sphinx-themes.org/sample-sites/furo/)
 
 ```python
@@ -45,8 +47,17 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
-	'sphinx.ext.autodoc']
+	'autodoc2']
 
+
+autodoc2_output_dir = 'docs'
+
+autodoc2_packages = [
+    {
+        "path": "../spectral_trend_database",
+        "auto_mode": True,
+    }
+]
 
 source_suffix = {
     '.rst': 'restructuredtext',
@@ -63,14 +74,7 @@ html_theme = 'furo'
 
 ## DEVELOPMENT
 
-Build API DOCS
-
-``` bash
-# _docs is output directory. ignore in gitignore
-sphinx-apidoc -o _docs ../spectral_trend_database/
-```
-
-Make HTML (note this should be re-run each time you do a new build)
+Build API DOCS and make HTML (note autodoc2 automatically runs on `make`)
 
 ``` bash
 make html
