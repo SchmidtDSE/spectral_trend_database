@@ -1,8 +1,10 @@
 (eoy)=
 # Description
 
+<!-- start_overview -->
 DSE’s Spectral Trends Database monitors uses data from NASA's Landsat satellites to track over 14,000 points in corn and soy fields in the midwestern United States. The database contains daily values for 36 different vegetation indices from the year 2000 to present, along with a number of derivative metrics that are useful for detecting crop planting and harvesting. The data will be useful for myriad agriculture applications, including the study and monitoring of yield, yield-stability, soil
 health, cover-cropping, and other sustainable agricultural practices.
+<!-- end_overview -->
 
 :::{figure} #nb.indices_vs_yield
 :label: fig.indices_vs_yield
