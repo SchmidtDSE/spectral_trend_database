@@ -45,6 +45,7 @@ jobs:
         run: |
             mv _build/html _site
             mv docs/_build/html _site/docs
+            mkdir _site/nb
             mv nb/public _site/nb/public
       - name: Upload Site Artifact
         uses: actions/upload-pages-artifact@v3
