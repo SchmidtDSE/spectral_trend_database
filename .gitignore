@@ -13,8 +13,10 @@ downloads/
 logs/
 config/user.yaml
 
-# IGNORE MYST BUILD (FOR NOW - WILL HOOKS PRODUCE NEW ONE?)
+# IGNORE MYST/SPHINX BUILDS
 _build/
+# IGNORE SPHINX AUTODOCS
+_docs/
 # IGNORE NOTES (FOR NOW)
 notes/
 #***************************************************************************
