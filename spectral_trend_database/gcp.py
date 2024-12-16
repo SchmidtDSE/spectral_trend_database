@@ -27,12 +27,16 @@ def process_gcs_path(
     cloud storage bucket, filepath tuple
 
     Usage:
-        process_gcs_path('gs://a/b/c.json') -> 'a', 'b/c.json'
-        process_gcs_path('a/b/c.json') -> 'a', 'b/c.json'
-        process_gcs_path('gs://a', 'b', 'c.json') -> 'a', 'b/c.json'
-        process_gcs_path('b', 'c.json', bucket='a') -> 'a', 'b/c.json'
+
+    ```python
+    process_gcs_path('gs://a/b/c.json') -> 'a', 'b/c.json'
+    process_gcs_path('a/b/c.json') -> 'a', 'b/c.json'
+    process_gcs_path('gs://a', 'b', 'c.json') -> 'a', 'b/c.json'
+    process_gcs_path('b', 'c.json', bucket='a') -> 'a', 'b/c.json'
+    ```
 
     Args:
+
         path (str): file-path may or may not include scheme
         *args (str): ordered additional parts to path (see Usage above)
         prefix (str = c.URI_PREFIX):
@@ -40,6 +44,7 @@ def process_gcs_path(
             URIs use `c.URI_PREFIX`, for URLs us `c.URL_PREFIX`.
 
     Returns:
+
         (tuple) name of gcs bucket, gcs filename-prefix
     """
     if prefix:
@@ -67,6 +72,7 @@ def gcs_list(
     """ list cloud storage objects
 
     Args:
+
         path (str): file-path may or may not include scheme
         *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)
         search (Optional[str] = None): only return paths containing <search>
@@ -79,6 +85,7 @@ def gcs_list(
             if None a new one will be instantiated
 
     Returns:
+
         list of cloud storage object paths
     """
     if client is None:
@@ -105,6 +112,7 @@ def upload_file(
     """ upload file to cloud storage
 
     Args:
+
         src: (str): local source file-path
         path (str): destination gcp file-path may or may not include scheme
         *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)
@@ -118,6 +126,7 @@ def upload_file(
             if None a new one will be instantiated
 
     Returns:
+
         (str) destination uri of uploaded object
     """
     if client is None:
@@ -140,6 +149,7 @@ def save_ld_json(
     """ save dataframe locally and (optionally) to GCS as line-deliminated JSON
 
     Args:
+
         df (pd.DataFrame): source dataframe
         local_dest (str): local dest
         gcs_dest (Optional[str]): if exists export to gcs
@@ -148,6 +158,7 @@ def save_ld_json(
         create_dirs (bool = True): if true create local parent dirs if needed
 
     Returns:
+
         if not dry_run return destination uri if <gcs_dest> is passed,
         otherwise return the <local_dest>.
     """
@@ -181,6 +192,7 @@ def load_or_create_dataset(
     """ load or create bigquery dataset
 
     Args:
+
         name (str): name of dataset
         location (str='US'): gcp location
         project (Optional[str] = None): gcp project name
@@ -191,6 +203,7 @@ def load_or_create_dataset(
         warn (bool = False): print message if dataset exist
 
     Returns:
+
         bigquery dataset
     """
     if client is None:
@@ -221,10 +234,13 @@ def create_or_update_table_from_json(
         timeout: int = c.DEFAULT_TIMEOUT) -> Union[bq.Table, None]:
     """ create/update table from (line deliminated) json
 
-    Note: list valued columns failed if they contained NaNs. Substitue NaNs
-        with value (such as -99999) and replace after loading table.
+    Note:
+
+    list valued columns failed if they contained NaNs. Substitue NaNs
+    with value (such as -99999) and replace after loading table.
 
     Args:
+
         dataset (bq.Dataset): instance of bigquery dataset to create table in
         name (str): name for table
         uri (str): cloud-storage uri of line-deliminated-json
@@ -237,6 +253,7 @@ def create_or_update_table_from_json(
         timeout (int=30): timeout (seconds)
 
     Returns:
+
         if <return table>: bigquery table instance
     """
     if client is None:

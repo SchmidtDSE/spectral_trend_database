@@ -39,10 +39,12 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
     ```
 
     Args:
+
         path (str): path to yaml file
         *key_path (*str): key-path to extract
 
     Returns:
+
         dictionary, or data extracted, from yaml file
     """
     if not safe or Path(path).is_file():
@@ -83,6 +85,7 @@ def row_to_xr(
     contained in <exclude>
 
     Args:
+
         row (pd.Series): series containing coordinate, data_vars, and attributes
         coord (str): key for coordinate value
         data_vars (list[str]): list of keys for data_vars values
@@ -93,6 +96,7 @@ def row_to_xr(
             TODO ...list of keys to  ... from attributes.
 
     Returns:
+
         xr.Dataset
     """
     if data_vars is None:
@@ -124,6 +128,7 @@ def rows_to_xr(
     Generate a xr.dataset from dataframe
 
     Args:
+
         rows (pd.DataFrame): data to convert to xarray dataset
         coord (str): coordinate row
         attr_cols (list = []): columns to use for attrs with shared values across rows
@@ -136,6 +141,7 @@ def rows_to_xr(
             the row along with these kwargs: ie `sel(row, **sel_kwargs)`
 
     Returns:
+
         rows data as xr.Dataset
     """
     if attr_cols:
@@ -168,6 +174,7 @@ def xr_to_row(
         as_pandas: bool = False) -> Union[dict, pd.Series]:
     """ transfor xr.dataset to dict or pd.series
     Args:
+
         row (pd.Series): series containing coordinate, data_vars, and attributes
         data_vars (list[str]):
             list of keys for data_vars values. if None use all data_vars
@@ -175,6 +182,7 @@ def xr_to_row(
         as_pandas (bool = True): if true return pd.Series, else return dict
 
     Returns:
+
         dict or pd.series with <dataset> attrs, coords, and data_vars as key/values
     """
     data = deepcopy(dataset.attrs)
@@ -196,10 +204,12 @@ def xr_coord_name(
         data_var: Optional[str] = None) -> str:
     """ extract coord-name from xr data
     Args:
+
         data (types.XR): xr data
         data_var (Optional[str] = None): name of data_var (only use if <data> is xr.Dataset)
 
     Returns:
+
         (str) coord name
     """
     if data_var:
@@ -215,6 +225,7 @@ def xr_stats(
     """ compute stats for dataset
 
         Args:
+
             dataset (xr.Dataset): dataset on which to compute stats
             data_vars (Optional[Sequence[str]] = None):
                 data_vars to compute stats on. if none use all data_vars
@@ -222,6 +233,7 @@ def xr_stats(
             skew_kurtosis (bool = True): if true also include skew, kurtosis in stats
 
         Returns:
+
             (xr.Dataset) dataset whose data_vars are stats values
     """
     if data_vars is None:
@@ -278,6 +290,7 @@ def dataset_to_ndarray(
     """ converts xr.dataset to ndarray of <data>.data_vars values
 
     Args:
+
         data (xr.Dataset): dataset to extract array
         data_vars (Optional[Sequence[str]] = None):
             list of data_var names to include. if None all data_vars will be used
@@ -285,6 +298,7 @@ def dataset_to_ndarray(
             list of data_var names to exclude.
 
     Returns:
+
         numpy array extracted from xr dataset
     """
     if not data_vars:
@@ -299,8 +313,7 @@ def replace_dataset_values(
         values: types.NPD,
         data_vars: Optional[Sequence[str]] = None,
         suffix: bool = False) -> xr.Dataset:
-    """
-    TODO
+    """ updates the values of a dataset
     """
     if data_vars is None:
         data_vars = list(dataset.data_vars)
@@ -317,6 +330,7 @@ def to_ndarray(
     """ convience method for converting data to ndarray
 
     Args:
+
         data (types.NPXR): dataset to extract array
         data_vars (Optional[Sequence[str]] = None):
             (xr.dataset only) list of data_var names to include. if None all data_vars will be used
@@ -324,6 +338,7 @@ def to_ndarray(
             (xr.dataset only) list of data_var names to exclude.
 
     Returns:
+
         numpy array extracted from xr data, or original np/dask array
     """
     if isinstance(data, xr.Dataset):
@@ -345,6 +360,7 @@ def npxr_stack(
     elif data is xr.Dataset wrapper for stack_datasets above
 
     Args:
+
         data ( Union[list[np.ndarray], list[xr.Dataset], list[xr.DataArray]]):
             list of data to stack
         dim (Optional[str] = None): [xr.dataset only] dim to stack along. if None use coord of first
@@ -353,6 +369,7 @@ def npxr_stack(
             do not align. Otherwise silently return None
 
     Returns:
+
         dataset stacking datasets along <dim>
     """
     dtype = type(data[0])
@@ -377,6 +394,7 @@ def rename_data_array(
         action: Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION) -> xr.DataArray:
     """ rename data array by prefixing suffixing or replacing value
     Args:
+
         data_array (xr.DataArray): data-array to be renamed
         rename (Optional[str] = None): prefix, suffix or replacement value for name
         action (Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION):
@@ -384,6 +402,7 @@ def rename_data_array(
             elif suffix name => <data_array>.name_<rename>
             elif replace name => <rename>
     Returns:
+
         renamed data-array
     """
     if rename:
@@ -397,6 +416,7 @@ def rename_dataset(
         action: Union[Literal['prefix', 'suffix', 'replace']] = DEFAULT_ACTION) -> xr.Dataset:
     """ rename dataset data_vars by prefixing suffixing or replacing value
     Args:
+
         data_array (xr.DataArray): data-array to be renamed
         rename (Optional[Union[dict[str, str], list[str], str]] = None):
             if str: rename with <rename> for all data_vars
@@ -407,6 +427,7 @@ def rename_dataset(
             elif suffix name => <data_array>.name_<rename>
             elif replace name => <rename>
     Returns:
+
         renamed data-array
     """
     if rename:
@@ -430,6 +451,7 @@ def npxr_rename(
     Note: if data is np.ndarray this method simply returns the passed data
 
     Args:
+
         data (types.DNPXR): np.ndarray (to be passed through) or, data-array/dataset to be renamed
         rename (Optional[Union[dict[str, str], list[str], str]] = None):
             if x.Dataset:
@@ -443,6 +465,7 @@ def npxr_rename(
             elif suffix name => <data_array>.name_<rename>
             elif replace name => <rename>
     Returns:
+
         renamed data-array/dataset or original np.ndarray
     """
     if isinstance(data, xr.Dataset):
@@ -494,6 +517,7 @@ def infinite_along_axis(arr: np.ndarray, axis: int = 0):
     become np.nans.
 
     Args:
+
         data (np.ndarray): np.array
         axis (int = 0): axis to check along
     """
@@ -508,6 +532,7 @@ def filter_list_valued_columns(
     """ remove values within array-valued columns
 
     Args:
+
         row (pd.Series): series containing <coord_col>, and <data_cols>,
         test (Callable):
             function which takes an array and returns an boolean array with
@@ -517,6 +542,7 @@ def filter_list_valued_columns(
         data_cols (list[str]): data array columns
 
     Returns:
+
         list of value lists [[coord_values],data_values]
     """
     row = row.copy()
@@ -535,9 +561,12 @@ def cast_duck_array(arr: Iterable, dtype: str = 'str') -> np.ndarray:
     lambdas in `dataframe.apply(...)`
 
     Args:
+
         arr (Iterable): array-like object to cast
         dtype (str = 'str'): dtype to cast to
+
     Returns:
+
         numpy array with type <dtype>
     """
     return np.array(arr).astype(dtype)

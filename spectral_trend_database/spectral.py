@@ -29,6 +29,7 @@ def index_config(
     convinence wrapper of `utils.read_yaml`
 
     Args:
+
         name (str = c.DEFAULT_SPECTRAL_INDEX_CONFIG):
             name of, or path to, config file.
             if re.search(r'(yaml|yml)$', <name>) loads yaml file with at path at <name>
@@ -36,6 +37,7 @@ def index_config(
         extract_indices (bool=True): if true extract the `[indices]` from the yaml file.
 
     Returns:
+
        spectral index config
     """
     if not re.search(r'(yaml|yml)$', name):
@@ -57,12 +59,14 @@ def index_arrays(
     timeseries
 
     Args:
+
         row (pd.Series): series containing spectral band and coord arrays
         indices (dict[str, str]): config containing spectral-index equations
         bands (list[str]=landsat.HARMONIZED_BANDS): list of spectral band nanmes used in equations
         coord (str='date'): key for coordinate column
 
     Returns:
+
         (list[np.ndarray]) of spectral index values
     """
     from IPython.display import display
@@ -90,6 +94,7 @@ def add_index_arrays(
     columns added.
 
     Args:
+
         data (pd.DataFrame): dataframe containing (array valued) spectral band and coord columns
         name (Optional[str] str = c.DEFAULT_SPECTRAL_INDEX_CONFIG):
             NOTE: only used if `indices` below is None:
@@ -107,6 +112,7 @@ def add_index_arrays(
             - if falsey all columns will be preserved
 
     Returns:
+
         (pd.DataFrame)
     """
     data = data.copy()

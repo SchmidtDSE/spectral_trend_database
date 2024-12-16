@@ -57,10 +57,13 @@ def ewma(
         init_value: types.EWM_INITALIZER = 'sma') -> np.ndarray:
     """ exponentially weighted moving average
 
-    NOTE: This method is decorated by @npxr to accept/return xarray objects. See `npxr`
+    NOTE:
+
+    This method is decorated by @npxr to accept/return xarray objects. See `npxr`
     doc-strings for details and description of additional args.
 
     Args:
+
         data (np.array): source np.array
         alpha (float[0,0.8]|None):
             smoothing factor: required if span is None. 1 - no smoothing, 0 - max smoothing.
@@ -90,6 +93,7 @@ def ewma(
             else:
                 use data[0] as first/0-th term (ewm_0) in exponentially weighted moving average
     Returns:
+
         (np.array) Exponentially weighted moving average.
     """
     data = deepcopy(data)
@@ -148,9 +152,11 @@ def linearly_interpolate(data: np.ndarray) -> np.ndarray:
     Replaces np.nan in a 1-d array with linear interpolation
 
     Args:
+
         data (np.array|xr.data_array): 1-d np-array
 
     Returns:
+
         np.array with np.nan replaced by with linear interpolation
     """
     nb_points = len(data)
@@ -178,6 +184,7 @@ def interpolate_na(
     Replaces np.nan in a 1-d array with interpolation
 
     Args:
+
         data (np.array): source data
         method (str):
             one of 'linear', 'nearest', 'nearest-up', 'zero', 'slinear',
@@ -190,6 +197,7 @@ def interpolate_na(
                 scipy.interpolate.interp1d.html
 
     Returns:
+
         (np.array|xr.dataset|xr.data_array) linearly interpolated data
         if <return_data_var> return tuple (data, <result_data_var>)
     """
@@ -219,10 +227,12 @@ def simple_moving_average(data: np.ndarray, win_size: int) -> np.ndarray:
     for j < win_size:  avg_{j} = arr[:j].mean()
 
     Args:
+
         data (np.array): 1-d numpy array
         win_size (int): window-size
 
     Returns:
+
         simple moving average of <arr>
     """
     n = data.shape[0]
@@ -241,12 +251,14 @@ def kernel_smoothing(data: np.ndarray, kernel: np.ndarray, normalize: bool = Tru
     Smoothes data by convolution over kernel
 
     Args:
+
         data (np.array|xr.dataset|xr.data_array): source np.array|xr.dataset|xr.data_array
         kernel (np.array): kernel for convolution
         normalize (bool):
             if true normalize kernel by `<kernel>=<kernel>/<kernel>.sum()`
 
     Returns:
+
         (np.array) data convolved over kernel
     """
     data = data.copy()
@@ -288,6 +300,7 @@ def nan_mean_window_smoothing(
     Note: @npxr decorator could not be used because of multi-dim array indexing
 
     Args:
+
         data (types.NPXR): input 1-d array in which to replace data
         radius (int): half-size of window
         pad_window (Optional[int] = 1):
@@ -351,11 +364,13 @@ def linear_window_smoothing(
     Smoothes data by replacing values with weighted-mean over window
 
     Args:
+
         data (np.array): input 1-d array in which to replace data
         radius (int): half-size of window
         slope (float): slope of line
 
     Returns:
+
         (np.array) linear-window-smoothed version of data
     """
     left = slope * (np.arange(radius) + 1)
@@ -371,10 +386,10 @@ def remove_drops(
         smoothing_radius: int = 16,
         smoothing_pad_window: Optional[int] = 1,
         smoothing_pad_value: Optional[float] = None) -> types.NPXR:
-    """
-    Replaces points in data where the value has a large dip by
+    """ Replaces points in data where the value has a large dip by
 
     Args:
+
         data (types.NPDASK): source np.array|xr.dataset|xr.data_array
         drop_threshold (float = 0.5): replace data if data/smooth_data <= <drop_ratio>
         smoothing_radius (int = 16):
@@ -386,6 +401,7 @@ def remove_drops(
             if not <pad_window> use <pad_value> as the left/right pad-values
 
     Returns:
+
         data with drops removed and replaced by nan
     """
     test_data = nan_mean_window_smoothing(
@@ -416,11 +432,14 @@ def replace_windows(
     `data[[4,5,6,7,8]] = replacement_data[[4,5,6,7,8]]`
 
     Args:
+
         data (np.array): input 1-d array in which to replace data
         replacement_data 1-d array to replace data with
         indices (list|np.array): indices around wich to replace data
         radius (int): half-size of window
+
     Returns:
+
         np.array with data around <indices> replaced
     """
     data = data.copy()
@@ -439,6 +458,7 @@ def npxr_execute(data: np.ndarray, func: Callable, **kwargs) -> Any:
     doc-strings for details and description of additional args.
 
     Args:
+
         data (np.array): source data
         func (function): function to exectue
             * <func> must have the first argument be of type np.array.
@@ -465,6 +485,7 @@ def npxr_savitzky_golay(
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
 
     Args:
+
         data (np.array): data source ("x" arg for scipy.signal.savgol_filter)
         window_length (int):
             The length of the filter window (i.e., the number of coefficients). If mode is
@@ -498,6 +519,7 @@ def macd_processor(
     it also computes MACD-divergence.
 
     Args:
+
         data (types.XR): source np.array|xr.dataset|xr.data_array
         spans (Sequence[int]): list of window_sizes. Must have exactly 2 or 3 elements.
             if len(<spans>) == 2:
@@ -513,6 +535,7 @@ def macd_processor(
             otherwise: return stack of data values 'ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div'.
 
     Returns:
+
         (types.NPXR) if <result_only> return final output (macd or macd_div) otherwise
         return stack of data values 'ema_a', 'ema_b', 'macd', 'ema_c', 'macd_div'.
     """
@@ -560,8 +583,6 @@ def savitzky_golay_processor(
         **kwargs) -> types.NPXR:
     """
 
-    !!!!!!!!!!!!!!!!! WIP !!!!!!!!!!!!!!!!!
-
     Wrapper for `spectral_trend_database.utils.npxr.sequence` to run a series of smoothing steps
 
     Steps:
@@ -572,6 +593,7 @@ def savitzky_golay_processor(
         5. npxr_savitzky_golay
 
     Args:
+
         data (types.NPXR): source data
         window_length (int = DEFAULT_SG_WINDOW_LENGTH): window_length for sig.savgol_filter
         polyorder (int = DEFAULT_SG_POLYORDER): polyorder for sig.savgol_filter
@@ -589,6 +611,7 @@ def savitzky_golay_processor(
         **kwargs: additional kwargs for sig.savgol_filter
 
     Returns:
+
         (types.NPXR) data with smoothed data values
     """
     kwargs['window_length'] = window_length
@@ -637,6 +660,7 @@ def daily_dataset(
     filled with np.nan but adjust with the <method> argument.
 
     Args:
+
         data (xr.dataset|xr.data_array): data to be transformed
         days (int): number of days between points (defaults to daily)
         start/end_date (str['%y-%M-%d']|None):
@@ -652,6 +676,7 @@ def daily_dataset(
         rename (dict):
             [only used for xr data] mapping from data_var name to renamed data_var name
     Returns:
+
         xr.dataset or xr.data_arrray with regualry spaced <n-day> series.
     """
     data = data.copy()
@@ -704,6 +729,7 @@ def _left_right_pad(
     of shape (N + <pad_length>, M + <pad_length>).
 
     Args:
+
         data (np.ndarray): 1 or 2-d array to pad
         pad_length (int = 0): number of padded values to add (per-side)
         window (Optional[int] = 1):
@@ -714,6 +740,7 @@ def _left_right_pad(
             if window is None: use <value> for both left/right pad values
 
     Returns:
+
         (np.ndarray) padded array
     """
     if pad_length:

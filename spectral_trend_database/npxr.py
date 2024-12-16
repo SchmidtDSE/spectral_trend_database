@@ -27,59 +27,63 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
     decorator for functions that take in and return
     numpy arrays to extend their behavior to xarray.
 
-    Note: decorated functions must take data (types.NPXR)
-        as the initial argument plus additional variable
-        length args and kwargs.
+    Note:
+
+    decorated functions must take data (types.NPXR)
+    as the initial argument plus additional variable
+    length args and kwargs.
 
     Usage:
 
-        ```python
-        @npxr()
-        def plus1(arr):
-            return arr + 1
+    ```python
+    @npxr()
+    def plus1(arr):
+        return arr + 1
 
-        ds_plus_1 = plus1(ds)               # returns xr.Dataset
-        da_plus_1 = plus1(ds.blah)          # returns xr.DataArray
-        np_plus_1 = plus1(ds.blah.data)     # returns np.data
-        ```
+    ds_plus_1 = plus1(ds)               # returns xr.Dataset
+    da_plus_1 = plus1(ds.blah)          # returns xr.DataArray
+    np_plus_1 = plus1(ds.blah.data)     # returns np.data
+    ```
 
-        Now let `values = utils.to_ndarray(ds)` be the array
-        representation of `ds.data_vars`.
+    Now let `values = utils.to_ndarray(ds)` be the array
+    representation of `ds.data_vars`.
 
-        ```python
-        @npxr(along_axis=1)
-        def plus1_along_axis(arr):
-            return arr + 1
+    ```python
+    @npxr(along_axis=1)
+    def plus1_along_axis(arr):
+        return arr + 1
 
-        p1 = plus1(values)
-        p1_along_axis = plus1_along_axis(values)
-        ```
+    p1 = plus1(values)
+    p1_along_axis = plus1_along_axis(values)
+    ```
 
-        Here `p1` is equal to `values + 1` and
-        `p1_along_axis` is equal to
+    Here `p1` is equal to `values + 1` and
+    `p1_along_axis` is equal to
 
-        ```python
-        np.apply_along_axis(
-            lambda a: a + 1,
-            axis=1,
-            arr=values)
-        ```
+    ```python
+    np.apply_along_axis(
+        lambda a: a + 1,
+        axis=1,
+        arr=values)
+    ```
 
-        Note: this is the same result as
+    Note: this is the same result as
 
-        ```python
-        p1_along_axis_v2 = plus1(values, along_axis=1)
-        ```
+    ```python
+    p1_along_axis_v2 = plus1(values, along_axis=1)
+    ```
 
-        (see **kwargs below).
+    (see **kwargs below).
 
     Decorator Args:
+
         along_axis (Union[int, Literal[False]] = False):
             if (int): use np.apply_along_axis to apply
             the decorated function along axis=<along_axis>
             otherwise: apply decorator on the full data
 
     Args:
+
         data_vars (Optional[Sequence[str]] = None):
             (xr.dataset only) list of data_var names to include. if None all data_vars will be used
         exclude (Sequence[str] = []):
@@ -92,7 +96,9 @@ def npxr(along_axis: Union[int, Literal[False]] = False) -> Callable:
             and used as the source data
             - if <kwargs> contains 'along_axis', that will be popped out and
             used to override the decorator-arg (along_axis)
+
     Returns:
+
         decorated function that accepts xr.dataset/data_array as well as np.ndarray
     """
     def _wrapper(func: Callable):
@@ -130,6 +136,7 @@ def sequencer(
     """ run a sequence of npxr-decorated methods
 
     Args:
+
         data (types.NPXR): source data
         data_vars (Optional[Sequence[Union[str, Sequence]]] = None):
             (xr.dataset only) list, or list of lists, of data_var names to include.
@@ -153,6 +160,7 @@ def sequencer(
                 - otherswise, such that, func(data, <args>)
 
     Returns:
+
         output data (and possibly intermediate steps) after processing through sequence.
         form will be the same as type as the input data (np.array|xr.data_array|xr.dataset)
     """
@@ -184,11 +192,14 @@ def execute_func(
         rename: dict[str, str] = {},
         **kwargs) -> types.NPXR:
     """
-    Note: the source data is not passed as a key-word argument
-        it is assumed that the first (variable length) argument
-        is <data>. Namely `data = args[0]`
+    Note:
+
+    the source data is not passed as a key-word argument
+    it is assumed that the first (variable length) argument
+    is <data>. Namely `data = args[0]`
 
     Args:
+
         func (Callable):
             function to be called on data. <func> must take
             data (types.NPXR) as the initial argument plus
@@ -214,6 +225,7 @@ def execute_func(
             'data', that will be popped from kwargs.
 
     Returns:
+
         data processed by <func>, possibly along an axis, in the same format
         as the initial source data.
     """
@@ -244,13 +256,15 @@ def execute_func(
 
 
 def post_process_npxr_data(data: types.NPDXR, values: types.NPD, rename: dict[str, str] = {}):
-    """
+    """ post process npxr data
     Args:
+
         data (types.NPXR): source np.array|xr.dataset|xr.data_array
         values (types.NPD): processed numpy array
         rename (dict):
             [only used for xr data] mapping from data_var name to renamed data_var name
     Returns:
+
         data with drops removed and replaced by nan
     """
     if isinstance(data, (np.ndarray, dask.array.Array)):
@@ -274,14 +288,17 @@ def post_process_npxr_data(data: types.NPDXR, values: types.NPD, rename: dict[st
 #
 def _lists_of(length: int, values: Any) -> list:
     """ lists of (length or object)
+
     if <values> is a tuple or list: validates `len(values) == length`
     else: converts <values> object to `[values] * length`
 
     Args:
+
         length (int): target length of returned list
         values (Any): list for length validation or object for expansion
 
     Returns:
+
         list of length <length>
     """
     if isinstance(values, (tuple, list)):
@@ -310,9 +327,11 @@ def _process_sequence_function_args(
     converts element of `args_list` to args-kwargs pair for function
 
     Args:
+
         args (tuple|list|dict|object|`falsey`): element to convert
 
     Returns:
+
         (tuple) args, kwargs
     """
     if isinstance(args, tuple):
