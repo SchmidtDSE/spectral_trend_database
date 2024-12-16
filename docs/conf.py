@@ -18,11 +18,11 @@ release = '0.0.1'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-	'myst_parser',
+    'myst_parser',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
-	'autodoc2']
+    'autodoc2']
 
 autodoc2_output_dir = 'docs'
 

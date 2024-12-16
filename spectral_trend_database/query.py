@@ -229,7 +229,7 @@ class QueryConstructor(object):
         self._append_list: list = []
         self._limit: Optional[int] = None
 
-    def select(self, *columns: str, table: Optional[str]=None, **columns_as) -> None:
+    def select(self, *columns: str, table: Optional[str] = None, **columns_as) -> None:
         """ add select columns
 
         Note: if not called select will revert to `SELECT *`

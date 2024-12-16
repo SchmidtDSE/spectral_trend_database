@@ -62,6 +62,7 @@ PRE_END_YYMM = '03-15'
 POST_START_YYMM = '04-15'
 POST_END_YYMM = '11-01'
 
+
 #
 # METHODS
 #
@@ -133,7 +134,7 @@ for year in YEARS:
             year=year,
             limit=LIMIT,
             to_dataframe=False))
-    data_vars =  query.run(sql=DATA_VARS_SQL, to_dataframe=False)
+    data_vars = query.run(sql=DATA_VARS_SQL, to_dataframe=False)
     data_vars = [r.column_name for r in data_vars]
     print('\t size:', len(data))
     print('\t data_vars:', data_vars)
@@ -148,7 +149,6 @@ for year in YEARS:
         local_dest_pre=local_dest_pre,
         local_dest_post=local_dest_post,
         data_vars=data_vars)
-
 
     # 4. gcp
     if DRY_RUN:
