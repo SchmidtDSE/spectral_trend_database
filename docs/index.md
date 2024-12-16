@@ -1,5 +1,6 @@
 # Spectral Trend Database
 
+
 ```{include} ../myst/sections/intro.md
 :start-after: <!-- start_overview -->
 :end-before: <!-- end_overview -->
@@ -17,7 +18,7 @@ pages/query
 :caption: Modules
 :hidden:
 
-_docs/index.rst
+docs/index.rst
 ```
 
 ```{toctree}
