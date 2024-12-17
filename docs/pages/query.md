@@ -1,3 +1,7 @@
 # Query Examples
 
-Give examples of using the database
+
+```{include} ../../README.md
+:start-after: <!-- start_db_description -->
+:end-before: <!-- end_db_description -->
+```
