@@ -22,6 +22,7 @@ Note: This is a work in progress. For bug reporting and/or question please use [
 :hidden:
 
 pages/start
+pages/database
 pages/query
 ```
 

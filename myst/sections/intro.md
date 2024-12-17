@@ -10,7 +10,7 @@ health, cover-cropping, and other sustainable agricultural practices.
 :label: fig.indices_vs_yield
 :::
 
-Schmidt DSE is now beginning to explore this data with a particular focus on yield-stability and cover-cropping (our collaborators at the US Department of Agriculture are particularly interested in the latter). Because this database will be public, our hope is that the data will help empower and accelerate research and action in the agricultural field more broadly.  Moreover, we are releasing an open-source codebase so that  researchers can quickly generate new databases for their own locations and metrics of interest.
+Schmidt DSE is now beginning to explore this data with a particular focus on yield-stability and cover-cropping (our collaborators at the US Department of Agriculture are particularly interested in the latter). Because this database will be public, our hope is that the data will help empower and accelerate research and action in the agricultural field more broadly.  Moreover, we are releasing an open-source codebase so that researchers can quickly generate new databases for their own locations and metrics of interest.
 
 
 (intro)=

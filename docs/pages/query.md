@@ -1,7 +1,7 @@
 # Query Examples
 
+TODO:
 
-```{include} ../../README.md
-:start-after: <!-- start_db_description -->
-:end-before: <!-- end_db_description -->
-```
+- create notebooks accessing directly with SQL/BQ
+- using query constructor
+- using named queries

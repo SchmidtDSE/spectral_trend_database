@@ -12,25 +12,10 @@ health, cover-cropping, and other sustainable agricultural practices.
 
 ## DATABASE DESCRIPTION
 
-<!-- start_db_description -->
-The database consists of 10 tables described below. Depending on the table they may be joined on `sample_id`, or if there is a time component, `sample_id + year`.  Additionally, the several of the datasets contain list-valued cells containing data for specific dates. This in indicated below with "[date]" and "[(daily) date]". Note this structure will probably be dropped in future versions.
-
-Here is a quick overview of the tables:
-
-* `SAMPLE_POINTS` (sample_id): location information such as lat, lon and geohashes. Note that the sample_id itself is a 11-character geohash.
-* `ADMINISTRATIVE_BOUNDARIES` (sample_id): administrative information such as state and county.
-* `QDANN_YIELD` (sample_id, year): yield estimations for year
-* `LANDSAT_RAW_MASKED` (sample_id, year, [date]): landsat band values for year
-* `RAW_INDICES_V1` (sample_id, year, [date]): spectral indices built from `LANDSAT_RAW_MASKED`. For a list of indices and how there are calculated see [config/spectral_indices/v1](https://github.com/SchmidtDSE/spectral_trend_database/blob/main/config/spectral_indices/v1.yaml)
-* `SMOOTHED_INDICES_V1` (sample_id, year, [(daily) date]):
-interpolated and smoothed daily values for indices contained in `RAW_INDICES_V1`
-* `MACD_INDICES_V1` (sample_id, year, [(daily) date]): additional indices dervived from `SMOOTHED_INDICES_V1` whose values are useful for detecting cover-croping and green-up dates.
-* `INDICES_STATS_V1` (sample_id, year, [date]): statistical (min, max, mean, median, skew, kurtosis) aggregation of `SMOOTHED_INDICES_V1`
-* `INDICES_STATS_V1_GROWING_SEASON` (sample_id, year, [date]): same as `INDICES_STATS_V1` but restricted to the "growing season"
-* `INDICES_STATS_V1_OFF_SEASON` (sample_id, year, [date]): same as `INDICES_STATS_V1` but restricted to the "off season"
-
-<!-- end_db_description -->
-
+```{include} docs/pages/database.md
+:start-after: <!-- start_db_overview -->
+:end-before: <!-- end_db_overview -->
+```
 
 ---
 
