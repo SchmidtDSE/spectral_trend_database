@@ -50,3 +50,4 @@ script: https://code.earthengine.google.com/595bedc5425c99e83fc41de9ebf39c69
 
 We then used these sample points to extract yield values based on [QDANN](https://gee-community-catalog.org/projects/qdann/) (2008-2022).
 
+
