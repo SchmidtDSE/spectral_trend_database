@@ -1,6 +1,5 @@
 # Database
 
-<!-- start_db_overview -->
 
 > CHANGE NOTICE: We are still working on operationalization. The database currently only goes through 2001
 
@@ -8,21 +7,24 @@ The _Spectral Trend Database_ tracks over 14 thousand points in the mid-western 
 
 ---
 
-<a name='overview'></a>
+<a name='database'></a>
+
+<!-- start_db_table -->
+
 | Table | Keys | Dates | Daily | Description |
 | ---: | :----: | :----: | :----: | :---- |
-|  [SAMPLE_POINTS](/pages/database.html/#sample_points) | sample_id | False | False | location information such as lat, lon and geohashes |
-|  [ADMINISTRATIVE_BOUNDARIES](/pages/database.html/#admin_boundaries) | sample_id | False | False | administrative information such as state and county |
-|  [QDANN_YIELD](/pages/database.html/#qdann_yield) | sample_id, year | True | False | yield estimations for year |
-|  [LANDSAT_RAW_MASKED](/pages/database.html/#masked_landsat) | sample_id, year | True | False | masked landsat band values for year |
-|  [RAW_INDICES_V1](/pages/database.html/#raw_indices) | sample_id, year | True | False | spectral indices built from `LANDSAT_RAW_MASKED`|
-|  [SMOOTHED_INDICES_V1](/pages/database.html/#indices) | sample_id, year | True | True | interpolated and smoothed daily values for indices contained in `RAW_INDICES_V1` |
-|  [MACD_INDICES_V1](/pages/database.html/#macd) | sample_id, year | True | True |  additional indices dervived from `SMOOTHED_INDICES_V1` whose values are useful for detecting cover-croping and green-up dates |
-|  [INDICES_STATS_V1](/pages/database.html/#indices_stats) | sample_id, year | True | False | statistical (min, max, mean, median, skew, kurtosis) aggregation of `SMOOTHED_INDICES_V1` |
-|  [INDICES_STATS_V1_GROWING_SEASON](/pages/database.html/#indices_stats) | sample_id, year | True | False | same as `INDICES_STATS_V1` but restricted to the "growing season" |
-|  [INDICES_STATS_V1_OFF_SEASON](/pages/database.html/#indices_stats) | sample_id, year | True | False | same as `INDICES_STATS_V1` but restricted to the "off season"|
+|  [SAMPLE_POINTS](#sample_points) | sample_id | False | False | location information such as lat, lon and geohashes |
+|  [ADMINISTRATIVE_BOUNDARIES](#admin_boundaries) | sample_id | False | False | administrative information such as state and county |
+|  [QDANN_YIELD](#qdann_yield) | sample_id, year | True | False | yield estimations for year |
+|  [LANDSAT_RAW_MASKED](#masked_landsat) | sample_id, year | True | False | masked landsat band values for year |
+|  [RAW_INDICES_V1](#raw_indices) | sample_id, year | True | False | spectral indices built from `LANDSAT_RAW_MASKED`|
+|  [SMOOTHED_INDICES_V1](#indices) | sample_id, year | True | True | interpolated and smoothed daily values for indices contained in `RAW_INDICES_V1` |
+|  [MACD_INDICES_V1](#macd) | sample_id, year | True | True |  additional indices dervived from `SMOOTHED_INDICES_V1` whose values are useful for detecting cover-croping and green-up dates |
+|  [INDICES_STATS_V1](#indices_stats) | sample_id, year | True | False | statistical (min, max, mean, median, skew, kurtosis) aggregation of `SMOOTHED_INDICES_V1` |
+|  [INDICES_STATS_V1_GROWING_SEASON](#indices_stats) | sample_id, year | True | False | same as `INDICES_STATS_V1` but restricted to the "growing season" |
+|  [INDICES_STATS_V1_OFF_SEASON](#indices_stats) | sample_id, year | True | False | same as `INDICES_STATS_V1` but restricted to the "off season"|
 
-<!-- end_db_overview -->
+<!-- end_db_table -->
 
 ---
 
