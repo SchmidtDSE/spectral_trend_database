@@ -17,19 +17,19 @@ outputs:
 - local:
     - <root-data-folder>/data/processed/biomass_landsat/sample_points
     - <root-data-folder>/data/processed/biomass_landsat/administrative_boundaries
-    - <root-data-folder>/data/processed/biomass_landsat/scym_yield
+    - <root-data-folder>/data/processed/biomass_landsat/qdann_yield
     - <root-data-folder>/data/processed/biomass_landsat/landsat_raw_masked
 
 - gcs (gs://agriculture_monitoring/spectral_trend_database/v1/processed/biomass_landsat):
     - sample_points
     - administrative_boundaries
-    - scym_yield
+    - qdann_yield
     - landsat_raw_masked
 
 - bigquery:
      - SAMPLE_POINTS
      - ADMINISTRATIVE_BOUNDARIES
-     - SCYM_YIELD
+     - QDANN_YIELD
      - LANDSAT_RAW_MASKED
 
 runtime: ~ 15 minutes
@@ -141,7 +141,7 @@ TABLE_CONFIGS.append(save_data_columns(
     sort='sample_id'))
 TABLE_CONFIGS.append(save_data_columns(
     df,
-    name='scym_yield',
+    name='qdann_yield',
     cols=YIELD_COLS,
     sort=['sample_id', 'year']))
 TABLE_CONFIGS.append(save_data_columns(
