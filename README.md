@@ -15,7 +15,7 @@ health, cover-cropping, and other sustainable agricultural practices.
 
 > CHANGE NOTICE: We are still working on operationalization. The database currently only goes through 2001
 
-The _Spectral Trend Database_ tracks over 14 thousand points in the mid-western United States from 2000 to present. Below we have a detailed description of each of the tables. The database lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser ([docs](XXX), [example](XXX)).
+The _Spectral Trend Database_ lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser ([docs](XXX), [example](XXX)).
 
 
 | Table | Keys | Dates | Daily | Description |
