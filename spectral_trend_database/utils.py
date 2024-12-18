@@ -145,7 +145,7 @@ def rows_to_xr(
         rows data as xr.Dataset
     """
     if attr_cols:
-        attrs = rows.loc[0, attr_cols].to_dict()
+        attrs = rows.reset_index(drop=True).loc[0, attr_cols].to_dict()
     else:
         attrs = {}
     for a in list_attrs:
