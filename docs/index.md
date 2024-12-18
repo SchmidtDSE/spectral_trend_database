@@ -15,7 +15,7 @@ Note: This is a work in progress. For bug reporting and/or question please use [
 
 pages/start
 pages/database
-pages/query
+Example Usage <https://schmidtdse.github.io/spectral_trend_database/examples>
 ```
 
 ```{toctree}
