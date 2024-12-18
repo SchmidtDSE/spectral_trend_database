@@ -51,7 +51,7 @@ warnings.filterwarnings(
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
-YEARS = range(2000, 2022 + 1)
+YEARS = range(2008, 2022 + 1)
 LIMIT = None
 SCALE = 30
 CROP_TYPE = 'corn'

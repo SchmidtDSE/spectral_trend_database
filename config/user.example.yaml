@@ -48,7 +48,7 @@ MAX_PROCESSES: 15
 SAMPLE_POINTS_TABLE_NAME: sample_points
 
 # step-0.export_landsat_yield_data
-RAW_BASE_NAME: biomass_yield.2000-2022
+RAW_BASE_NAME: biomass_yield.2008-2022
 
 # step-1.preprocess_raw_data
 UNIQUE_GEOHASH: geohash_7
