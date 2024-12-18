@@ -16,3 +16,4 @@ USDA's [_Crop Land Data Layer_](https://developers.google.com/earth-engine/datas
 
 We then used these sample points to extract yield values based on [QDANN](https://gee-community-catalog.org/projects/qdann/) (2008-2022).
 
+

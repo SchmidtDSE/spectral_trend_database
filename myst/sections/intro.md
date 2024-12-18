@@ -1,20 +1,11 @@
-(eoy)=
-# Description
-
-<!-- start_overview -->
-DSE’s Spectral Trends Database monitors uses data from NASA's Landsat satellites to track over 14,000 points in corn and soy fields in the midwestern United States. The database contains daily values for 36 different vegetation indices from the year 2000 to present, along with a number of derivative metrics that are useful for detecting crop planting and harvesting. The data will be useful for myriad agriculture applications, including the study and monitoring of yield, yield-stability, soil
-health, cover-cropping, and other sustainable agricultural practices.
-<!-- end_overview -->
+(intro)=
+# Introduction
 
 :::{figure} #nb.indices_vs_yield
 :label: fig.indices_vs_yield
+
+Example of spectral-index curves versus yield for a randomly selected point in our database (2000-2012). Select the index of interest using the "SPECTRAL INDEX" drop-down.
 :::
-
-Schmidt DSE is now beginning to explore this data with a particular focus on yield-stability and cover-cropping (our collaborators at the US Department of Agriculture are particularly interested in the latter). Because this database will be public, our hope is that the data will help empower and accelerate research and action in the agricultural field more broadly.  Moreover, we are releasing an open-source codebase so that  researchers can quickly generate new databases for their own locations and metrics of interest.
-
-
-(intro)=
-# Introduction
 
 Spectral indices, mathematical combinations of pixel values, play an important role in remote sensing. The most well known example would be the _Normalized Difference Vegetation Index_ (NDVI):
 
@@ -30,6 +21,6 @@ Thanks to multi-spectral satellites we are not confined to our lived experince o
 In addition to NDVI and GNDVI there are myriad other spectral indices of interest, each with its own particular use case from: measuring water content within vegetation, to detecting water bodies or human infrastrutue, and quantifying soil moisture and soil health.
 
 The direct goal of the _Spectral Trend Database_ (STDB) is to compute and
-track a large number ([36](../../config/spectral_indices/v1.yaml)) spectral-indices over corn and soy fields from 2000 to present. The database currently is based on Landsat satellites, however we are in the process of generating the same data (2018 to present) using Sentinel-2.  This data should prove useful to a large number of applications in the study of agricultural remote sensing, including the study of yeild, yeild-stablity, cover-croping and other regenerative agricultural practices and soil health.
+track a large number ([36](../../config/spectral_indices/v1.yaml)) spectral-indices over corn and soy fields from 2000 to present. [](#fig.indices_vs_yield) shows one such example. Use the drop-down "SPECTRAL INDEX" to visualize different indices. The database currently is based on Landsat satellites, however we are in the process of generating the same data (2018 to present) using Sentinel-2.  This data should prove useful to a large number of applications in the study of agricultural remote sensing, including the study of yeild, yeild-stablity, cover-croping and other regenerative agricultural practices and soil health.
 
 This particular datasbase has been constructed for studying corn and soy. The general techniques, however, are applicable to a number of other scientific studies. Our open-source code base is constructed to allow the user to easily re-run these calcuations for their particular sample points, data sources, time periods, and spectral indices of interest, broadening the potential applications far beyond corn and soy, or even agricultural studies.
