@@ -3,7 +3,7 @@
 
 > CHANGE NOTICE: We are still working on operationalization. The database currently only goes through 2001
 
-The _Spectral Trend Database_ tracks over 14 thousand points in the mid-western United States from 2000 to present. Below we have a detailed description of each of the tables. The database lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser ([docs](XXX), [example](XXX)).
+The _Spectral Trend Database_ tracks over 14 thousand points in the mid-western United States from 2000 to present. Below we have a detailed description of each of the tables. The database lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser (see these [examples](/examples)).
 
 ---
 
@@ -98,7 +98,7 @@ Modeled yield data from 200X - Present using [QDANN](https://gee-community-catal
 
 Masked Landsat (optical) band values. The band value columns contain lists for each date where data is available.  There is a corresponding `date` column containing a list of dates for each value. The date values range from Sept 1. of the prior year, through December 1 of the year listed to capture dates before and after the dates of interest, namely the off-season and growing-season before yield.
 
-Note: to simplfy analysis STDB offers [tools](/docs/spectral_trend_database/spectral_trend_database.utils.html#spectral_trend_database.utils.row_to_xr) and [examples](XXX) of how to convert each row to an `xr.Dataset`.
+Note: to simplfy analysis STDB offers [tools](/docs/spectral_trend_database/spectral_trend_database.utils.html#spectral_trend_database.utils.row_to_xr) and [examples](/examples#parsing-the-data) of how to convert each row to an `xr.Dataset`.
 
 | Column(s) | Description |
 | ---: | :---- |
