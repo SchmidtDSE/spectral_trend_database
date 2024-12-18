@@ -11,5 +11,15 @@ keywords:
     - remote sensing
 ---
 
+---
+
+**PROJECT LINKS**
+
+- [Code Repository](https://github.com/SchmidtDSE/spectral_trend_database)
+- [API Documentation](https://schmidtdse.github.io/spectral_trend_database/docs)
+- [DSE](https://dse.berkeley.edu)
+
+---
+
 ```{include} sections/intro.md
 ```
