@@ -19,7 +19,7 @@ Here is the same query using [query.QueryConstructor](/docs/spectral_trend_datab
 :::{embed} #nb.example_query_stdb_basic
 :::
 
-The real benefit, however, is in constructing SQL queries with lots of `JOIN` and `WHERE` statements. Here is a more complicated request collecting all the yield and spectral index data from 2012-2015 for a subset of sample_ids:
+The real benefit, however, is in constructing SQL queries with lots of `JOIN` and `WHERE` statements. Here is a more complicated request collecting spectral index data from 2012-2015 for a subset of sample_ids:
 
 :::{embed} #nb.example_query_stdb_advanced
 :::
