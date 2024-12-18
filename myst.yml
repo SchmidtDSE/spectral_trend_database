@@ -32,6 +32,6 @@ project:
   toc:
     - file: myst/main.md
     - file: myst/sections/data.md
-    - file: myst/sections/processing.md
+    - file: myst/sections/examples.md
     - file: nb/public/spectral_trends.ipynb
 
