@@ -682,7 +682,7 @@ def daily_dataset(
     data = data.copy()
     if data_vars is None:
         data_vars = list(data.data_vars)
-    data_vars = [d for d in data_vars if d not in exclude]
+    data_vars = [d for d in data_vars if d not in (exclude or [])]
     data = data[data_vars]
     coord_name = utils.xr_coord_name(data)
     if not start_date:
