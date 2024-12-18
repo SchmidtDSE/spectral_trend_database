@@ -31,8 +31,9 @@ project:
   github: https://github.com/SchmidtDSE/map_something
   toc:
     - file: myst/main.md
-    - file: myst/sections/data.md
     - file: myst/sections/examples.md
+    - file: myst/sections/data.md
+    - file: nb/public/examples.ipynb
     - file: nb/public/smoothing.ipynb
     - file: nb/public/spectral_trends.ipynb
 

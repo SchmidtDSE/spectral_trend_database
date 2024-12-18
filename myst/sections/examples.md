@@ -1,21 +1,50 @@
 (examples)=
 # Examples
 
+Before diving into how the data was produced and processed, let's take a look at a few exampples of how to use the [`spectral_trend_database`](/docs/index.html) module.
+
 ---
 
 ## Querying the Database
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum
+The data is in a big-query database, and so can be accessed using the [big-query api](https://cloud.google.com/bigquery/docs).
+
+
+:::{embed} #nb.example_query_bq
+:::
+
+Here is the same query using [query.QueryConstructor](/docs/spectral_trend_database/spectral_trend_database.query.html#spectral_trend_database.query.QueryConstructor)
+
+
+:::{embed} #nb.example_query_stdb_basic
+:::
+
+The real benefit, however, is in constructing SQL queries with lots of `JOIN` and `WHERE` statements. Here is a more complicated request collecting all the yield and spectral index data from 2012-2015 for a subset of sample_ids:
+
+:::{embed} #nb.example_query_stdb_advanced
+:::
 
 ---
 
-## Visualizing the data
 
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum
+## Parsing the data
+
+Using the [utils](/docs/spectral_trend_database/spectral_trend_database.utils.html) module we can easily turn these rows into xarray-datasets to more easily parse interact with the data.
+
+:::{embed} #nb.parsing_single_row
+:::
+
+Simialarly we can turn multiple rows into a single dataset. Because rows contain overlaping dates we'll also need to filter the dates using the `filter_dates` method below:
+
+:::{embed} #nb.parsing_multiple_rows
+:::
 
 ---
 
+## Computations and Visulaizations
 
-## Toy Models
+It's now extremely easy to perform computations and visualize the data. Here's a quick visualization of our data of NDVI and the NDVI exponentially weighted moving average (with a 10 day window). We can then additionally add to the visualizion a computed trend, namely the difference between the normalized difference vegetation index and the normalized difference water index.
 
-Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum
+:::{embed} #nb.ndvi_vs_ema
+:::
+
