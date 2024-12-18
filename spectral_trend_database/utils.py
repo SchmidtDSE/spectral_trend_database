@@ -20,7 +20,7 @@ from spectral_trend_database import types
 #
 # CONSTANTS
 #
-DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'prefix'
+DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'replace'
 LIST_LIKE_TYPES: tuple = (list, tuple, np.ndarray, xr.DataArray, pd.Series)
 
 
