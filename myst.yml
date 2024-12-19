@@ -8,7 +8,7 @@ site:
     - title: CODE
       url: https://github.com/SchmidtDSE/spectral_trend_database
     - title: DOCS
-      url: /spectral_trend_database/docs/
+      url: https://schmidtdse.github.io/spectral_trend_database/docs
     - title: DSE
       url: https://dse.berkeley.edu/
   options:
