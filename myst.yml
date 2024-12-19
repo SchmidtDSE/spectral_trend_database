@@ -2,8 +2,8 @@ version: 1
 site:
   title: Spectral Trend Database
   template: book-theme
-  hide_toc: true
-  hide_outline: true
+  hide_toc: false
+  hide_outline: false
   options:
     favicon: assets/favicon.ico
     logo: assets/dse-2.black-crop.small.png
