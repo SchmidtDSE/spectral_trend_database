@@ -4,6 +4,13 @@ site:
   template: book-theme
   hide_toc: false
   hide_outline: false
+  actions:
+    - title: CODE
+      url: https://github.com/SchmidtDSE/spectral_trend_database
+    - title: DOCS
+      url: /docs
+    - title: DSE
+      url: https://dse.berkeley.edu/
   options:
     favicon: assets/favicon.ico
     logo: assets/dse-2.black-crop.small.png
