@@ -53,6 +53,8 @@ warnings.filterwarnings(
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
 YEARS = range(2008, 2022 + 1)
 LIMIT = None
+YEARS = range(2008, 2011 + 1)
+LIMIT = 10
 SCALE = 30
 CROP_TYPE = 'corn'
 # CROP_TYPE = 'soy'
@@ -122,9 +124,12 @@ def get_mean_pixel_rows(row):
         rows = ds.to_dataframe()
         rows = rows[landsat.HARMONIZED_BANDS]
         rows = rows.reset_index(drop=False)
+        for k, v in row.items():
+            rows[k] = v
         rows['error'] = None
     except Exception as e:
-        rows = pd.DataFrame([dict(error=str(e))])
+        row['error'] = str(e)
+        rows = pd.DataFrame([row])
     return rows
 
 
@@ -148,6 +153,7 @@ print('- drop duplicates shape:', df.shape)
 
 # 2. Add geohashes
 df['sample_id'] = df.apply(lambda r: get_geohash(r, 11), axis=1)
+# TODO ADD H3 INSTEAD DROP GH-P
 for p in PRECISIONS:
     df[f'geohash_{p}'] = df.sample_id.apply(lambda v: v[:p])
 
