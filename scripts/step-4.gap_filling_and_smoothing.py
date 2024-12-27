@@ -39,7 +39,7 @@ import mproc
 #
 # CONSTANTS
 #
-YEARS = range(2000, 2022 + 1)
+YEARS = range(2008, 2022 + 1)
 LIMIT = None
 DRY_RUN = False
 

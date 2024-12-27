@@ -33,8 +33,8 @@ from spectral_trend_database import types
 #
 # CONSTANTS
 #
-YEARS = range(2020, 2020 + 1)
-LIMIT = 2
+YEARS = range(2008, 2020 + 1)
+LIMIT = None
 DRY_RUN = False
 SRC_INDICES = ['ndvi', 'evi', 'evi2']
 MACD_PARTS = [
