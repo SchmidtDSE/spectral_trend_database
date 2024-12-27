@@ -51,7 +51,7 @@ warnings.filterwarnings(
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
-YEARS = range(2000, 2022 + 1)
+YEARS = range(2008, 2022 + 1)
 LIMIT = None
 SCALE = 30
 CROP_TYPE = 'corn'
@@ -59,8 +59,7 @@ CROP_TYPE = 'corn'
 BUFFER = 0
 SRC_PATH = f'{c.URL_PREFIX}agriculture_monitoring/CDL/landsat/{CROP_TYPE}_biomass_1999-2022.csv'
 # BUFFER = 30
-HARVEST_START_DATE_TMPL = '{}-09-01'
-HARVEST_END_DATE_TMPL = '{}-12-01'
+JAN1_TMPL = '{}-01-01'
 PRECISIONS = [5, 7, 9]
 MAX_PROCESSES = 6
 MAX_ERR = 1
@@ -100,8 +99,8 @@ def get_mean_pixel_values(row: pd.Series) -> xr.Dataset:
         if np.isnan(buffer):
             buffer = 0
         radius = LANDSAT_RADIUS + buffer
-    start_date = HARVEST_START_DATE_TMPL.format(row['year'] - 1)
-    end_date = HARVEST_END_DATE_TMPL.format(row['year'])
+    start_date = JAN1_TMPL.format(row['year'])
+    end_date = JAN1_TMPL.format(row['year']+1)
     geom = ee.Geometry.Point([row['lon'], row['lat']])
     geom = geom.buffer(radius, MAX_ERR)
     data_filter = ee.Filter.And(
@@ -116,16 +115,24 @@ def get_mean_pixel_values(row: pd.Series) -> xr.Dataset:
     return ds
 
 
-def add_harvest_year_bands_ds(row):
+def get_mean_pixel_rows(row):
     row = dict(row).copy()
     try:
         ds = get_mean_pixel_values(row)
-        row.update({b: ds[b].data for b in landsat.HARMONIZED_BANDS})
-        row['date'] = list(ds.time.dt.strftime('%Y-%m-%d').data)
-        row['error'] = None
+        rows = ds.to_dataframe()
+        rows = rows[landsat.HARMONIZED_BANDS]
+        rows = rows.reset_index(drop=False)
+        rows['error'] = None
     except Exception as e:
-        row['error'] = str(e)
-    return row
+        rows = pd.DataFrame([dict(error=str(e))])
+    return rows
+
+
+def process_date_column(df):
+    df = df.rename(columns=dict(time='date'))
+    df = df.sort_values(by='date')
+    df['date'] = df.date.apply(lambda d: d.strftime('%Y-%m-%d'))
+    return df
 
 
 #
@@ -155,11 +162,14 @@ for year in YEARS:
     count = len(data)
     if count:
         print(f'RUNNING {DEST_NAME}[{count}] FOR YEAR = {year}')
-        rows = mproc.map_with_threadpool(
-            add_harvest_year_bands_ds,
+        dfs = mproc.map_with_threadpool(
+            get_mean_pixel_rows,
             data,
             max_processes=MAX_PROCESSES)
-        lsat_df = pd.DataFrame(rows)
+        lsat_df = pd.concat(dfs)
+        lsat_df = process_date_column(lsat_df)
+        lsat_df = lsat_df.dropna(subset=landsat.HARMONIZED_BANDS, how='all')
+        lsat_df = lsat_df.reset_index(drop=True)
         name = f'{DEST_NAME}-{year}.json'
         local_dest = paths.local(
             c.RAW_LOCAL_FOLDER,
@@ -173,6 +183,5 @@ for year in YEARS:
             gcs_dest=gcs_dest,
             dry_run=DRY_RUN)
         print(f'COMPLETE[{lsat_df.shape}]:', DEST_NAME)
-
     else:
         print(f'NO DATA FOR {year}')
