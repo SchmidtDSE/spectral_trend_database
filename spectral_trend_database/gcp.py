@@ -14,6 +14,12 @@ from spectral_trend_database import utils
 
 
 #
+# CONSTANTS
+#
+DATE_FMT = '%Y-%m-%d'
+
+
+#
 # CLOUD STORAGE
 #
 def process_gcs_path(
@@ -144,6 +150,7 @@ def save_ld_json(
         local_dest: str,
         gcs_dest: Optional[str] = None,
         gcs_bucket: Optional[str] = None,
+        date_column: Optional[str] = 'date',
         dry_run: bool = True,
         create_dirs: bool = True) -> Union[str, None]:
     """ save dataframe locally and (optionally) to GCS as line-deliminated JSON
@@ -154,6 +161,7 @@ def save_ld_json(
         local_dest (str): local dest
         gcs_dest (Optional[str]): if exists export to gcs
         gcs_bucket (Optional[str]): gcs_bucket (only usde if gcs-dest exists)
+        date_column (Optional[str] = 'date'): name of date column - attempt to convert to DATE_FMT
         dry_run (bool = True): if true print message but don't save
         create_dirs (bool = True): if true create local parent dirs if needed
 
@@ -163,6 +171,11 @@ def save_ld_json(
         otherwise return the <local_dest>.
     """
     print(f'save [{df.shape}]:')
+    if date_column:
+        try:
+            df[date_column] = df.date.apply(lambda d: d.strftime(DATE_FMT))
+        except:
+            pass
     if dry_run:
         print('- local:', local_dest, '(dry-run)')
         print('- gcs:', gcs_dest, '(dry-run)')

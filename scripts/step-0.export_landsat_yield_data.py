@@ -136,7 +136,6 @@ def get_mean_pixel_rows(row):
 def process_date_column(df):
     df = df.rename(columns=dict(time='date'))
     df = df.sort_values(by='date')
-    df['date'] = df.date.apply(lambda d: d.strftime('%Y-%m-%d'))
     return df
 
 

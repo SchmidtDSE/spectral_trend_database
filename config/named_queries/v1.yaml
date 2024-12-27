@@ -1,5 +1,5 @@
 project: dse-regenag
-dataset: BiomassYieldTrends
+dataset: BiomassYieldTrendsDEVASROWS
 defaults:
     using: sample_id
 queries:

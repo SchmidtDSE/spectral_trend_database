@@ -38,6 +38,7 @@ from spectral_trend_database import utils
 # CONSTANTS
 #
 YEARS = range(2008, 2022 + 1)
+YEARS = range(2008, 2011 + 1) #  TODO LIM HACK
 LIMIT = None
 
 
