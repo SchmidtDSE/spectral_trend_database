@@ -1,13 +1,13 @@
 project: dse-regenag
-dataset: BiomassTrends
+dataset: BiomassYieldTrends
 defaults:
     using: sample_id
 queries:
   raw_landsat:
     init:
-        table: SAMPLE_POINTS
-    join:
         table: LANDSAT_RAW_MASKED
+    join:
+        table: SAMPLE_POINTS
   scym_raw_landsat:
     init:
         table: SAMPLE_POINTS
