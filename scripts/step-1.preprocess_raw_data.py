@@ -44,6 +44,7 @@ from spectral_trend_database.gee import landsat
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
 DEV_NB_SAMPLES = False  # TODO: CONFIG OR CML ARG
 SEARCH = c.SEARCH  # TODO: CONFIG OR CML ARG
+SEARCH = r'b0-lim10-20\d{2}\.json$' # TODO: TEMP HACK FOR LIM CASE
 COUNTY_ID = 'GEOID'
 LL = ['lon', 'lat']
 LOCAL_DIR = f'{c.LOCAL_DATA_DIR}/{c.DEST_LOCAL_FOLDER}'
@@ -79,17 +80,9 @@ def get_geohash(row, precision):
         precision=precision)
 
 
-def remove_coord_array_nans(row):
-    return utils.filter_list_valued_columns(
-        row=row,
-        test=utils.infinite_along_axis,
-        coord_col=c.DATE_COLUMN,
-        data_cols=landsat.HARMONIZED_BANDS)
-
-
 def years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS):
     df = df.copy()
-    gh_count = df.groupby(c.UNIQUE_GEOHASH).size().to_frame('nb_years').reset_index()
+    gh_count = df.drop_duplicates(subset=['year', c.UNIQUE_GEOHASH]).groupby([c.UNIQUE_GEOHASH]).size().reset_index(name='nb_years')
     df = df.merge(gh_count, on=c.UNIQUE_GEOHASH, how='inner')
     if min_years:
         df = df[df.nb_years >= min_years]
@@ -134,24 +127,21 @@ df = unique_by_geohash(df)
 print(f'- gh-7 unique shape:', df.shape)
 
 
-# 4. remove nan/none values from coord-arrays
-df[LIST_COLUMNS] = df.apply(remove_coord_array_nans, axis=1, result_type='expand')
-print(f'- remove-empty shape:', df.shape)
-
-
-# 5. require `c.MIN_REQUIRED_YEARS` per geohash
-df = years_per_geohash(df, min_years=10)
+# 4. require `c.MIN_REQUIRED_YEARS` per geohash
+# df = years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS)
+df = years_per_geohash(df, min_years=2) # TODO HACK FOR LIM TEST
 print(f'- min-years shape:', df.shape)
 
 
-# 6. Add County/State Data
+# 5. Add County/State Data
+# TODO READ THIS FROM SOURCE
 us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
 us_gdf = us_gdf.to_crs(epsg=4326)
 df = merge_county_data(df, us_gdf)
 print(f'merge-county shape:', df.shape)
 
 
-# 7. Save local and GCS results as line-deliminated JSON
+# 6. Save local and GCS results as line-deliminated JSON
 local_dest = paths.local(
     c.DEST_LOCAL_FOLDER,
     c.DEST_BIOMASS_YIELD_NAME)
