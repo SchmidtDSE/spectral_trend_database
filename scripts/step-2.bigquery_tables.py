@@ -100,10 +100,12 @@ def save_data_columns(
         sort: Optional[Union[str, list[str]]] = None) -> dict:
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
-        name)
+        name,
+        ext='json')
     gcs_dest = paths.gcs(
         c.DEST_GCS_FOLDER,
-        name)
+        name,
+        ext='json')
     _df = df[cols]
     if unique_on:
         _df = _df.drop_duplicates(unique_on)
