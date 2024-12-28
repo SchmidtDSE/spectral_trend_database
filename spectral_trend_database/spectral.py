@@ -15,7 +15,7 @@ from spectral_trend_database.gee import landsat
 #
 # CONSTANTS
 #
-ID_COLUMNS = ['sample_id', 'year']
+ID_COLUMNS = ['sample_id', 'date', 'year']
 
 
 #
@@ -54,6 +54,7 @@ def index_arrays(
         bands: list[str] = landsat.HARMONIZED_BANDS,
         coord: str = 'date') -> list[np.ndarray]:
     """ computes spectral indices
+    TODO: REMOVE/ARCHVIVE
 
     Computes spectral indices from a pd.Series (dataframe row) of band-valued
     timeseries
@@ -71,10 +72,6 @@ def index_arrays(
     """
     from IPython.display import display
     ds = utils.row_to_xr(row, coord=coord, data_vars=bands)
-    # display(ds)
-    # print(list(indices.values()))
-    # print('\n'*10)
-    # raise
     index_datasets = ds.eval(list(indices.values()))  # type: ignore[arg-type]
     index_arrays = [v.data for v in index_datasets]  # type: ignore[attr-defined]
     return index_arrays
@@ -85,9 +82,7 @@ def add_index_arrays(
         name: Optional[str] = c.DEFAULT_SPECTRAL_INDEX_CONFIG,
         indices: Optional[dict[str, str]] = None,
         bands: list[str] = landsat.HARMONIZED_BANDS,
-        coord: str = 'date',
-        coord_type: Optional[str] = c.DATETIME_MS,
-        keep: Optional[list[str]] = ID_COLUMNS) -> pd.DataFrame:
+        include: Optional[list[str]] = ID_COLUMNS) -> pd.DataFrame:
     """ add_spectral_indices
 
     Creates a copy of passed dataframe with (array-value) spectral index
@@ -103,12 +98,8 @@ def add_index_arrays(
             else load yaml at '<project-root>/config/spectral_indices/<name>.yaml'
         indices (dict[str, str]): config containing spectral-index equations
         bands (list[str] = landsat.HARMONIZED_BANDS): list of spectral band nanmes used in equations
-        coord (str = 'date'): key for coordinate column
-        coord_type (Optional[str] = DATETIME_MS):
-            if truthy convert <coord> arrays to <coord_type>
-        keep (Optional[list[str]] = ID_COLUMNS):
+        include (Optional[list[str]] = ID_COLUMNS):
             - list of columns to keep from the original dataframe
-            - <coord> is always included
             - if falsey all columns will be preserved
 
     Returns:
@@ -116,25 +107,13 @@ def add_index_arrays(
         (pd.DataFrame)
     """
     data = data.copy()
-    if coord_type:
-        data[coord] = data[coord].apply(lambda d: d.astype(coord_type))
     if indices is None:
         assert isinstance(name, str)
         indices = index_config(name)
-
-    def _indices(row: pd.Series) -> list[np.ndarray]:
-        return index_arrays(
-            row,
-            indices=indices,
-            bands=bands,
-            coord=coord)
-
-    index_df = data.apply(lambda r: _indices(r), axis=1, result_type='expand')
     index_cols = pd.Index(indices.keys())
-    index_df.columns = index_cols
-    if keep:
-        if not (coord in keep):
-            keep += [coord]
-        data = data[keep]
+    index_arr = data.eval(list(indices.values()))
+    index_df = pd.DataFrame(index_arr.T, columns=index_cols)
+    if include:
+        data = data[include]
     data[index_cols] = index_df
     return data

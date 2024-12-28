@@ -37,7 +37,6 @@ from spectral_trend_database import utils
 #
 # CONSTANTS
 #
-YEARS = range(2008, 2022 + 1)
 YEARS = range(2008, 2011 + 1) #  TODO LIM HACK
 LIMIT = None
 
@@ -81,13 +80,7 @@ def process_raw_indices_for_year(
     print('- compute raw indices')
     df = spectral.add_index_arrays(df, indices=indices)
     print('- add indices shape: ', df.shape)
-    df[[c.DATE_COLUMN] + index_names] = df.apply(
-        lambda r: remove_coord_array_infinities(r, index_names),
-        axis=1,
-        result_type='expand')
-    print('- remove infinities shape: ', df.shape)
     print(f'- save json [{file_name}]')
-    df[c.DATE_COLUMN] = df[c.DATE_COLUMN].apply(utils.cast_duck_array)
     uri = gcp.save_ld_json(
         df,
         local_dest=local_dest,

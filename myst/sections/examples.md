@@ -43,7 +43,7 @@ Similarly we can turn multiple rows into a single dataset. Because rows contain 
 
 ## Computations and Visualizations
 
-This workflow allows us to efficiently perform computations and visualize the data. Here's a quick visualization of our data of NDVI and the NDVI exponentially weighted moving average (with a 10 day window). We can then additionally add to the visualizion a computed trend, namely the difference between the normalized difference vegetation index and the normalized difference water index.
+This workflow allows us to efficiently perform computations and visualize the data. Here's a quick visualization of our data of NDVI and the NDVI exponentially weighted moving average (with a 10 day window). We can then additionally add to the visualization a computed trend, namely the difference between the normalized difference vegetation index and the normalized difference water index.
 
 :::{embed} #nb.ndvi_vs_ema
 :::
