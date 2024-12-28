@@ -57,7 +57,7 @@ TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
 MAP_METHOD = mproc.map_sequential
 # MAP_METHOD = mproc.map_with_threadpool
 
-YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH)
+YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH * 2)
 YEAR_DELTA = relativedelta(years=1)
 DS_COLUMNS = ['date'] + landsat.HARMONIZED_BANDS + list(_indices.keys())
 
@@ -83,15 +83,19 @@ def write_smooth_rows(
         sample_id: str,
         file_path: str) -> Union[str, None]:
     print(rows.shape)
-    ds = rows[DS_COLUMNS].set_index('date').to_xarray()
+    _df = rows[DS_COLUMNS].copy()
+    _df = _df[_df.ndvi>0]
+    print(_df.shape)
+    ds = _df.set_index('date').to_xarray()
     ds.attrs = dict(sample_id=sample_id, year=year)
-    if c.MASK_EQ:
-        mask = ds.eval(c.MASK_EQ)
-        ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
+    # if c.MASK_EQ:
+    #     mask = ds.eval(c.MASK_EQ)
+    #     ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
     display(ds)
     ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
+    ds = ds.sel(dict(date=slice(f'{year}-01-01', f'{year}-12-31')))
     display(ds)
-    raise
+    raise Exception('PTS HAVE MISSING YEARS')
 
 
 def write_smooth_row(
@@ -161,12 +165,6 @@ for year in YEARS:
         sql=qc.sql(),
         limit=LIMIT,
         append='ORDER BY date')
-
-    _bug_data = data[data.sample_id==data.sample_id.iloc[0]]
-    display(_bug_data)
-    print(_bug_data.shape, _bug_data.drop_duplicates('date').shape)
-    raise Exception('BUG!!! for a single sample_id date should be unique')
-
     sample_ids = data.sample_id.unique()
     display(type(sample_ids), len(sample_ids), sample_ids[:5])
     print()
