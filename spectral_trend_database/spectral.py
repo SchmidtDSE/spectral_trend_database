@@ -115,5 +115,5 @@ def add_index_arrays(
     index_df = pd.DataFrame(index_arr.T, columns=index_cols)
     if include:
         data = data[include]
-    data[index_cols] = index_df
+    data.loc[:,index_cols] = index_df
     return data
