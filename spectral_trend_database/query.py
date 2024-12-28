@@ -191,7 +191,8 @@ class QueryConstructor(object):
             table_escape: Optional[str] = '`',
             how: types.JOINS = 'LEFT',
             on: Optional[types.STRINGS] = None,
-            using: Optional[types.STRINGS] = None) -> None:
+            using: Optional[types.STRINGS] = None,
+            uppercase_table: bool = True) -> None:
         """
         Args:
 
@@ -211,6 +212,9 @@ class QueryConstructor(object):
             using (Optional[types.STRINGS]=None):
                 string or list of strings to `JOIN ... USING`
                 note: <using> takes precedence over <on>
+            uppercase_table (bool = True):
+                if true apply `.upper()` to <table>. Note only used if <table>
+                is non-null.
         """
         self.reset()
         self._default_how = how
@@ -218,6 +222,7 @@ class QueryConstructor(object):
         self._default_using = self._as_list(using)
         self._table_prefix = table_prefix
         self._table_escape = table_escape
+        self._uppercase_table = uppercase_table
         self._table = self._table_name(table)
 
     def reset(self) -> None:
@@ -400,6 +405,8 @@ class QueryConstructor(object):
     #
     def _table_name(self, table):
         if table:
+            if self._uppercase_table:
+                table = table.upper()
             if self._table_prefix and ('.' not in table):
                 table = f'{self._table_prefix}.{table}'
         else:

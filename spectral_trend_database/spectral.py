@@ -26,7 +26,7 @@ def index_config(
         extract_indices: bool = True) -> dict:
     """ load spectral index config
 
-    convinence wrapper of `utils.read_yaml`
+    convinence wrapper of `_indicesutils.read_yaml`
 
     Args:
 

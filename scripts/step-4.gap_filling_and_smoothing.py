@@ -20,6 +20,8 @@ License:
     BSD, see LICENSE.md
 """
 from typing import Optional, Union, Sequence
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from pathlib import Path
 from pprint import pprint
 import json
@@ -29,17 +31,21 @@ import xarray as xr
 from spectral_trend_database.config import config as c
 from spectral_trend_database import query
 from spectral_trend_database import smoothing
+from spectral_trend_database import spectral
 from spectral_trend_database import utils
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
 from spectral_trend_database import types
+from spectral_trend_database.gee import landsat
 import mproc
 
 
 #
 # CONSTANTS
 #
-YEARS = range(2008, 2022 + 1)
+_indices = spectral.index_config()
+
+YEARS = range(2009, 2011 + 1)
 LIMIT = None
 DRY_RUN = False
 
@@ -51,18 +57,14 @@ TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
 MAP_METHOD = mproc.map_sequential
 # MAP_METHOD = mproc.map_with_threadpool
 
+YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH)
+YEAR_DELTA = relativedelta(years=1)
+DS_COLUMNS = ['date'] + landsat.HARMONIZED_BANDS + list(_indices.keys())
+
 
 #
 # METHODS
 #
-def get_data_vars(data: types.DICTABLE) -> list[str]:
-    """ get data_var names from dataframe """
-    return [
-        column for column in data.keys()
-        if column not in
-        c.META_COLUMNS + [c.COORD_COLUMN]]
-
-
 def append_ldjson(file_path: str, data: dict):
     with open(file_path, "a") as file:
         file.write(json.dumps(data) + "\n")
@@ -73,6 +75,23 @@ def post_process_row(row: dict, data_vars: list[str]) -> dict:
     for var in data_vars + [c.COORD_COLUMN]:
         row[var] = list(row[var])
     return row
+
+
+def write_smooth_rows(
+        rows: Union[pd.Series, dict],
+        year: int,
+        sample_id: str,
+        file_path: str) -> Union[str, None]:
+    print(rows.shape)
+    ds = rows[DS_COLUMNS].set_index('date').to_xarray()
+    ds.attrs = dict(sample_id=sample_id, year=year)
+    if c.MASK_EQ:
+        mask = ds.eval(c.MASK_EQ)
+        ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
+    display(ds)
+    ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
+    display(ds)
+    raise
 
 
 def write_smooth_row(
@@ -119,22 +138,48 @@ def get_paths(year: int):
 #
 print('\nsmooth indices:')
 print('-' * 50)
+
+
+from IPython.display import display
+
+
+
 for year in YEARS:
     local_dest, gcs_dest = get_paths(year)
+    jan1 = datetime(year=year, month=1, day=1)
+    start = (jan1 - YEAR_BUFFER).strftime('%Y-%m-%d')
+    end = (jan1 + YEAR_DELTA  + YEAR_BUFFER).strftime('%Y-%m-%d')
+    qc = query.QueryConstructor(
+            c.RAW_LANDSAT_TABLE_NAME,
+            table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}',
+            using=['sample_id', 'date'])
+    qc.join(c.RAW_INDEX_TABLE_NAME)
+    qc.where(date=start, date_op='>=')
+    qc.where(date=end, date_op='<=')
+    print(qc.sql())
     data = query.run(
-        table=c.RAW_INDEX_TABLE_NAME,
-        year=year,
-        limit=LIMIT)
+        sql=qc.sql(),
+        limit=LIMIT,
+        append='ORDER BY date')
+
+    _bug_data = data[data.sample_id==data.sample_id.iloc[0]]
+    display(_bug_data)
+    print(_bug_data.shape, _bug_data.drop_duplicates('date').shape)
+    raise Exception('BUG!!! for a single sample_id date should be unique')
+
+    sample_ids = data.sample_id.unique()
+    display(type(sample_ids), len(sample_ids), sample_ids[:5])
     print()
     print(f'- year: {year}')
-    data = data.to_dict('records')
-    data_vars = get_data_vars(data[0])
-    print(f'- nb_rows: {len(data)}')
     Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
     print('- local_dest:', local_dest)
     errors = MAP_METHOD(
-        lambda row: write_smooth_row(row, data_vars=data_vars, file_path=local_dest),
-        data,
+        lambda s: write_smooth_rows(
+            data[data.sample_id==s],
+            sample_id=s,
+            year=year,
+            file_path=local_dest),
+        sample_ids,
         max_processes=c.MAX_PROCESSES)
     if DRY_RUN:
         print('- gcs_dest:', gcs_dest, '- dry_run')
