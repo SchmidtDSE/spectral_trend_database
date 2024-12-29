@@ -10,7 +10,7 @@ affiliations:
 steps:
 
     1. Load and Concatenate CSVs from GCP
-    2. Remove missing band values (tested using green only)
+    2. Remove missing band values (tested using green only) and ndvi < 0 (cloud/snow/water)
     3. Requrie unique lon-lat per geohash-7
     4. remove nan/none values from coord-arrays
     5. require `c.MIN_REQUIRED_YEARS` per geohash
@@ -67,10 +67,10 @@ def is_truthy(value):
         return False
 
 
-def unique_by_geohash(df):
-    df = df.copy()
-    lonlats = df.groupby(c.UNIQUE_GEOHASH).first()[LL]
-    return df.merge(lonlats, how='inner', on=LL)
+# def unique_by_geohash(df):
+#     df = df.copy()
+#     lonlats = df.groupby(c.UNIQUE_GEOHASH).first()[LL]
+#     return df.merge(lonlats, how='inner', on=LL)
 
 
 def get_geohash(row, precision):
@@ -80,13 +80,13 @@ def get_geohash(row, precision):
         precision=precision)
 
 
-def years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS):
-    df = df.copy()
-    gh_count = df.drop_duplicates(subset=['year', c.UNIQUE_GEOHASH]).groupby([c.UNIQUE_GEOHASH]).size().reset_index(name='nb_years')
-    df = df.merge(gh_count, on=c.UNIQUE_GEOHASH, how='inner')
-    if min_years:
-        df = df[df.nb_years >= min_years]
-    return df
+# def years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS):
+#     df = df.copy()
+#     gh_count = df.drop_duplicates(subset=['year', c.UNIQUE_GEOHASH]).groupby([c.UNIQUE_GEOHASH]).size().reset_index(name='nb_years')
+#     df = df.merge(gh_count, on=c.UNIQUE_GEOHASH, how='inner')
+#     if min_years:
+#         df = df[df.nb_years >= min_years]
+#     return df
 
 
 def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_political', 'geometry']):
@@ -115,22 +115,24 @@ print(f'- raw shape: {df.shape}')
 
 
 print('process data:')
-# 2. Remove missing band values (tested using green only)
-df = df[~df.green.isna()].copy()
+# 2. Remove missing band values (tested using green only) and ndvi < 0 (cloud/snow/water)
+df = df[~df.green.isna() | (df.nir < df.red)].copy()
 green_exists = df.green.apply(is_truthy)
 df = df[green_exists].copy()
 print(f'- remove-empty shape:', df.shape)
 
 
-# 3. Requrie unique lon-lat per geohash-7
-df = unique_by_geohash(df)
-print(f'- gh-7 unique shape:', df.shape)
+# MOVE TO PREPROCESS AND H3
+# # 3. Requrie unique lon-lat per geohash-7
+# df = unique_by_geohash(df)
+# print(f'- gh-7 unique shape:', df.shape)
 
 
-# 4. require `c.MIN_REQUIRED_YEARS` per geohash
-# df = years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS)
-df = years_per_geohash(df, min_years=2) # TODO HACK FOR LIM TEST
-print(f'- min-years shape:', df.shape)
+# MOVE TO PREPROCESS
+# # 4. require `c.MIN_REQUIRED_YEARS` per geohash
+# # df = years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS)
+# df = years_per_geohash(df, min_years=2) # TODO HACK FOR LIM TEST
+# print(f'- min-years shape:', df.shape)
 
 
 # 5. Add County/State Data
