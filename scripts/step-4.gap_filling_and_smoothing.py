@@ -47,7 +47,7 @@ _indices = spectral.index_config()
 
 YEARS = range(2009, 2011 + 1)
 LIMIT = None
-DRY_RUN = False
+DRY_RUN = True
 
 # YEARS = range(2003, 2003 + 1)
 # LIMIT = 100
@@ -77,25 +77,21 @@ def post_process_row(row: dict, data_vars: list[str]) -> dict:
     return row
 
 
-def write_smooth_rows(
+def apply_smoothing(
         rows: Union[pd.Series, dict],
         year: int,
         sample_id: str,
         file_path: str) -> Union[str, None]:
-    print(rows.shape)
     _df = rows[DS_COLUMNS].copy()
     _df = _df[_df.ndvi>0]
-    print(_df.shape)
     ds = _df.set_index('date').to_xarray()
-    ds.attrs = dict(sample_id=sample_id, year=year)
-    # if c.MASK_EQ:
-    #     mask = ds.eval(c.MASK_EQ)
-    #     ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
-    display(ds)
     ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
     ds = ds.sel(dict(date=slice(f'{year}-01-01', f'{year}-12-31')))
-    display(ds)
-    raise Exception('PTS HAVE MISSING YEARS')
+    print('BUG/FIX/WARNING: PTS HAVE MISSING YEARS - MISSING DATES SOMETIMES')
+    _df = ds.to_dataframe().reset_index(drop=False)
+    _df['sample_id'] = sample_id
+    _df['year'] = year
+    return _df
 
 
 def write_smooth_row(
@@ -166,23 +162,27 @@ for year in YEARS:
         limit=LIMIT,
         append='ORDER BY date')
     sample_ids = data.sample_id.unique()
-    display(type(sample_ids), len(sample_ids), sample_ids[:5])
     print()
     print(f'- year: {year}')
     Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
     print('- local_dest:', local_dest)
-    errors = MAP_METHOD(
-        lambda s: write_smooth_rows(
+    dfs = MAP_METHOD(
+        lambda s: apply_smoothing(
             data[data.sample_id==s],
             sample_id=s,
             year=year,
             file_path=local_dest),
         sample_ids,
         max_processes=c.MAX_PROCESSES)
+    df = pd.concat(dfs)
+    df = df[['sample_id', 'year'] + DS_COLUMNS]
     if DRY_RUN:
-        print('- gcs_dest:', gcs_dest, '- dry_run')
+        print('- dry_run:')
+        print('\t- local_dest:', local_dest)
+        print('\t- gcs_dest:', gcs_dest)
     else:
-        uri = gcp.upload_file(local_dest, gcs_dest)
+        uri = gcp.save_ld_json(local_dest,gcs_dest)
+        print('- local_dest:', local_dest)
         print('- gcs_dest:', uri)
     print(f'- update table [{c.DATASET_NAME}.{TABLE_NAME}]')
     if DRY_RUN:
@@ -193,8 +193,3 @@ for year in YEARS:
             gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
             name=TABLE_NAME,
             uri=uri)
-    errors = [e for e in errors if e]
-    if errors:
-        print(f'- nb_errors: {len(errors)}')
-        for e in list(set(errors)):
-            print(' ', e)
