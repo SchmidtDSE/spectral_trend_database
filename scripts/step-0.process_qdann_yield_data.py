@@ -10,13 +10,22 @@ affiliations:
 steps:
 
 	1. Load Sample Yield data
-	2. Add sample_id (geohash), H3
-	3. Save results, local and GCS, as line-deliminated JSON files
+	2. Add sample_id (geohash)
+	3. Add H3 columns
+	4. Requrie unique lon-lat per h3-(c.UNIQUE_H3)
+	5. require `c.MIN_REQUIRED_YEARS` per h3-5
+	6. save sample data
+	7. save yield data
 
 outputs:
 
-- local:
-- gcs:
+	sample data [(15207, 8)]:
+		- local: /Users/brookieguzder-williams/code/dse/COVERCROPS/spectral_trend_database/data/v1/DEV_ASROWS/qdann/raw/biomass_landsat/sample_points.json
+		- gcs: gs://agriculture_monitoring/spectral_trend_database/v1/DEV_ASROWS/qdann/raw/biomass_landsat/sample_points.json
+
+	yield data [(332273, 4)]:
+		- local: /Users/brookieguzder-williams/code/dse/COVERCROPS/spectral_trend_database/data/v1/DEV_ASROWS/qdann/raw/biomass_landsat/qdann_yield.json
+		- gcs: gs://agriculture_monitoring/spectral_trend_database/v1/DEV_ASROWS/qdann/raw/biomass_landsat/qdann_yield.json
 
 runtime: ~ XXX minutes
 
