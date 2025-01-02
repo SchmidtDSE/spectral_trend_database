@@ -49,6 +49,7 @@ SRC_PATH = paths.gcs(
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
 YEARS = range(2000, 2022+1)
+MAX_PROCESSES = 4 # low for read-requests
 LIMIT = None
 
 
@@ -113,7 +114,8 @@ for year in YEARS:
 	cdl = cdl_for_year(year)
 	crop_data = mproc.map_with_threadpool(
 		lambda r: value_at_point(r, cdl, year),
-		SAMPLES)
+		SAMPLES,
+		max_processes=MAX_PROCESSES)
 	crop_data = pd.DataFrame(crop_data)
 	print(f'exporting yield data [{crop_data.shape}]:')
 	uri = gcp.save_ld_json(
