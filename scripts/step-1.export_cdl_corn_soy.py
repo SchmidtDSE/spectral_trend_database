@@ -32,6 +32,7 @@ import pandas as pd
 import mproc
 from spectral_trend_database.config import config as c
 from spectral_trend_database import paths
+from spectral_trend_database import gcp
 
 
 #
@@ -48,13 +49,22 @@ SRC_PATH = paths.gcs(
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
 YEARS = range(2000, 2022+1)
+LIMIT = None
 
 
 #
-# CONSTANTS
+# CONSTANTS/DATA
 #
 CDL = ee.ImageCollection("USDA/NASS/CDL")
-# samples_ic = load-samples-here---maybe-ic
+LOCAL_DEST_ROOT = paths.local(
+    c.CROP_TYPE_LOCAL_FOLDER,
+    c.CROP_TYPE_TABLE_NAME)
+GCS_DEST_ROOT = paths.gcs(
+    c.CROP_TYPE_GCS_FOLDER,
+    c.CROP_TYPE_TABLE_NAME)
+SAMPLES = pd.read_json(SRC_PATH, lines=True)
+SAMPLES = SAMPLES.to_dict('records')[:LIMIT]
+
 
 #
 # METHODS
@@ -93,21 +103,23 @@ def value_at_point(row, im, year):
 		crop_type=crop_type)
 
 
-def to_feat(sample):
-	geom = ee.Geometry.Point([sample['lon'], sample['lat']])
-	return ee.Feature(geom, sample)
-
-
-df = pd.read_json(SRC_PATH, lines=True)
-samples = df.to_dict('records')[:2]
-crop_data = []
-
+#
+# RUN
+#
+print('EXPORTING CDL (corn/soy/other) FOR', YEARS)
+print('- nb_samples', len(SAMPLES))
 for year in YEARS:
+	print('-', year, '...')
 	cdl = cdl_for_year(year)
-	crop_data += mproc.map_with_threadpool(
+	crop_data = mproc.map_with_threadpool(
 		lambda r: value_at_point(r, cdl, year),
-		samples)
-
-print(crop_data)
+		SAMPLES)
+	crop_data = pd.DataFrame(crop_data)
+	print(f'exporting yield data [{crop_data.shape}]:')
+	uri = gcp.save_ld_json(
+	    crop_data,
+	    local_dest=f'{LOCAL_DEST_ROOT}-{year}.json',
+	    gcs_dest=f'{GCS_DEST_ROOT}-{year}.json',
+	    dry_run=DRY_RUN)
 
 
