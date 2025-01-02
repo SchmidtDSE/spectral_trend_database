@@ -112,15 +112,24 @@ def get_mean_pixel_rows(row, year):
     return rows
 
 
+def filter_missing_and_cloud_data(df):
+    df = df[~df.green.isna() | (df.nir < df.red)].copy()
+    green_exists = df.green.apply(_is_truthy)
+    return df[green_exists].copy()
+
+
 def process_date_column(df):
     df = df.rename(columns=dict(time='date'))
     df = df.sort_values(by='date')
     return df
 
 
+def _is_truthy(value):
+    if value:
+        return True
+    else:
+        return False
 
-from IPython.display import display
-from pprint import pprint
 
 #
 # RUN
@@ -148,6 +157,7 @@ for year in YEARS:
         data,
         max_processes=MAX_PROCESSES)
     df = pd.concat(dfs)
+    df = filter_missing_and_cloud_data(df)
     df = process_date_column(df)
     df = df.reset_index(drop=True)
     df = df[ORDERED_COLUMNS]

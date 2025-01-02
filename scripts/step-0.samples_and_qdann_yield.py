@@ -41,6 +41,7 @@ import math
 import geohash  # type: ignore[import-untyped]
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import xarray as xr
 import h3
 import mproc  # type: ignore[import-untyped]
@@ -125,6 +126,15 @@ def require_min_years_per_h3(df, min_years=c.MIN_REQUIRED_YEARS):
 		df = df[df.nb_years >= min_years]
 	return df
 
+
+def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_political', 'geometry']):
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat), crs="EPSG:4326")
+    gdf = gdf.sjoin(us_gdf, how='inner', rsuffix=rsuffix)
+    if drop_cols:
+        gdf = gdf.drop(drop_cols, axis=1)
+    return gdf
+
+
 #
 # RUN
 #
@@ -158,9 +168,16 @@ df = require_min_years_per_h3(df, min_years=c.MIN_REQUIRED_YEARS)
 print(f'- min-years shape:', df.shape)
 
 
-# 6. save sample data
-_df = df.drop_duplicates(subset=['sample_id'])
-_df = _df[SAMPLE_COLS].sort_values('sample_id')
+# 6. extract samples and merge political data
+_us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
+_us_gdf = _us_gdf.to_crs(epsg=4326)
+samples_df = df.drop_duplicates(subset=['sample_id'])
+samples_df = samples_df[SAMPLE_COLS].sort_values('sample_id')
+samples_df = merge_county_data(samples_df, _us_gdf)
+print(f'- samples shape:', samples_df.shape)
+
+
+# 7. save samples data
 local_dest = paths.local(
     c.RAW_LOCAL_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
@@ -169,16 +186,16 @@ gcs_dest = paths.gcs(
     c.RAW_GCS_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
-print(f'exporting sample data [{_df.shape}]:')
+print(f'exporting sample data [{samples_df.shape}]:')
 uri = gcp.save_ld_json(
-    _df,
+    samples_df,
     local_dest=local_dest,
     gcs_dest=gcs_dest,
     dry_run=DRY_RUN)
 
 
-# 7. save yield data
-_df = df[YIELD_DATA_COLS].sort_values(['year', 'sample_id'])
+# 8. save yield data
+yield_df = df[YIELD_DATA_COLS].sort_values(['year', 'sample_id'])
 local_dest = paths.local(
     c.RAW_LOCAL_FOLDER,
     c.YIELD_TABLE_NAME,
@@ -187,9 +204,9 @@ gcs_dest = paths.gcs(
     c.RAW_GCS_FOLDER,
     c.YIELD_TABLE_NAME,
     ext='json')
-print(f'exporting yield data [{_df.shape}]:')
+print(f'exporting yield data [{yield_df.shape}]:')
 uri = gcp.save_ld_json(
-    _df,
+    yield_df,
     local_dest=local_dest,
     gcs_dest=gcs_dest,
     dry_run=DRY_RUN)

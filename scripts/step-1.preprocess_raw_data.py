@@ -45,10 +45,7 @@ DRY_RUN = False  # TODO: CONFIG OR CML ARG
 DEV_NB_SAMPLES = False  # TODO: CONFIG OR CML ARG
 SEARCH = c.SEARCH  # TODO: CONFIG OR CML ARG
 SEARCH = r'b0-lim10-20\d{2}\.json$' # TODO: TEMP HACK FOR LIM CASE
-COUNTY_ID = 'GEOID'
-LL = ['lon', 'lat']
-LOCAL_DIR = f'{c.LOCAL_DATA_DIR}/{c.DEST_LOCAL_FOLDER}'
-LIST_COLUMNS = [c.DATE_COLUMN] + landsat.HARMONIZED_BANDS
+
 
 
 #
@@ -58,43 +55,6 @@ def load_crop_json(u):
     df = pd.read_json(u, orient='records', lines=True)
     df['crop_type'] = Path(u).name.split("_")[0]
     return df
-
-
-def is_truthy(value):
-    if value:
-        return True
-    else:
-        return False
-
-
-# def unique_by_geohash(df):
-#     df = df.copy()
-#     lonlats = df.groupby(c.UNIQUE_GEOHASH).first()[LL]
-#     return df.merge(lonlats, how='inner', on=LL)
-
-
-def get_geohash(row, precision):
-    return geohash.encode(
-        latitude=row.lat,
-        longitude=row.lon,
-        precision=precision)
-
-
-# def years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS):
-#     df = df.copy()
-#     gh_count = df.drop_duplicates(subset=['year', c.UNIQUE_GEOHASH]).groupby([c.UNIQUE_GEOHASH]).size().reset_index(name='nb_years')
-#     df = df.merge(gh_count, on=c.UNIQUE_GEOHASH, how='inner')
-#     if min_years:
-#         df = df[df.nb_years >= min_years]
-#     return df
-
-
-def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_political', 'geometry']):
-    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat), crs="EPSG:4326")
-    gdf = gdf.sjoin(us_gdf, how='inner', rsuffix=rsuffix)
-    if drop_cols:
-        gdf = gdf.drop(drop_cols, axis=1)
-    return gdf
 
 
 #
@@ -114,33 +74,8 @@ if DEV_NB_SAMPLES:
 print(f'- raw shape: {df.shape}')
 
 
-print('process data:')
-# 2. Remove missing band values (tested using green only) and ndvi < 0 (cloud/snow/water)
-df = df[~df.green.isna() | (df.nir < df.red)].copy()
-green_exists = df.green.apply(is_truthy)
-df = df[green_exists].copy()
-print(f'- remove-empty shape:', df.shape)
 
 
-# MOVE TO PREPROCESS AND H3
-# # 3. Requrie unique lon-lat per geohash-7
-# df = unique_by_geohash(df)
-# print(f'- gh-7 unique shape:', df.shape)
-
-
-# MOVE TO PREPROCESS
-# # 4. require `c.MIN_REQUIRED_YEARS` per geohash
-# # df = years_per_geohash(df, min_years=c.MIN_REQUIRED_YEARS)
-# df = years_per_geohash(df, min_years=2) # TODO HACK FOR LIM TEST
-# print(f'- min-years shape:', df.shape)
-
-
-# 5. Add County/State Data
-# TODO READ THIS FROM SOURCE
-us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
-us_gdf = us_gdf.to_crs(epsg=4326)
-df = merge_county_data(df, us_gdf)
-print(f'merge-county shape:', df.shape)
 
 
 # 6. Save local and GCS results as line-deliminated JSON
