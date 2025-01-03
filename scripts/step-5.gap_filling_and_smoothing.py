@@ -153,7 +153,7 @@ for year in YEARS:
             c.RAW_LANDSAT_TABLE_NAME,
             table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}',
             using=['sample_id', 'date'])
-    qc.join(c.RAW_INDEX_TABLE_NAME)
+    qc.join(c.RAW_INDICES_TABLE_NAME)
     qc.where(date=start, date_op='>=')
     qc.where(date=end, date_op='<=')
     print(qc.sql())

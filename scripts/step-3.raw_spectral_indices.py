@@ -32,13 +32,14 @@ from spectral_trend_database import paths
 from spectral_trend_database import spectral
 from spectral_trend_database import query
 from spectral_trend_database import utils
+from spectral_trend_database.gee import landsat
 
 
 #
 # CONSTANTS
 #
 YEARS = range(2004, 2011 + 1) #  TODO LIM HACK
-
+HEADER_COLS = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
 
 #
 # METHODS
@@ -63,7 +64,6 @@ def process_raw_indices_for_year(
     print('- src:', src_uri)
     df = pd.read_json(src_uri, lines=True)
     print('- src shape:', df.shape)
-
     indices = index_config.get('indices', index_config)
     assert isinstance(indices, dict)
     if not table_name:
@@ -71,8 +71,11 @@ def process_raw_indices_for_year(
         table_name = index_config['name']
     assert isinstance(table_name, str)
     print('- compute raw indices')
-    print(df.columns.tolist())
     df = spectral.add_index_arrays(df, indices=indices)
+    print('- order columns')
+    _data_cols = [n for n in df.columns if n not in HEADER_COLS]
+    _data_cols.sort()
+    df = df[HEADER_COLS + _data_cols]
     print('\t- add indices shape: ', df.shape)
     table_name = table_name.upper()
     index_names = list(indices.keys())

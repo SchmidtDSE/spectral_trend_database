@@ -72,6 +72,14 @@ TABLE_CONFIGS = [
 for year in YEARS:
     TABLE_CONFIGS += [
         dict(
+            name=c.RAW_INDICES_TABLE_NAME,
+            uri=paths.gcs(
+                c.DEST_GCS_FOLDER,
+                c.RAW_INDICES_FOLDER,
+                f'{c.RAW_INDICES_TABLE_NAME}-{year}',
+                ext='json')
+        ),
+        dict(
             name=c.CROP_TYPE_TABLE_NAME,
             uri=paths.gcs(
                 c.CROP_TYPE_GCS_FOLDER,

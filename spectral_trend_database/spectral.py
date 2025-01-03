@@ -82,7 +82,7 @@ def add_index_arrays(
         name: Optional[str] = c.DEFAULT_SPECTRAL_INDEX_CONFIG,
         indices: Optional[dict[str, str]] = None,
         bands: list[str] = landsat.HARMONIZED_BANDS,
-        include: Optional[list[str]] = ID_COLUMNS) -> pd.DataFrame:
+        include: Optional[list[str]] = None) -> pd.DataFrame:
     """ add_spectral_indices
 
     Creates a copy of passed dataframe with (array-value) spectral index
