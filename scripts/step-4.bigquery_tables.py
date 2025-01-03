@@ -89,10 +89,6 @@ for year in YEARS:
 
 
 #
-#  METHODS
-#
-
-#
 # RUN
 #
 print('\n\ncreate tables from datasets:')
