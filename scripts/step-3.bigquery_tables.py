@@ -51,112 +51,54 @@ from spectral_trend_database.gee import landsat
 #
 DRY_RUN: bool = False
 PROJECT: Optional[str] = None
-SRC_PATH: str = paths.gcs(
-    c.DEST_GCS_FOLDER,
-    c.DEST_BIOMASS_YIELD_NAME)
+YEARS = range(2008, 2011 + 1)
+TABLE_CONFIGS = [
+    dict(
+        name=c.SAMPLE_POINTS_TABLE_NAME,
+        uri=paths.gcs(
+            c.RAW_GCS_FOLDER,
+            c.SAMPLE_POINTS_TABLE_NAME,
+            ext='json')
+    ),
+    dict(
+        name=c.YIELD_TABLE_NAME,
+        uri=paths.gcs(
+            c.RAW_GCS_FOLDER,
+            c.YIELD_TABLE_NAME,
+            ext='json')
+    )]
 
 
-SAMPLE_COLS: list[str] = [
-    'sample_id',
-    'lon',
-    'lat',
-    'geohash_5',
-    'geohash_7',
-    'geohash_9',
-    # 'nb_years'
-]
-ADMIN_COLS: list[str] = [
-    'sample_id',
-    'STATEFP',
-    'COUNTYFP',
-    'COUNTYNS',
-    'GEOIDFQ',
-    'GEOID',
-    'NAME',
-    'NAMELSAD',
-    'STUSPS',
-    'STATE_NAME',
-    'LSAD',
-    'ALAND',
-    'AWATER',
-]
-YIELD_COLS: list[str] = [
-    'sample_id',
-    'year',
-    'crop_type',
-    'biomass'
-]
-LANDSAT_COLS: list[str] = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
+for year in YEARS:
+    TABLE_CONFIGS += [
+        dict(
+            name=c.CROP_TYPE_TABLE_NAME,
+            uri=paths.gcs(
+                c.CROP_TYPE_GCS_FOLDER,
+                f'{c.CROP_TYPE_TABLE_NAME}-{year}',
+                ext='json')
+        ),
+        dict(
+            name=c.RAW_LANDSAT_TABLE_NAME,
+            uri=paths.gcs(
+                c.RAW_GCS_FOLDER,
+                f'{c.RAW_LANDSAT_TABLE_NAME}-{year}',
+                ext='json')
+        )]
 
 
 #
 #  METHODS
 #
-def save_data_columns(
-        df: pd.DataFrame,
-        name: str,
-        cols: list[str],
-        unique_on: Optional[str] = None,
-        sort: Optional[Union[str, list[str]]] = None) -> dict:
-    local_dest = paths.local(
-        c.DEST_LOCAL_FOLDER,
-        name,
-        ext='json')
-    gcs_dest = paths.gcs(
-        c.DEST_GCS_FOLDER,
-        name,
-        ext='json')
-    _df = df[cols]
-    if unique_on:
-        _df = _df.drop_duplicates(unique_on)
-    if sort:
-        _df = _df.sort_values(sort)
-    uri = gcp.save_ld_json(
-        _df,
-        local_dest=local_dest,
-        gcs_dest=gcs_dest,
-        dry_run=DRY_RUN)
-    return {'name': name.upper(), 'uri': uri}
-
 
 #
 # RUN
 #
-print(f'loading data: {SRC_PATH}')
-df = pd.read_json(SRC_PATH, orient='records', lines=True)
-print('- shape:', df.shape)
-
-
-print('\n\nsave table datasets to gcs:')
-TABLE_CONFIGS: list = []
-TABLE_CONFIGS.append(save_data_columns(
-    df,
-    name='sample_points',
-    cols=SAMPLE_COLS,
-    unique_on='sample_id',
-    sort='sample_id'))
-TABLE_CONFIGS.append(save_data_columns(
-    df,
-    name='administrative_boundaries',
-    cols=ADMIN_COLS,
-    unique_on='sample_id',
-    sort='sample_id'))
-TABLE_CONFIGS.append(save_data_columns(
-    df,
-    name='scym_yield',
-    cols=YIELD_COLS,
-    sort=['sample_id', 'year']))
-TABLE_CONFIGS.append(save_data_columns(
-    df,
-    name='landsat_raw_masked',
-    cols=LANDSAT_COLS,
-    sort=['sample_id', 'year']))
-
-
 print('\n\ncreate tables from datasets:')
-pprint(TABLE_CONFIGS)
 ds = gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION)
 for config in TABLE_CONFIGS:
+    config['name'] = config['name'].upper()
     print('-', config['name'])
+    print(' ', config['uri'])
     gcp.create_or_update_table_from_json(dataset=ds, **config)
 print('\n[complete]\n\n')

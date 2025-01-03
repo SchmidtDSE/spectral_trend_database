@@ -48,9 +48,10 @@ SRC_PATH = paths.gcs(
     c.RAW_GCS_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
-YEARS = range(2000, 2022+1)
+# YEARS = range(2000, 2022+1)
+YEARS = range(2008, 2011 + 1)
 MAX_PROCESSES = 4 # low for read-requests
-LIMIT = None
+LIMIT = 10
 
 
 #
@@ -116,7 +117,7 @@ for year in YEARS:
 		lambda r: value_at_point(r, cdl, year),
 		SAMPLES,
 		max_processes=MAX_PROCESSES)
-	crop_data = pd.DataFrame(crop_data)
+	crop_data = pd.DataFrame(crop_data).sort_values(['year', 'sample_id'])
 	print(f'exporting yield data [{crop_data.shape}]:')
 	uri = gcp.save_ld_json(
 	    crop_data,

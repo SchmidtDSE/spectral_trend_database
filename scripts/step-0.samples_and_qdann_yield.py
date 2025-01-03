@@ -138,9 +138,6 @@ def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_politic
 #
 # RUN
 #
-from IPython.display import display
-
-
 print('load data:')
 # 1. Load Sample Yield data
 df = load_data()
@@ -166,6 +163,10 @@ print(f'- unique h3_{c.UNIQUE_H3} shape:', df.shape)
 # 5. require `c.MIN_REQUIRED_YEARS` per h3-5
 df = require_min_years_per_h3(df, min_years=c.MIN_REQUIRED_YEARS)
 print(f'- min-years shape:', df.shape)
+
+
+# --> sort data
+df = df.sort_values(['year', 'sample_id'])
 
 
 # 6. extract samples and merge political data

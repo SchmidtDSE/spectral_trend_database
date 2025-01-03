@@ -67,7 +67,7 @@ SRC_PATH = gcs_dest = paths.gcs(
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
 
-ORDERED_COLUMNS = ['sample_id', 'year']
+ORDERED_COLUMNS = ['sample_id', 'year', 'date']
 ORDERED_COLUMNS += landsat.HARMONIZED_BANDS
 ORDERED_COLUMNS += ['images_for_year', 'error']
 
@@ -160,7 +160,7 @@ for year in YEARS:
     df = filter_missing_and_cloud_data(df)
     df = process_date_column(df)
     df = df.reset_index(drop=True)
-    df = df[ORDERED_COLUMNS]
+    df = df[ORDERED_COLUMNS].sort_values(['sample_id', 'date'])
     if df.shape[0]:
         name = f'{c.RAW_LANDSAT_TABLE_NAME}-{year}.json'
         local_dest = paths.local(
