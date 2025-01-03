@@ -48,10 +48,11 @@ SRC_PATH = paths.gcs(
     c.RAW_GCS_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
-# YEARS = range(2000, 2022+1)
-YEARS = range(2008, 2011 + 1)
-MAX_PROCESSES = 4 # low for read-requests
+YEARS = range(2000, 2022 + 1)
+LIMIT = None
+YEARS = range(2004, 2011 + 1)
 LIMIT = 10
+MAX_PROCESSES = 4 # low for read-requests
 
 
 #
@@ -92,11 +93,13 @@ def value_at_point(row, im, year):
 		scale=30).get('crop_label').getInfo()
 	if crop_label is None:
 		crop_type = 'na'
+		crop_label = 4
 	elif crop_label == 0:
 		crop_type = 'corn'
 	elif crop_label == 1:
 		crop_type = 'soy'
 	else:
+		crop_label = 3
 		crop_type = 'other'
 	return dict(
 		sample_id=row['sample_id'],

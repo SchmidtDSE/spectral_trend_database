@@ -51,7 +51,7 @@ from spectral_trend_database.gee import landsat
 #
 DRY_RUN: bool = False
 PROJECT: Optional[str] = None
-YEARS = range(2008, 2011 + 1)
+YEARS = range(2004, 2011 + 1)
 TABLE_CONFIGS = [
     dict(
         name=c.SAMPLE_POINTS_TABLE_NAME,
@@ -76,13 +76,6 @@ for year in YEARS:
             uri=paths.gcs(
                 c.CROP_TYPE_GCS_FOLDER,
                 f'{c.CROP_TYPE_TABLE_NAME}-{year}',
-                ext='json')
-        ),
-        dict(
-            name=c.RAW_LANDSAT_TABLE_NAME,
-            uri=paths.gcs(
-                c.RAW_GCS_FOLDER,
-                f'{c.RAW_LANDSAT_TABLE_NAME}-{year}',
                 ext='json')
         )]
 

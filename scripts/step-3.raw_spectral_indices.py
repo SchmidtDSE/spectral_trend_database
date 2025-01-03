@@ -37,19 +37,18 @@ from spectral_trend_database import utils
 #
 # CONSTANTS
 #
-YEARS = range(2008, 2011 + 1) #  TODO LIM HACK
-LIMIT = None
+YEARS = range(2004, 2011 + 1) #  TODO LIM HACK
 
 
 #
 # METHODS
 #
-def remove_coord_array_infinities(row: pd.Series, indices: list[str]):
-    return utils.filter_list_valued_columns(
-        row=row,
-        test=utils.infinite_along_axis,
-        coord_col=c.DATE_COLUMN,
-        data_cols=indices)
+# def remove_coord_array_infinities(row: pd.Series, indices: list[str]):
+#     return utils.filter_list_valued_columns(
+#         row=row,
+#         test=utils.infinite_along_axis,
+#         coord_col=c.DATE_COLUMN,
+#         data_cols=indices)
 
 
 def process_raw_indices_for_year(
@@ -57,41 +56,43 @@ def process_raw_indices_for_year(
         year: int,
         query_name: str = c.RAW_LANDSAT_QUERY,
         table_name: Optional[str] = None) -> None:
+    src_uri = paths.gcs(
+        c.RAW_GCS_FOLDER,
+        f'{c.RAW_LANDSAT_TABLE_NAME}-{year}',
+        ext='json')
+    print('- src:', src_uri)
+    df = pd.read_json(src_uri, lines=True)
+    print('- src shape:', df.shape)
+
     indices = index_config.get('indices', index_config)
     assert isinstance(indices, dict)
     if not table_name:
         assert isinstance(index_config['name'], str)
         table_name = index_config['name']
     assert isinstance(table_name, str)
+    print('- compute raw indices')
+    print(df.columns.tolist())
+    df = spectral.add_index_arrays(df, indices=indices)
+    print('\t- add indices shape: ', df.shape)
     table_name = table_name.upper()
     index_names = list(indices.keys())
-    file_name = f'{table_name.lower()}-{year}.json'
+    file_name = f'{table_name.lower()}-{year}'
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
         c.RAW_INDICES_FOLDER,
-        file_name)
+        file_name,
+        ext='json')
     gcs_dest = paths.gcs(
         c.DEST_GCS_FOLDER,
         c.RAW_INDICES_FOLDER,
-        file_name)
-    print(f'\n\nquery database [{query_name}, {year}]')
-    df = query.run(query_name, year=year, limit=LIMIT)
-    print('- shape:', df.shape)
-    print('- compute raw indices')
-    df = spectral.add_index_arrays(df, indices=indices)
-    print('- add indices shape: ', df.shape)
+        file_name,
+        ext='json')
     print(f'- save json [{file_name}]')
     uri = gcp.save_ld_json(
         df,
         local_dest=local_dest,
         gcs_dest=gcs_dest,
         dry_run=False)
-    assert isinstance(uri, str)
-    print(f'- update table [{c.DATASET_NAME}.{table_name}]')
-    gcp.create_or_update_table_from_json(
-        gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
-        name=table_name,
-        uri=uri)
 
 
 #

@@ -50,9 +50,9 @@ warnings.filterwarnings(
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
-YEARS = range(2008, 2022 + 1)
+YEARS = range(2000, 2022 + 1)
 LIMIT = None
-YEARS = range(2008, 2011 + 1)
+YEARS = range(2004, 2011 + 1)
 LIMIT = 10
 MAX_PROCESSES = 6
 MAX_ERR = 1
