@@ -43,23 +43,14 @@ import mproc
 #
 # CONSTANTS
 #
-_indices = spectral.index_config()
-
-YEARS = range(2009, 2011 + 1)
-LIMIT = None
-DRY_RUN = True
-
-# YEARS = range(2003, 2003 + 1)
-# LIMIT = 100
-# DRY_RUN = False
-
+YEARS = range(2004, 2011 + 1)
+DRY_RUN = False
 TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
-MAP_METHOD = mproc.map_sequential
-# MAP_METHOD = mproc.map_with_threadpool
-
+# MAP_METHOD = mproc.map_sequential
+MAP_METHOD = mproc.map_with_threadpool
 YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH * 2)
 YEAR_DELTA = relativedelta(years=1)
-DS_COLUMNS = ['date'] + landsat.HARMONIZED_BANDS + list(_indices.keys())
+DS_COLUMNS = ['date'] + landsat.HARMONIZED_BANDS + list(spectral.index_config().keys())
 
 
 #
@@ -82,16 +73,18 @@ def apply_smoothing(
         year: int,
         sample_id: str,
         file_path: str) -> Union[str, None]:
-    _df = rows[DS_COLUMNS].copy()
-    _df = _df[_df.ndvi>0]
-    ds = _df.set_index('date').to_xarray()
-    ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
-    ds = ds.sel(dict(date=slice(f'{year}-01-01', f'{year}-12-31')))
-    print('BUG/FIX/WARNING: PTS HAVE MISSING YEARS - MISSING DATES SOMETIMES')
-    _df = ds.to_dataframe().reset_index(drop=False)
-    _df['sample_id'] = sample_id
-    _df['year'] = year
-    return _df
+    try:
+        _df = rows[DS_COLUMNS].copy()
+        _df = _df[_df.ndvi>0]
+        ds = _df.set_index('date').to_xarray()
+        ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
+        ds = ds.sel(dict(date=slice(f'{year}-01-01', f'{year}-12-31')))
+        _df = ds.to_dataframe().reset_index(drop=False)
+        _df['sample_id'] = sample_id
+        _df['year'] = year
+        return _df
+    except Exception as e:
+        pass
 
 
 def write_smooth_row(
@@ -138,34 +131,22 @@ def get_paths(year: int):
 #
 print('\nsmooth indices:')
 print('-' * 50)
-
-
-from IPython.display import display
-
-
-
 for year in YEARS:
     local_dest, gcs_dest = get_paths(year)
     jan1 = datetime(year=year, month=1, day=1)
     start = (jan1 - YEAR_BUFFER).strftime('%Y-%m-%d')
     end = (jan1 + YEAR_DELTA  + YEAR_BUFFER).strftime('%Y-%m-%d')
     qc = query.QueryConstructor(
-            c.RAW_LANDSAT_TABLE_NAME,
-            table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}',
-            using=['sample_id', 'date'])
-    qc.join(c.RAW_INDICES_TABLE_NAME)
+            c.RAW_INDICES_TABLE_NAME,
+            table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
     qc.where(date=start, date_op='>=')
     qc.where(date=end, date_op='<=')
-    print(qc.sql())
     data = query.run(
         sql=qc.sql(),
-        limit=LIMIT,
         append='ORDER BY date')
     sample_ids = data.sample_id.unique()
     print()
     print(f'- year: {year}')
-    Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
-    print('- local_dest:', local_dest)
     dfs = MAP_METHOD(
         lambda s: apply_smoothing(
             data[data.sample_id==s],
@@ -174,22 +155,24 @@ for year in YEARS:
             file_path=local_dest),
         sample_ids,
         max_processes=c.MAX_PROCESSES)
-    df = pd.concat(dfs)
-    df = df[['sample_id', 'year'] + DS_COLUMNS]
-    if DRY_RUN:
-        print('- dry_run:')
-        print('\t- local_dest:', local_dest)
-        print('\t- gcs_dest:', gcs_dest)
+    dfs = [d for d in dfs if d is not None]
+    if dfs:
+        df = pd.concat(dfs)
+        df = df[['sample_id', 'year'] + DS_COLUMNS]
+        Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
+        uri = gcp.save_ld_json(df, local_dest, gcs_dest, dry_run=DRY_RUN)
+        print(f'- update table [{c.DATASET_NAME}.{TABLE_NAME}]')
+        if DRY_RUN:
+            print('- dry_run: table not updated')
+        else:
+            assert isinstance(uri, str)
+            gcp.create_or_update_table_from_json(
+                gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
+                name=TABLE_NAME,
+                uri=uri)
     else:
-        uri = gcp.save_ld_json(local_dest,gcs_dest)
-        print('- local_dest:', local_dest)
-        print('- gcs_dest:', uri)
-    print(f'- update table [{c.DATASET_NAME}.{TABLE_NAME}]')
-    if DRY_RUN:
-        print('- dry_run: table not updated')
-    else:
-        assert isinstance(uri, str)
-        gcp.create_or_update_table_from_json(
-            gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
-            name=TABLE_NAME,
-            uri=uri)
+        print(f'TODO[FIX THIS PARTIAL YEARS SHOULD HAVWE DATA]: year {year} had not data')
+
+print('WHY DOES 2007 HAVE NO DATA')
+print('FIX/SILENCE THIS:')
+print('smoothing.py:694: UserWarning: Converting non-nanosecond precision datetime values to nanosecond precision. This behavior can eventually be relaxed in xarray, as it is an artifact from pandas which is now beginning to support non-nanosecond precision values. This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time.')
