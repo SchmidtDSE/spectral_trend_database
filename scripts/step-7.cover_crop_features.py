@@ -33,8 +33,7 @@ from spectral_trend_database import types
 #
 # CONSTANTS
 #
-YEARS = range(2008, 2020 + 1)
-LIMIT = None
+YEARS = range(2005, 2011 + 1)
 DRY_RUN = False
 SRC_INDICES = ['ndvi', 'evi', 'evi2']
 MACD_PARTS = [
@@ -44,10 +43,6 @@ MACD_PARTS = [
     'ema_c',
     'macd_div']
 
-
-# YEARS = range(2003, 2003 + 1)
-# LIMIT = 100
-# DRY_RUN = False
 
 TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
 # MAP_METHOD = 'sequential'
@@ -68,7 +63,7 @@ def process_row(data: types.DICTABLE, local_dest: str, data_vars: list, list_var
     _data = smoothing.macd_processor(_data, spans=[5, 10, 5])
     _data = utils.xr_to_row(_data)
     _data = runner.post_process_row(_data, list_vars=list_vars)
-    utils.append_ldjson(file_path=local_dest, data=_data)
+    # utils.append_ldjson(file_path=local_dest, data=_data)
 
 
 #
@@ -93,17 +88,19 @@ for year in YEARS:
     if LOCAL_DEV_DATA:
         data = pd.read_json(LOCAL_DEV_PATH, orient='records', lines=True)
         data = data[[c.COORD_COLUMN] + c.META_COLUMNS + SRC_INDICES]
-        data = data.to_dict('records')
     else:
-        data = list(query.run(
-            table=c.SMOOTHED_INDICES_TABLE_NAME,
-            table_config={
-                'select': ','.join(
-                    [c.COORD_COLUMN] + c.META_COLUMNS + SRC_INDICES)
-            },
-            year=year,
-            limit=LIMIT,
-            to_dataframe=False))
+        qc = query.QueryConstructor(
+            c.SMOOTHED_INDICES_TABLE_NAME,
+            table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
+        qc.where(year=year)
+        data = query.run(
+            sql=qc.sql(),
+            to_dataframe=True,
+            # to_dataframe=False,
+            print_sql=True)
+    data = data.to_dict('records')
+    from IPython.display import display
+    from pprint import pprint
     data_vars = runner.get_data_vars(data[0])
     list_vars = utils.list_prefixes(SRC_INDICES, MACD_PARTS)
     print('\t size:', len(data))

@@ -1,4 +1,4 @@
-""" COVER CROP FEATURES
+""" INDEX STATS
 
 authors:
     - name: Brookie Guzder-Williams
@@ -9,9 +9,7 @@ affiliations:
 
 steps:
 
-    for smoothed daily indices ...
-    compute:
-        macd(div) features
+    Stats For Smoothed Indices
 
 outputs:
 
@@ -21,134 +19,161 @@ runtime: ~ XXX minutes
 License:
     BSD, see LICENSE.md
 """
+from typing import Callable, Union, Optional, Literal, TypeAlias, Sequence, Any
+from pathlib import Path
 import re
 import pandas as pd
 import xarray as xr
+import mproc
 from spectral_trend_database.config import config as c
+from spectral_trend_database import gcp
 from spectral_trend_database import query
-from spectral_trend_database import smoothing
+from spectral_trend_database import paths
 from spectral_trend_database import utils
-from spectral_trend_database import runner
 from spectral_trend_database import types
 
 
 #
 # CONSTANTS
 #
-YEARS = range(2008, 2020 + 1)
-LIMIT = None
+YEARS = range(2006, 2011 + 1)
 DRY_RUN = False
+IDENT_COLS = ['sample_id', 'year', 'date']
+MAP_METHOD = mproc.map_sequential
 
 
-# YEARS = range(2003, 2003 + 1)
-# LIMIT = 100
-# DRY_RUN = False
-
-SRC_TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
-# MAP_METHOD = 'sequential'
-MAP_METHOD = 'threadpool'
-REPO_PATH = '/Users/brookieguzder-williams/code/dse/COVERCROPS/spectral_trend_database/repo'
-LOCAL_DEV_PATH = f'{REPO_PATH}/nb/smoothed-samples.stats.2020.json'
-LOCAL_DEV_DATA = False
-DATA_VARS_SQL = (
-    "SELECT column_name FROM "
-    "`dse-regenag.BiomassTrends.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS` "
-    "WHERE table_name = 'SMOOTHED_INDICES_V1' AND data_type = 'ARRAY<FLOAT64>'"
-)
-
-
-PRE_START_YYMM = '12-01'
-PRE_END_YYMM = '03-15'
-POST_START_YYMM = '04-15'
-POST_END_YYMM = '11-01'
 
 
 #
 # METHODS
 #
-def process_row(
-        row: types.DICTABLE,
+def process_annual_data(
+        rows: pd.DataFrame,
+        year: int,
+        sample_id: str,
         local_dest: str,
-        local_dest_pre: str,
-        local_dest_post: str,
+        local_dest_off: str,
+        local_dest_grow: str,
         data_vars: list):
-    sample_id = row['sample_id']
-    year = int(row['year'])
-    data = utils.row_to_xr(
-        dict(row),
-        coord=c.COORD_COLUMN,
-        data_vars=data_vars)
-    ds_pre = data.sel(dict(date=slice(f'{year-1}-{PRE_START_YYMM}', f'{year}-{PRE_END_YYMM}')))
-    ds_post = data.sel(dict(date=slice(f'{year-1}-{POST_START_YYMM}', f'{year}-{POST_END_YYMM}')))
-    stats_ds = utils.xr_stats(data, data_vars=data_vars)
-    stats_pre_ds = utils.xr_stats(ds_pre, data_vars=data_vars)
-    stats_post_ds = utils.xr_stats(ds_post, data_vars=data_vars)
-    apped_row(stats_ds, local_dest, sample_id, year)
-    apped_row(stats_pre_ds, local_dest_pre, sample_id, year)
-    apped_row(stats_post_ds, local_dest_post, sample_id, year)
+    rows = rows.sort_values('date')
+    ds = rows[['date'] + data_vars].set_index('date').to_xarray()
+    ds_off = ds.sel(dict(date=slice(
+        f'{year-1}-{c.OFF_SEASON_START_YYMM}',
+        f'{year}-{c.OFF_SEASON_END_YYMM}')))
+    ds_grow = ds.sel(dict(date=slice(
+        f'{year-1}-{c.GROWING_SEASON_START_YYMM}',
+        f'{year}-{c.GROWING_SEASON_END_YYMM}')))
+    stats_ds = utils.xr_stats(ds, data_vars=data_vars)
+    stats_off_ds = utils.xr_stats(ds_off, data_vars=data_vars)
+    stats_grow_ds = utils.xr_stats(ds_grow, data_vars=data_vars)
+    append_rows(sample_id, year, stats_ds, local_dest)
+    append_rows(sample_id, year, stats_off_ds, local_dest_off)
+    append_rows(sample_id, year, stats_grow_ds, local_dest_grow)
 
 
-def apped_row(ds: xr.Dataset, dest: str, sample_id: str, year: int):
+def append_rows(sample_id: str, year: int, ds: xr.Dataset, dest: str):
     data = dict(sample_id=sample_id, year=year)
-    data.update(utils.xr_to_row(ds))
+    data.update({
+        k: float(ds.data_vars[k].values)
+        for k in ds.data_vars})
     utils.append_ldjson(file_path=dest, data=data)
+
+
+def table_name_and_paths(
+        table_name: str,
+        *path_parts: str,
+        year: Optional[int] = None,
+        ext: str = 'json'):
+    # TODO: MOVE TO MODULE (SEE STEP 6)
+    file_name = table_name.lower()
+    if year is not None:
+        file_name = f'{file_name}-{year}'
+    file_name = f'{file_name}.{ext}'
+    print(path_parts)
+    local_dest = paths.local(
+        *path_parts,
+        file_name)
+    gcs_dest = paths.gcs(
+        *path_parts,
+        file_name)
+    return table_name.upper(), local_dest, gcs_dest
+
+
+def period_ident(start_mmdd, end_mmdd):
+    return re.sub('-', '', '_'.join([start_mmdd, end_mmdd]))
+
+
+def append_name(path, *args: str, ext='json', sep='_', remove='-'):
+    if remove:
+        args = [re.sub(remove,'', a) for a in args]
+    if ext:
+        return re.sub(f'{ext}$', f'{sep.join(args)}.{ext}', path)
+    else:
+        args = [path] + list(args)
+        return sep.join(args)
+
 
 
 #
 # RUN
 #
 print('\n' * 2)
-print('compute macd(-div) series:')
 print('=' * 100)
 for year in YEARS:
     print('-' * 100)
     # 1. process paths
-    table_name, dataset_name, local_dest, gcs_dest = runner.destination_strings(
-        year,
-        table_name=c.INDICES_STATS_TABLE_NAME,
-        local_folder=c.INDICES_STATS_FOLDER,
-        gcs_folder=c.INDICES_STATS_FOLDER,
-        dataset_name=c.DATASET_NAME,
-        file_base_name=None)
-    local_dest_pre = re.sub(r'json$', f'{PRE_START_YYMM}_{PRE_END_YYMM}.json', local_dest)
-    local_dest_post = re.sub(r'json$', f'{POST_START_YYMM}_{POST_END_YYMM}.json', local_dest)
-    gcs_dest_pre = re.sub(r'json$', f'{PRE_START_YYMM}_{PRE_END_YYMM}.json', gcs_dest)
-    gcs_dest_post = re.sub(r'json$', f'{POST_START_YYMM}_{POST_END_YYMM}.json', gcs_dest)
-    table_name_pre = f'{table_name}_OFF_SEASON'
-    table_name_post = f'{table_name}_GROWING_SEASON'
-    print('\t pre:', local_dest_pre)
-    print('\t post:', local_dest_post)
-    print('\t pre-gcs:', gcs_dest_pre)
-    print('\t post-gcs:', gcs_dest_post)
+    growing_year_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_START_YYMM)
+    off_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_END_YYMM)
+    grow_ident = period_ident(c.GROWING_SEASON_START_YYMM, c.GROWING_SEASON_END_YYMM)
+
+    table_name, local_dest, gcs_dest = table_name_and_paths(
+        c.INDICES_STATS_TABLE_NAME,
+        c.INDICES_STATS_FOLDER,
+        growing_year_ident,
+        year=year)
+
+    local_dest_off = re.sub(growing_year_ident, off_ident, local_dest)
+    gcs_dest_off = re.sub(growing_year_ident, off_ident, gcs_dest)
+    table_name_off = f'{table_name}_OFF_SEASON'
+    local_dest_grow = re.sub(growing_year_ident, grow_ident, local_dest)
+    gcs_dest_grow = re.sub(growing_year_ident, grow_ident, gcs_dest)
+    table_name_grow = f'{table_name}_GROWING_SEASON'
+
+    for p in [local_dest, local_dest_off, local_dest_grow]:
+        Path(p).parent.mkdir(parents=True, exist_ok=True)
 
     # 2. query data
     print('- run query:')
-    if LOCAL_DEV_DATA:
-        # data = pd.read_json(LOCAL_DEV_PATH, orient='records', lines=True)
-        # data = data[[c.COORD_COLUMN] + c.META_COLUMNS + SRC_INDICES]
-        # data = data.to_dict('records')
-        raise NotImplementedError
-    else:
-        data = list(query.run(
-            table=SRC_TABLE_NAME,
-            year=year,
-            limit=LIMIT,
-            to_dataframe=False))
-    data_vars = query.run(sql=DATA_VARS_SQL, to_dataframe=False)
-    data_vars = [r.column_name for r in data_vars]
-    print('\t size:', len(data))
-    print('\t data_vars:', data_vars)
-    print()
+    qc = query.QueryConstructor(
+        c.SMOOTHED_INDICES_TABLE_NAME,
+        table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
+    qc.where(date=f'{year-1}-{c.OFF_SEASON_START_YYMM}', date_op='>=')
+    qc.where(date=f'{year}-{c.OFF_SEASON_START_YYMM}', date_op='<')
+    data = query.run(
+        sql=qc.sql(),
+        to_dataframe=True,
+        print_sql=True)
+    sample_ids = data.sample_id.unique()
+
 
     # 3. run
-    errors = runner.mapper(MAP_METHOD)(
-        process_row,
-        data,
-        max_processes=c.MAX_PROCESSES,
-        local_dest=local_dest,
-        local_dest_pre=local_dest_pre,
-        local_dest_post=local_dest_post,
-        data_vars=data_vars)
+    data_vars = [n for n in data.columns if n not in IDENT_COLS]
+
+
+    errors = MAP_METHOD(
+        lambda s: process_annual_data(
+            data[data.sample_id==s],
+            sample_id=s,
+            year=year,
+            local_dest=local_dest,
+            local_dest_off=local_dest_off,
+            local_dest_grow=local_dest_grow,
+            data_vars=data_vars),
+        sample_ids,
+        max_processes=c.MAX_PROCESSES)
+
+    print(errors)
+    raise
 
     # 4. gcp
     if DRY_RUN:

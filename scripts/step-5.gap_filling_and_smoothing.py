@@ -114,6 +114,7 @@ def write_smooth_row(
 
 
 def get_paths(year: int):
+    # TODO: MOVE TO MODULE (SEE STEP 6)
     file_name = f'{TABLE_NAME.lower()}-{year}.json'
     local_dest = paths.local(
         c.DEST_LOCAL_FOLDER,
