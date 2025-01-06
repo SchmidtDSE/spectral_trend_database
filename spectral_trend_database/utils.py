@@ -55,10 +55,22 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
         return obj
 
 
-def append_ldjson(file_path: str, data: dict):
+def append_ldjson(dest: str,
+        data: Union[list, dict],
+        multiline: bool = False,
+        dry_run: bool = False,
+        **shared):
     """ append/create line to line deliminated json file """
-    with open(file_path, "a") as file:
-        file.write(json.dumps(data) + "\n")
+    if dry_run:
+        print('- dry_run [local]:', dest)
+    else:
+        with open(dest, "a") as file:
+            if not multiline:
+                data = [data]
+            if shared:
+                data = [{**shared, **d} for d in data]
+            data = '\n'.join([json.dumps(d) for d in data])
+            file.write(data + '\n')
 
 
 #

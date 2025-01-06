@@ -120,6 +120,24 @@ def destination_strings(
     return table_name, dataset_name, local_dest, gcs_dest
 
 
+def table_name_and_paths(
+        table_name: str,
+        *path_parts: str,
+        year: Optional[int] = None,
+        ext: str = 'json'):
+    file_name = table_name.lower()
+    if year is not None:
+        file_name = f'{file_name}-{year}'
+    file_name = f'{file_name}.{ext}'
+    local_dest = paths.local(
+        *path_parts,
+        file_name)
+    gcs_dest = paths.gcs(
+        *path_parts,
+        file_name)
+    return table_name.upper(), local_dest, gcs_dest
+
+
 def make_directories(*paths):
     for p in paths:
         Path(p).parent.mkdir(parents=True, exist_ok=True)
