@@ -20,7 +20,6 @@ License:
     BSD, see LICENSE.md
 """
 from typing import Callable, Union, Optional, Literal, TypeAlias, Sequence, Any
-from pathlib import Path
 import re
 import pandas as pd
 import xarray as xr
@@ -41,8 +40,6 @@ YEARS = range(2006, 2011 + 1)
 DRY_RUN = False
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_with_threadpool
-
-
 
 
 #
@@ -146,8 +143,8 @@ for year in YEARS:
     gcs_dest_grow = re.sub(growing_year_ident, grow_ident, gcs_dest)
     table_name_grow = f'{table_name}_GROWING_SEASON'
 
-    for p in [local_dest, local_dest_off, local_dest_grow]:
-        Path(p).parent.mkdir(parents=True, exist_ok=True)
+    runner.make_directories(local_dest, local_dest_off, local_dest_grow)
+
 
     # 2. query data
     print('- run query:')
@@ -165,8 +162,6 @@ for year in YEARS:
 
     # 3. run
     data_vars = [n for n in data.columns if n not in IDENT_COLS]
-
-
     errors = MAP_METHOD(
         lambda s: process_annual_data(
             data[data.sample_id==s],
