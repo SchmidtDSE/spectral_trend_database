@@ -31,6 +31,7 @@ from spectral_trend_database import query
 from spectral_trend_database import paths
 from spectral_trend_database import utils
 from spectral_trend_database import types
+from spectral_trend_database import runner
 
 
 #
@@ -39,7 +40,7 @@ from spectral_trend_database import types
 YEARS = range(2006, 2011 + 1)
 DRY_RUN = False
 IDENT_COLS = ['sample_id', 'year', 'date']
-MAP_METHOD = mproc.map_sequential
+MAP_METHOD = mproc.map_with_threadpool
 
 
 
@@ -55,28 +56,34 @@ def process_annual_data(
         local_dest_off: str,
         local_dest_grow: str,
         data_vars: list):
-    rows = rows.sort_values('date')
-    ds = rows[['date'] + data_vars].set_index('date').to_xarray()
-    ds_off = ds.sel(dict(date=slice(
-        f'{year-1}-{c.OFF_SEASON_START_YYMM}',
-        f'{year}-{c.OFF_SEASON_END_YYMM}')))
-    ds_grow = ds.sel(dict(date=slice(
-        f'{year-1}-{c.GROWING_SEASON_START_YYMM}',
-        f'{year}-{c.GROWING_SEASON_END_YYMM}')))
-    stats_ds = utils.xr_stats(ds, data_vars=data_vars)
-    stats_off_ds = utils.xr_stats(ds_off, data_vars=data_vars)
-    stats_grow_ds = utils.xr_stats(ds_grow, data_vars=data_vars)
-    append_rows(sample_id, year, stats_ds, local_dest)
-    append_rows(sample_id, year, stats_off_ds, local_dest_off)
-    append_rows(sample_id, year, stats_grow_ds, local_dest_grow)
+    try:
+        rows = rows.sort_values('date')
+        ds = rows[['date'] + data_vars].set_index('date').to_xarray()
+        ds_off = ds.sel(dict(date=slice(
+            f'{year-1}-{c.OFF_SEASON_START_YYMM}',
+            f'{year}-{c.OFF_SEASON_END_YYMM}')))
+        ds_grow = ds.sel(dict(date=slice(
+            f'{year-1}-{c.GROWING_SEASON_START_YYMM}',
+            f'{year}-{c.GROWING_SEASON_END_YYMM}')))
+        stats_ds = utils.xr_stats(ds, data_vars=data_vars)
+        stats_off_ds = utils.xr_stats(ds_off, data_vars=data_vars)
+        stats_grow_ds = utils.xr_stats(ds_grow, data_vars=data_vars)
+        append_row(sample_id, year, stats_ds, local_dest)
+        append_row(sample_id, year, stats_off_ds, local_dest_off)
+        append_row(sample_id, year, stats_grow_ds, local_dest_grow)
+    except Exception as e:
+        return dict(sample_id=sample_id, year=year, error=str(e))
 
 
-def append_rows(sample_id: str, year: int, ds: xr.Dataset, dest: str):
-    data = dict(sample_id=sample_id, year=year)
-    data.update({
-        k: float(ds.data_vars[k].values)
-        for k in ds.data_vars})
-    utils.append_ldjson(file_path=dest, data=data)
+def append_row(sample_id: str, year: int, ds: xr.Dataset, dest: str):
+    if DRY_RUN:
+        print('- dry_run [local]:', dest)
+    else:
+        data = dict(sample_id=sample_id, year=year)
+        data.update({
+            k: float(ds.data_vars[k].values)
+            for k in ds.data_vars})
+        utils.append_ldjson(file_path=dest, data=data)
 
 
 def table_name_and_paths(
@@ -172,28 +179,32 @@ for year in YEARS:
         sample_ids,
         max_processes=c.MAX_PROCESSES)
 
-    print(errors)
-    raise
 
     # 4. gcp
     if DRY_RUN:
-        print('- dry_run [skipping gcp]')
+        print('- dry_run [gcp]:')
+        print('\t',gcs_dest)
+        print('\t',gcs_dest_off)
+        print('\t',gcs_dest_grow)
     else:
         runner.save_to_gcp(
-            local_dest=local_dest,
+            src=local_dest,
             gcs_dest=gcs_dest,
-            dataset_name=dataset_name,
-            table_name=table_name)
+            dataset_name=c.DATASET_NAME,
+            table_name=table_name,
+            remove_src=True)
         runner.save_to_gcp(
-            local_dest=local_dest_pre,
-            gcs_dest=gcs_dest_pre,
-            dataset_name=dataset_name,
-            table_name=table_name_pre)
+            src=local_dest_off,
+            gcs_dest=gcs_dest_off,
+            dataset_name=c.DATASET_NAME,
+            table_name=table_name_off,
+            remove_src=True)
         runner.save_to_gcp(
-            local_dest=local_dest_post,
-            gcs_dest=gcs_dest_post,
-            dataset_name=dataset_name,
-            table_name=table_name_post)
+            src=local_dest_grow,
+            gcs_dest=gcs_dest_grow,
+            dataset_name=c.DATASET_NAME,
+            table_name=table_name_grow,
+            remove_src=True)
 
     # 5. report on errors
     runner.print_errors(errors)

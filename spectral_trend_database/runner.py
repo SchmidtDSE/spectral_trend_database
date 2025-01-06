@@ -5,7 +5,9 @@ License:
 """
 from typing import Optional, Union, Sequence, Callable
 from pathlib import Path
+from IPython.display import display
 import json
+import pandas as pd
 import mproc  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import utils
@@ -121,25 +123,28 @@ def destination_strings(
 def print_errors(errors: list[str]):
     errors = [e for e in errors if e]
     if errors:
-        print(f'- nb_errors: {len(errors)}')
-        for e in list(set(errors)):
-            print(' ', e)
+        print(f'ERRORS [{len(errors)}]:')
+        errors = pd.DataFrame(errors)
+        display(errors.groupby('error').size())
 
 
 def save_to_gcp(
-        local_dest: Optional[str],
+        src: Optional[str],
         gcs_dest: Optional[str],
         dataset_name: Optional[str],
         table_name: Optional[str],
         bigquery_loc: str = c.LOCATION,
         gcs_uri: Optional[str] = None,
+        remove_src: bool = False,
         noisy: bool = NOISY):
     if gcs_dest:
-        assert isinstance(local_dest, str)
+        assert isinstance(src, str)
         assert isinstance(gcs_dest, str)
-        gcs_uri = gcp.upload_file(local_dest, gcs_dest)
+        gcs_uri = gcp.upload_file(src, gcs_dest)
         if noisy:
             print('- uploaded to gcs:', gcs_uri)
+        if gcs_uri and remove_src:
+            Path(src).unlink()
     if table_name:
         if noisy:
             print(f'- update table [{dataset_name}.{table_name}]')
