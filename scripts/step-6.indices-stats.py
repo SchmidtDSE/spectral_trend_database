@@ -47,14 +47,13 @@ MAP_METHOD = mproc.map_with_threadpool
 #
 def process_annual_data(
         rows: pd.DataFrame,
-        year: int,
         sample_id: str,
+        year: int,
         local_dest: str,
         local_dest_off: str,
         local_dest_grow: str,
         data_vars: list):
     try:
-        rows = rows.sort_values('date')
         ds = rows[['date'] + data_vars].set_index('date').to_xarray()
         ds_off = ds.sel(dict(date=slice(
             f'{year-1}-{c.OFF_SEASON_START_YYMM}',
@@ -81,26 +80,6 @@ def append_row(sample_id: str, year: int, ds: xr.Dataset, dest: str):
             k: float(ds.data_vars[k].values)
             for k in ds.data_vars})
         utils.append_ldjson(file_path=dest, data=data)
-
-
-def table_name_and_paths(
-        table_name: str,
-        *path_parts: str,
-        year: Optional[int] = None,
-        ext: str = 'json'):
-    # TODO: MOVE TO MODULE (SEE STEP 6)
-    file_name = table_name.lower()
-    if year is not None:
-        file_name = f'{file_name}-{year}'
-    file_name = f'{file_name}.{ext}'
-    print(path_parts)
-    local_dest = paths.local(
-        *path_parts,
-        file_name)
-    gcs_dest = paths.gcs(
-        *path_parts,
-        file_name)
-    return table_name.upper(), local_dest, gcs_dest
 
 
 def period_ident(start_mmdd, end_mmdd):
@@ -130,7 +109,7 @@ for year in YEARS:
     off_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_END_YYMM)
     grow_ident = period_ident(c.GROWING_SEASON_START_YYMM, c.GROWING_SEASON_END_YYMM)
 
-    table_name, local_dest, gcs_dest = table_name_and_paths(
+    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
         c.INDICES_STATS_TABLE_NAME,
         c.INDICES_STATS_FOLDER,
         growing_year_ident,
@@ -157,6 +136,7 @@ for year in YEARS:
         sql=qc.sql(),
         to_dataframe=True,
         print_sql=True)
+    data = data.sort_values('date')
     sample_ids = data.sample_id.unique()
 
 
