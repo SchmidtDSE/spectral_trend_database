@@ -32,6 +32,7 @@ from spectral_trend_database import paths
 from spectral_trend_database import spectral
 from spectral_trend_database import query
 from spectral_trend_database import utils
+from spectral_trend_database import runner
 from spectral_trend_database.gee import landsat
 
 
@@ -40,23 +41,18 @@ from spectral_trend_database.gee import landsat
 #
 YEARS = range(2004, 2011 + 1) #  TODO LIM HACK
 HEADER_COLS = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
+DRY_RUN = False
 
 
 #
 # METHODS
 #
 def process_raw_indices_for_year(
+        df: pd.DataFrame,
         index_config: dict[str, Union[str, dict]],
         year: int,
         query_name: str = c.RAW_LANDSAT_QUERY,
         table_name: Optional[str] = None) -> None:
-    src_uri = paths.gcs(
-        c.RAW_GCS_FOLDER,
-        f'{c.RAW_LANDSAT_TABLE_NAME}-{year}',
-        ext='json')
-    print('- src:', src_uri)
-    df = pd.read_json(src_uri, lines=True)
-    print('- src shape:', df.shape)
     indices = index_config.get('indices', index_config)
     assert isinstance(indices, dict)
     if not table_name:
@@ -68,28 +64,8 @@ def process_raw_indices_for_year(
     print('- order columns')
     _data_cols = [n for n in df.columns if n not in HEADER_COLS]
     _data_cols.sort()
-    df = df[HEADER_COLS + _data_cols]
-    print('\t- add indices shape: ', df.shape)
-    table_name = table_name.upper()
-    index_names = list(indices.keys())
-    file_name = f'{table_name.lower()}-{year}'
-    local_dest = paths.local(
-        c.DEST_LOCAL_FOLDER,
-        c.RAW_INDICES_FOLDER,
-        file_name,
-        ext='json')
-    gcs_dest = paths.gcs(
-        c.DEST_GCS_FOLDER,
-        c.RAW_INDICES_FOLDER,
-        file_name,
-        ext='json')
+    return df[HEADER_COLS + _data_cols]
 
-    print(f'- save json [{file_name}]')
-    uri = gcp.save_ld_json(
-        df,
-        local_dest=local_dest,
-        gcs_dest=gcs_dest,
-        dry_run=False)
 
 
 #
@@ -102,6 +78,38 @@ print('\ncompute raw indices:')
 pprint(index_config['indices'], indent=4, width=100)
 print('-' * 50)
 for year in YEARS:
-    process_raw_indices_for_year(
+    print(f'- year: {year}')
+    # 1. process paths
+    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+        c.RAW_INDICES_FOLDER,
+        table_name=c.RAW_INDICES_TABLE_NAME,
+        year=year)
+
+    # load data
+    # TODO (should this be a query?)
+    src_uri = paths.gcs(
+        c.RAW_LANDSAT_FOLDER,
+        f'{c.RAW_LANDSAT_FILENAME}-{year}',
+        ext='json')
+    print('- src:', src_uri)
+    df = pd.read_json(src_uri, lines=True)
+    print('- src shape:', df.shape)
+
+    # process data
+    df = process_raw_indices_for_year(
+        df,
         index_config=index_config,
         year=year)
+
+    # save data
+    local_dest = utils.dataframe_to_ldjson(
+            df,
+            dest=local_dest,
+            dry_run=DRY_RUN)
+    runner.save_to_gcp(
+            src=local_dest,
+            gcs_dest=gcs_dest,
+            dataset_name=c.DATASET_NAME,
+            table_name=table_name,
+            remove_src=True,
+            dry_run=DRY_RUN)

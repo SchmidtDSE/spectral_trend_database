@@ -36,6 +36,8 @@ from spectral_trend_database import utils
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
 from spectral_trend_database import types
+from spectral_trend_database import utils
+from spectral_trend_database import runner
 from spectral_trend_database.gee import landsat
 import mproc
 
@@ -113,27 +115,21 @@ def write_smooth_row(
         raise e
 
 
-def get_paths(year: int):
-    # TODO: MOVE TO MODULE (SEE STEP 6)
-    file_name = f'{TABLE_NAME.lower()}-{year}.json'
-    local_dest = paths.local(
-        c.DEST_LOCAL_FOLDER,
-        c.SMOOTHED_INDICES_FOLDER,
-        file_name)
-    gcs_dest = paths.gcs(
-        c.DEST_GCS_FOLDER,
-        c.SMOOTHED_INDICES_FOLDER,
-        file_name)
-    return local_dest, gcs_dest
-
-
 #
 # RUN
 #
 print('\nsmooth indices:')
 print('-' * 50)
 for year in YEARS:
-    local_dest, gcs_dest = get_paths(year)
+    print(f'- year: {year}')
+    # 1. process paths
+    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+        c.SMOOTHED_INDICES_FOLDER,
+        table_name=c.SMOOTHED_INDICES_TABLE_NAME,
+        year=year)
+
+
+    # 2. query data
     jan1 = datetime(year=year, month=1, day=1)
     start = (jan1 - YEAR_BUFFER).strftime('%Y-%m-%d')
     end = (jan1 + YEAR_DELTA  + YEAR_BUFFER).strftime('%Y-%m-%d')
@@ -146,8 +142,9 @@ for year in YEARS:
         sql=qc.sql(),
         append='ORDER BY date')
     sample_ids = data.sample_id.unique()
-    print()
-    print(f'- year: {year}')
+
+
+    # 3. run
     dfs = MAP_METHOD(
         lambda s: apply_smoothing(
             data[data.sample_id==s],
@@ -160,17 +157,17 @@ for year in YEARS:
     if dfs:
         df = pd.concat(dfs)
         df = df[['sample_id', 'year'] + DS_COLUMNS]
-        Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
-        uri = gcp.save_ld_json(df, local_dest, gcs_dest, dry_run=DRY_RUN)
-        print(f'- update table [{c.DATASET_NAME}.{TABLE_NAME}]')
-        if DRY_RUN:
-            print('- dry_run: table not updated')
-        else:
-            assert isinstance(uri, str)
-            gcp.create_or_update_table_from_json(
-                gcp.load_or_create_dataset(c.DATASET_NAME, c.LOCATION),
-                name=TABLE_NAME,
-                uri=uri)
+        local_dest = utils.dataframe_to_ldjson(
+                df,
+                dest=local_dest,
+                dry_run=DRY_RUN)
+        runner.save_to_gcp(
+                src=local_dest,
+                gcs_dest=gcs_dest,
+                dataset_name=c.DATASET_NAME,
+                table_name=None,
+                remove_src=False,
+                dry_run=DRY_RUN)
     else:
         print(f'TODO[FIX THIS PARTIAL YEARS SHOULD HAVWE DATA]: year {year} had not data')
 
