@@ -48,6 +48,8 @@ import mproc  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
+from spectral_trend_database import utils
+from spectral_trend_database import runner
 from spectral_trend_database.gee import landsat
 from spectral_trend_database.gee import utils as ee_utils
 warnings.filterwarnings(
@@ -179,40 +181,38 @@ print(f'- samples shape:', samples_df.shape)
 
 
 # 8. save samples data
-local_dest = paths.local(
-    c.RAW_LOCAL_FOLDER,
-    c.SAMPLE_POINTS_TABLE_NAME,
-    ext='json')
-gcs_dest = paths.gcs(
+table_name, local_dest, gcs_dest = runner.table_name_and_paths(
     c.RAW_GCS_FOLDER,
-    c.SAMPLE_POINTS_TABLE_NAME,
-    ext='json')
-print(f'exporting sample data [{samples_df.shape}]:')
-uri = gcp.save_ld_json(
-    samples_df,
-    local_dest=local_dest,
-    gcs_dest=gcs_dest,
-    dry_run=DRY_RUN)
+    table_name=c.SAMPLE_POINTS_TABLE_NAME)
+local_dest = utils.dataframe_to_ldjson(
+        samples_df,
+        dest=local_dest,
+        dry_run=DRY_RUN)
+runner.save_to_gcp(
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=DRY_RUN)
 
 
 # 9. save yield data
 yield_df = df[YIELD_DATA_COLS].sort_values(['year', 'sample_id'])
-local_dest = paths.local(
-    c.RAW_LOCAL_FOLDER,
-    c.YIELD_TABLE_NAME,
-    ext='json')
-gcs_dest = paths.gcs(
-    c.RAW_GCS_FOLDER,
-    c.YIELD_TABLE_NAME,
-    ext='json')
-print(f'exporting yield data [{yield_df.shape}]:')
-uri = gcp.save_ld_json(
-    yield_df,
-    local_dest=local_dest,
-    gcs_dest=gcs_dest,
-    dry_run=DRY_RUN)
-
-
+table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+    c.QDANN_YIELD_FOLDER,
+    table_name=c.QDANN_YIELD_TABLENAME)
+local_dest = utils.dataframe_to_ldjson(
+        yield_df,
+        dest=local_dest,
+        dry_run=DRY_RUN)
+runner.save_to_gcp(
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=DRY_RUN)
 
 
 
