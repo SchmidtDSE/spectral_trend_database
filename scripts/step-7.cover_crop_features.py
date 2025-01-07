@@ -136,16 +136,14 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
 
-    # 4. gcp
-    if DRY_RUN:
-        print('- dry_run [gcp]:', gcs_dest)
-    else:
-        runner.save_to_gcp(
-            src=local_dest,
-            gcs_dest=gcs_dest,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name,
-            remove_src=False)
+    # 4. save data (local, gcs, bq)
+    runner.save_to_gcp(
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=DRY_RUN)
 
 
     # 5. report on errors

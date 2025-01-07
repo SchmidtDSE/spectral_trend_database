@@ -86,7 +86,6 @@ for year in YEARS:
         year=year)
 
     # load data
-    # TODO (should this be a query?)
     src_uri = paths.gcs(
         c.RAW_LANDSAT_FOLDER,
         f'{c.RAW_LANDSAT_FILENAME}-{year}',

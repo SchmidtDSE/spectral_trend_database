@@ -155,31 +155,29 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
 
-    # 4. gcp
-    if DRY_RUN:
-        print('- dry_run [gcp]:')
-        print('\t',gcs_dest)
-        print('\t',gcs_dest_off)
-        print('\t',gcs_dest_grow)
-    else:
-        runner.save_to_gcp(
-            src=local_dest,
-            gcs_dest=gcs_dest,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name,
-            remove_src=True)
-        runner.save_to_gcp(
-            src=local_dest_off,
-            gcs_dest=gcs_dest_off,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name_off,
-            remove_src=True)
-        runner.save_to_gcp(
-            src=local_dest_grow,
-            gcs_dest=gcs_dest_grow,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name_grow,
-            remove_src=True)
+    # 4. save data (local, gcs, bq]
+    runner.save_to_gcp(
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=DRY_RUN)
+    runner.save_to_gcp(
+        src=local_dest_off,
+        gcs_dest=gcs_dest_off,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name_off,
+        remove_src=True,
+        dry_run=DRY_RUN)
+    runner.save_to_gcp(
+        src=local_dest_grow,
+        gcs_dest=gcs_dest_grow,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name_grow,
+        remove_src=True,
+        dry_run=DRY_RUN)
+
 
     # 5. report on errors
     runner.print_errors(errors)

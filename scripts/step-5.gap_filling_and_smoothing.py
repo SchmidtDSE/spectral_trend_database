@@ -157,6 +157,9 @@ for year in YEARS:
     if dfs:
         df = pd.concat(dfs)
         df = df[['sample_id', 'year'] + DS_COLUMNS]
+
+
+        # 4. save data (local, gcs, bq)
         local_dest = utils.dataframe_to_ldjson(
                 df,
                 dest=local_dest,
