@@ -1,30 +1,30 @@
 """ EXPORT CDL CORN-SOY-OTHER
 
 authors:
-	- name: Brookie Guzder-Williams
+    - name: Brookie Guzder-Williams
 
 affiliations:
-	- University of California Berkeley,
-	  The Eric and Wendy Schmidt Center for Data Science & Environment
+    - University of California Berkeley,
+      The Eric and Wendy Schmidt Center for Data Science & Environment
 
 note:
-	all pts are "pure" corn or soy (neighborhood radius = 60)
-	for at least 15 of 20 years from 2000-2020, so we will trust
-	centroid value.
+    all pts are "pure" corn or soy (neighborhood radius = 60)
+    for at least 15 of 20 years from 2000-2020, so we will trust
+    centroid value.
 
 steps:
 
-	1. Load Sample Points
-	...
+    1. Load Sample Points
+    ...
 
 outputs:
 
-	cdl data [()]:
-		- local:
-		- gcs:
+    cdl data [()]:
+        - local:
+        - gcs:
 
 License:
-	BSD, see LICENSE.md
+    BSD, see LICENSE.md
 """
 import ee
 ee.Initialize()
@@ -33,6 +33,9 @@ import mproc
 from spectral_trend_database.config import config as c
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
+from spectral_trend_database import interface
+from spectral_trend_database import runner
+from spectral_trend_database import utils
 
 
 #
@@ -53,18 +56,13 @@ LIMIT = None
 YEARS = range(2004, 2011 + 1)
 LIMIT = 10
 MAX_PROCESSES = 4 # low for read-requests
+MAP_METHOD = mproc.map_with_threadpool
 
 
 #
 # CONSTANTS/DATA
 #
 CDL = ee.ImageCollection("USDA/NASS/CDL")
-LOCAL_DEST_ROOT = paths.local(
-    c.CROP_TYPE_LOCAL_FOLDER,
-    c.CROP_TYPE_TABLE_NAME)
-GCS_DEST_ROOT = paths.gcs(
-    c.CROP_TYPE_GCS_FOLDER,
-    c.CROP_TYPE_TABLE_NAME)
 SAMPLES = pd.read_json(SRC_PATH, lines=True)
 SAMPLES = SAMPLES.to_dict('records')[:LIMIT]
 
@@ -84,48 +82,46 @@ def cdl_for_year(year):
       OTHER_VALUE).toInt()
 
 
-def value_at_point(row, im, year):
-	lon = row['lon']
-	lat = row['lat']
-	crop_label = im.rename('crop_label').reduceRegion(
-		reducer=ee.Reducer.firstNonNull(),
-		geometry=ee.Geometry.Point([lon, lat]),
-		scale=30).get('crop_label').getInfo()
-	if crop_label is None:
-		crop_type = 'na'
-		crop_label = 4
-	elif crop_label == 0:
-		crop_type = 'corn'
-	elif crop_label == 1:
-		crop_type = 'soy'
-	else:
-		crop_label = 3
-		crop_type = 'other'
-	return dict(
-		sample_id=row['sample_id'],
-		year=year,
-		crop_label=crop_label,
-		crop_type=crop_type)
-
-
 #
 # RUN
 #
 print('EXPORTING CDL (corn/soy/other) FOR', YEARS)
 print('- nb_samples', len(SAMPLES))
 for year in YEARS:
-	print('-', year, '...')
-	cdl = cdl_for_year(year)
-	crop_data = mproc.map_with_threadpool(
-		lambda r: value_at_point(r, cdl, year),
-		SAMPLES,
-		max_processes=MAX_PROCESSES)
-	crop_data = pd.DataFrame(crop_data).sort_values(['year', 'sample_id'])
-	print(f'exporting yield data [{crop_data.shape}]:')
-	uri = gcp.save_ld_json(
-	    crop_data,
-	    local_dest=f'{LOCAL_DEST_ROOT}-{year}.json',
-	    gcs_dest=f'{GCS_DEST_ROOT}-{year}.json',
-	    dry_run=DRY_RUN)
+    print('-', year, '...')
+    # 1. process paths
+    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+        c.CROP_TYPE_FOLDER,
+        table_name=c.CROP_TYPE_TABLE_NAME,
+        year=year)
 
+
+    # 2. get data for year
+    cdl = cdl_for_year(year)
+
+
+    # 3. run
+    crop_data = MAP_METHOD(
+        lambda row: interface.process_cdl_row(
+            row=row,
+            im=cdl,
+            year=year),
+        SAMPLES,
+        max_processes=MAX_PROCESSES)
+    crop_data = pd.DataFrame(crop_data).sort_values(['year', 'sample_id'])
+    print(f'exporting yield data [{crop_data.shape}]:')
+
+
+    # 4. save data (local, gcs, bq)
+    local_dest = utils.dataframe_to_ldjson(
+            crop_data,
+            dest=local_dest,
+            dry_run=DRY_RUN)
+    runner.save_to_gcp(
+            src=local_dest,
+            gcs_dest=gcs_dest,
+            dataset_name=c.DATASET_NAME,
+            table_name=table_name,
+            remove_src=False,
+            dry_run=DRY_RUN)
 

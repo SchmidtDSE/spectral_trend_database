@@ -38,6 +38,8 @@ import mproc  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
+from spectral_trend_database import runner
+from spectral_trend_database import utils
 from spectral_trend_database.gee import landsat
 from spectral_trend_database.gee import utils as ee_utils
 warnings.filterwarnings(
@@ -152,6 +154,14 @@ data = df.to_dict('records')
 print(f'RUNNING LANDSAT EXPORT FOR {YEARS}')
 for year in YEARS:
     print('-', year, '...')
+    # 1. process paths
+    _, local_dest, gcs_dest = runner.table_name_and_paths(
+        c.RAW_LANDSAT_FOLDER,
+        file_name=c.RAW_LANDSAT_FILENAME,
+        year=year)
+
+
+    # 2. run
     dfs = mproc.map_with_threadpool(
         lambda r: get_mean_pixel_rows(r, year=year),
         data,
@@ -161,19 +171,22 @@ for year in YEARS:
     df = process_date_column(df)
     df = df.reset_index(drop=True)
     df = df[ORDERED_COLUMNS].sort_values(['sample_id', 'date'])
+
+
+    # 3. save data (local, gcs, bq)
     if df.shape[0]:
-        name = f'{c.RAW_LANDSAT_TABLE_NAME}-{year}.json'
-        local_dest = paths.local(
-            c.RAW_LOCAL_FOLDER,
-            name)
-        gcs_dest = paths.gcs(
-            c.RAW_GCS_FOLDER,
-            name)
-        uri = gcp.save_ld_json(
-            df,
-            local_dest=local_dest,
-            gcs_dest=gcs_dest,
-            dry_run=DRY_RUN)
-        print(f'COMPLETE[{df.shape}]:', name)
+        # TODO: MAYBE CHANGE TO APPEND LD IN PROC
+        local_dest = utils.dataframe_to_ldjson(
+                df,
+                dest=local_dest,
+                dry_run=DRY_RUN)
+        runner.save_to_gcp(
+                src=local_dest,
+                gcs_dest=gcs_dest,
+                dataset_name=c.DATASET_NAME,
+                table_name=None,
+                remove_src=False,
+                dry_run=DRY_RUN)
+        print(f'COMPLETE[{year}]')
     else:
         print(f'NO DATA FOR {year}')

@@ -91,8 +91,8 @@ for year in YEARS:
     print('-' * 100)
     # 1. process paths
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
-        c.MACD_TABLE_NAME,
         c.MACD_FOLDER,
+        table_name=c.MACD_TABLE_NAME,
         year=year)
     start = dt_parse(f'{year-1}-{c.OFF_SEASON_START_YYMM}')
     end = dt_parse(f'{year}-{c.OFF_SEASON_START_YYMM}')

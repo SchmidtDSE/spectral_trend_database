@@ -41,17 +41,10 @@ from spectral_trend_database.gee import landsat
 YEARS = range(2004, 2011 + 1) #  TODO LIM HACK
 HEADER_COLS = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
 
+
 #
 # METHODS
 #
-# def remove_coord_array_infinities(row: pd.Series, indices: list[str]):
-#     return utils.filter_list_valued_columns(
-#         row=row,
-#         test=utils.infinite_along_axis,
-#         coord_col=c.DATE_COLUMN,
-#         data_cols=indices)
-
-
 def process_raw_indices_for_year(
         index_config: dict[str, Union[str, dict]],
         year: int,
@@ -90,6 +83,7 @@ def process_raw_indices_for_year(
         c.RAW_INDICES_FOLDER,
         file_name,
         ext='json')
+
     print(f'- save json [{file_name}]')
     uri = gcp.save_ld_json(
         df,

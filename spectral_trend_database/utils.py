@@ -22,6 +22,7 @@ from spectral_trend_database import types
 #
 DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'replace'
 LIST_LIKE_TYPES: tuple = (list, tuple, np.ndarray, xr.DataArray, pd.Series)
+DATE_FMT: str = '%Y-%m-%d'
 
 
 #
@@ -72,6 +73,41 @@ def append_ldjson(dest: str,
             data = '\n'.join([json.dumps(d) for d in data])
             file.write(data + '\n')
 
+
+def dataframe_to_ldjson(
+        df: pd.DataFrame,
+        dest: str,
+        date_column: Optional[str] = 'date',
+        dry_run: bool = False,
+        create_dirs: bool = True) -> Union[str, None]:
+    """ save dataframe locally as line-deliminated JSON
+
+    Args:
+
+        df (pd.DataFrame): source dataframe
+        dest (str): local dest
+        date_column (Optional[str] = 'date'): name of date column - attempt to convert to DATE_FMT
+        dry_run (bool = True): if true print message but don't save
+        create_dirs (bool = True): if true create local parent dirs if needed
+
+    Returns:
+
+        if not dry_run return destination otherwise None
+    """
+    if date_column:
+        try:
+            df[date_column] = df.date.apply(lambda d: d.strftime(DATE_FMT))
+        except:
+            pass
+    if dry_run:
+        print('- dry_run [local]:', dest)
+        dest = None
+    else:
+        print('- local:', dest)
+        if create_dirs:
+            Path(dest).parent.mkdir(parents=True, exist_ok=True)
+        df.to_json(dest, orient='records', lines=True)
+    return dest
 
 #
 # CORE

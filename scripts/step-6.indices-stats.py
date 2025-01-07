@@ -110,9 +110,9 @@ for year in YEARS:
     grow_ident = period_ident(c.GROWING_SEASON_START_YYMM, c.GROWING_SEASON_END_YYMM)
 
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
-        c.INDICES_STATS_TABLE_NAME,
         c.INDICES_STATS_FOLDER,
         growing_year_ident,
+        table_name=c.INDICES_STATS_TABLE_NAME,
         year=year)
 
     local_dest_off = re.sub(growing_year_ident, off_ident, local_dest)
