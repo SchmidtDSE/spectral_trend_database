@@ -165,11 +165,11 @@ df = require_min_years_per_h3(df, min_years=c.MIN_REQUIRED_YEARS)
 print(f'- min-years shape:', df.shape)
 
 
-# --> sort data
+# 6. sort data
 df = df.sort_values(['year', 'sample_id'])
 
 
-# 6. extract samples and merge political data
+# 7. extract samples and merge political data
 _us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
 _us_gdf = _us_gdf.to_crs(epsg=4326)
 samples_df = df.drop_duplicates(subset=['sample_id'])
@@ -178,7 +178,7 @@ samples_df = merge_county_data(samples_df, _us_gdf)
 print(f'- samples shape:', samples_df.shape)
 
 
-# 7. save samples data
+# 8. save samples data
 local_dest = paths.local(
     c.RAW_LOCAL_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
@@ -195,7 +195,7 @@ uri = gcp.save_ld_json(
     dry_run=DRY_RUN)
 
 
-# 8. save yield data
+# 9. save yield data
 yield_df = df[YIELD_DATA_COLS].sort_values(['year', 'sample_id'])
 local_dest = paths.local(
     c.RAW_LOCAL_FOLDER,
