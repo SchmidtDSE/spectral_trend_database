@@ -48,11 +48,12 @@ import mproc
 YEARS = range(2004, 2011 + 1)
 DRY_RUN = False
 TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
-# MAP_METHOD = mproc.map_sequential
 MAP_METHOD = mproc.map_with_threadpool
+# MAP_METHOD = mproc.map_sequential
 YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH * 2)
 YEAR_DELTA = relativedelta(years=1)
 DS_COLUMNS = ['date'] + landsat.HARMONIZED_BANDS + list(spectral.index_config().keys())
+ORDERED_COLUMNS = ['sample_id', 'year'] + DS_COLUMNS
 
 
 #
@@ -70,49 +71,31 @@ def post_process_row(row: dict, data_vars: list[str]) -> dict:
     return row
 
 
-def apply_smoothing(
+def process_smoothing(
         rows: Union[pd.Series, dict],
         year: int,
         sample_id: str,
-        file_path: str) -> Union[str, None]:
+        dest: str) -> Union[str, None]:
     try:
-        _df = rows[DS_COLUMNS].copy()
-        _df = _df[_df.ndvi>0]
-        ds = _df.set_index('date').to_xarray()
+        rows = rows[DS_COLUMNS].copy()
+        rows = rows[rows.ndvi>0]
+        ds = rows.set_index('date').to_xarray()
         ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
         ds = ds.sel(dict(date=slice(f'{year}-01-01', f'{year}-12-31')))
-        _df = ds.to_dataframe().reset_index(drop=False)
-        _df['sample_id'] = sample_id
-        _df['year'] = year
-        return _df
+        rows = ds.to_dataframe().reset_index(drop=False)
+        rows['sample_id'] = sample_id
+        rows['year'] = year
+        rows = rows[ORDERED_COLUMNS]
+        utils.dataframe_to_ldjson(
+            rows,
+            dest=dest,
+            mode='a',
+            noisy=False)
     except Exception as e:
-        pass
-
-
-def write_smooth_row(
-        row: Union[pd.Series, dict],
-        data_vars: list[str],
-        file_path: str) -> Union[str, None]:
-    """
-    1. transform pandas row to xr.dataset
-    2. mask data by MASK_EQ
-    3. smooth with savitzky_golay_processor
-    """
-    try:
-        ds = utils.row_to_xr(
-            row,
-            coord=c.COORD_COLUMN,
-            data_vars=data_vars)
-        if c.MASK_EQ:
-            mask = ds.eval(c.MASK_EQ)
-            ds = xr.where(mask, ds, np.nan).assign_attrs(ds.attrs)
-        ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
-        row = utils.xr_to_row(ds)
-        row = post_process_row(row, data_vars)
-        append_ldjson(file_path=file_path, data=row)
-    except Exception as e:
-        return str(e)
-        raise e
+        return dict(
+                sample_id=sample_id,
+                year=year,
+                error=str(e))
 
 
 #
@@ -121,7 +104,7 @@ def write_smooth_row(
 print('\nsmooth indices:')
 print('-' * 50)
 for year in YEARS:
-    print(f'- year: {year}')
+    print(f'\n- year: {year}')
     # 1. process paths
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
         c.SMOOTHED_INDICES_FOLDER,
@@ -138,42 +121,38 @@ for year in YEARS:
             table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
     qc.where(date=start, date_op='>=')
     qc.where(date=end, date_op='<=')
-    data = query.run(
-        sql=qc.sql(),
-        append='ORDER BY date')
+    qc.append('ORDER BY date ASC')
+    data = query.run(sql=qc.sql())
     sample_ids = data.sample_id.unique()
 
 
     # 3. run
-    dfs = MAP_METHOD(
-        lambda s: apply_smoothing(
+    errors = MAP_METHOD(
+        lambda s: process_smoothing(
             data[data.sample_id==s],
             sample_id=s,
             year=year,
-            file_path=local_dest),
+            dest=local_dest),
         sample_ids,
         max_processes=c.MAX_PROCESSES)
-    dfs = [d for d in dfs if d is not None]
-    if dfs:
-        df = pd.concat(dfs)
-        df = df[['sample_id', 'year'] + DS_COLUMNS]
 
 
-        # 4. save data (local, gcs, bq)
-        local_dest = utils.dataframe_to_ldjson(
-                df,
-                dest=local_dest,
-                dry_run=DRY_RUN)
-        runner.save_to_gcp(
-                src=local_dest,
-                gcs_dest=gcs_dest,
-                dataset_name=c.DATASET_NAME,
-                table_name=None,
-                remove_src=False,
-                dry_run=DRY_RUN)
-    else:
-        print(f'TODO[FIX THIS PARTIAL YEARS SHOULD HAVWE DATA]: year {year} had not data')
+    # 4. report on errors
+    runner.print_errors(errors)
 
+
+    # 5. save data (gcs, bq)
+    runner.save_to_gcp(
+            src=local_dest,
+            gcs_dest=gcs_dest,
+            dataset_name=c.DATASET_NAME,
+            table_name=table_name,
+            remove_src=False,
+            dry_run=DRY_RUN)
+
+
+print('\n' * 2)
+print('TODO[FIX THIS PARTIAL YEARS SHOULD HAVWE DATA]')
 print('WHY DOES 2007 HAVE NO DATA')
 print('FIX/SILENCE THIS:')
 print('smoothing.py:694: UserWarning: Converting non-nanosecond precision datetime values to nanosecond precision. This behavior can eventually be relaxed in xarray, as it is an artifact from pandas which is now beginning to support non-nanosecond precision values. This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time.')
