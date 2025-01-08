@@ -84,11 +84,9 @@ print('\n' * 2)
 print('compute macd(-div) series:')
 print('=' * 100)
 
-from IPython.display import display
-from pprint import pprint
 
 for year in YEARS:
-    print('-' * 100)
+    print(f'\n- year: {year}')
     # 1. process paths
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
         c.MACD_FOLDER,

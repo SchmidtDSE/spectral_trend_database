@@ -78,7 +78,7 @@ print('\ncompute raw indices:')
 pprint(index_config['indices'], indent=4, width=100)
 print('-' * 50)
 for year in YEARS:
-    print(f'- year: {year}')
+    print(f'\n- year: {year}')
     # 1. process paths
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
         c.RAW_INDICES_FOLDER,

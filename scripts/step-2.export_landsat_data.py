@@ -75,10 +75,6 @@ MAP_METHOD = mproc.map_with_threadpool
 # MAP_METHOD = mproc.map_sequential
 
 
-from IPython.display import display
-from pprint import pprint
-
-
 #
 # METHODS
 #
@@ -99,7 +95,10 @@ def get_mean_pixel_values(row: pd.Series, year=int) -> xr.Dataset:
     return ds
 
 
-def process_mean_pixel_rows(row, year, dest):
+def process_mean_pixel_rows(
+        row: dict,
+        year: int,
+        dest: str):
     row = dict(row).copy()
     sample_id = row['sample_id']
     ds = get_mean_pixel_values(row, year)
@@ -156,7 +155,7 @@ data = df.to_dict('records')
 #     - Save results, local and GCS, as line-deliminated JSON files
 print(f'RUNNING LANDSAT EXPORT FOR {YEARS}')
 for year in YEARS:
-    print('-', year, '...')
+    print(f'\n- year: {year}')
     # 1. process paths
     _, local_dest, gcs_dest = runner.table_name_and_paths(
         c.RAW_LANDSAT_FOLDER,

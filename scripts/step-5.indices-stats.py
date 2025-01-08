@@ -103,7 +103,7 @@ def append_name(path, *args: str, ext='json', sep='_', remove='-'):
 print('\n' * 2)
 print('=' * 100)
 for year in YEARS:
-    print('-' * 100)
+    print(f'\n- year: {year}')
     # 1. process paths
     growing_year_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_START_YYMM)
     off_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_END_YYMM)
