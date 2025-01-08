@@ -217,6 +217,3 @@ runner.save_to_gcp(
         table_name=table_name,
         remove_src=True,
         dry_run=DRY_RUN)
-
-
-

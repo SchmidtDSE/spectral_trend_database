@@ -149,10 +149,3 @@ for year in YEARS:
             table_name=table_name,
             remove_src=False,
             dry_run=DRY_RUN)
-
-
-print('\n' * 2)
-print('TODO[FIX THIS PARTIAL YEARS SHOULD HAVWE DATA]')
-print('WHY DOES 2007 HAVE NO DATA')
-print('FIX/SILENCE THIS:')
-print('smoothing.py:694: UserWarning: Converting non-nanosecond precision datetime values to nanosecond precision. This behavior can eventually be relaxed in xarray, as it is an artifact from pandas which is now beginning to support non-nanosecond precision values. This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time.')

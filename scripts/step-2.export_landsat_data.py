@@ -171,7 +171,11 @@ for year in YEARS:
     runner.print_errors(errors)
 
 
-    # 3. save data (gcs, bq)
+    # 3. report on errors
+    runner.print_errors(errors)
+
+
+    # 4. save data (gcs, bq)
     runner.save_to_gcp(
             src=local_dest,
             gcs_dest=gcs_dest,
@@ -179,8 +183,3 @@ for year in YEARS:
             table_name=None,
             remove_src=True,
             dry_run=DRY_RUN)
-
-
-    # 4. report on errors
-    runner.print_errors(errors)
-    print('\n' * 2)
