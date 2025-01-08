@@ -69,9 +69,14 @@ SRC_PATH = gcs_dest = paths.gcs(
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
 
-ORDERED_COLUMNS = ['sample_id', 'year', 'date']
+ORDERED_COLUMNS = ['sample_id', 'year', 'date', 'nb_images_in_year']
 ORDERED_COLUMNS += landsat.HARMONIZED_BANDS
-ORDERED_COLUMNS += ['images_for_year', 'error']
+MAP_METHOD = mproc.map_with_threadpool
+# MAP_METHOD = mproc.map_sequential
+
+
+from IPython.display import display
+from pprint import pprint
 
 
 #
@@ -94,36 +99,35 @@ def get_mean_pixel_values(row: pd.Series, year=int) -> xr.Dataset:
     return ds
 
 
-def get_mean_pixel_rows(row, year):
+def process_mean_pixel_rows(row, year, dest):
     row = dict(row).copy()
     sample_id = row['sample_id']
+    ds = get_mean_pixel_values(row, year)
     try:
         ds = get_mean_pixel_values(row, year)
         rows = ds.to_dataframe().reset_index(names='date')
         rows = rows.dropna(subset=landsat.HARMONIZED_BANDS, how='all')
+        rows = filter_missing_and_cloud_data(rows)
         rows['sample_id'] = sample_id
         rows['year'] = year
-        rows['images_for_year'] = len(rows)
-        rows['error'] = None
+        rows['nb_images_in_year'] = len(rows)
+        rows = rows[ORDERED_COLUMNS].sort_values(['date'])
+        utils.dataframe_to_ldjson(
+            rows,
+            dest=dest,
+            mode='a',
+            noisy=False)
     except Exception as e:
-        rows = pd.DataFrame([
-            dict(
+        return dict(
                 sample_id=sample_id,
                 year=year,
-                error=str(e))])
-    return rows
+                error=str(e))
 
 
 def filter_missing_and_cloud_data(df):
     df = df[~df.green.isna() | (df.nir < df.red)].copy()
     green_exists = df.green.apply(_is_truthy)
     return df[green_exists].copy()
-
-
-def process_date_column(df):
-    df = df.rename(columns=dict(time='date'))
-    df = df.sort_values(by='date')
-    return df
 
 
 def _is_truthy(value):
@@ -144,7 +148,6 @@ print('- shape:', df.shape)
 if LIMIT:
     df = df.sample(LIMIT)
     print('- limit shape:', df.shape)
-
 data = df.to_dict('records')
 
 
@@ -162,31 +165,23 @@ for year in YEARS:
 
 
     # 2. run
-    dfs = mproc.map_with_threadpool(
-        lambda r: get_mean_pixel_rows(r, year=year),
+    errors = MAP_METHOD(
+        lambda r: process_mean_pixel_rows(r, year=year, dest=local_dest),
         data,
         max_processes=MAX_PROCESSES)
-    df = pd.concat(dfs)
-    df = filter_missing_and_cloud_data(df)
-    df = process_date_column(df)
-    df = df.reset_index(drop=True)
-    df = df[ORDERED_COLUMNS].sort_values(['sample_id', 'date'])
+    runner.print_errors(errors)
 
 
-    # 3. save data (local, gcs, bq)
-    if df.shape[0]:
-        # TODO: MAYBE CHANGE TO APPEND LD IN PROC
-        local_dest = utils.dataframe_to_ldjson(
-                df,
-                dest=local_dest,
-                dry_run=DRY_RUN)
-        runner.save_to_gcp(
-                src=local_dest,
-                gcs_dest=gcs_dest,
-                dataset_name=c.DATASET_NAME,
-                table_name=None,
-                remove_src=False,
-                dry_run=DRY_RUN)
-        print(f'COMPLETE[{year}]')
-    else:
-        print(f'NO DATA FOR {year}')
+    # 3. save data (gcs, bq)
+    runner.save_to_gcp(
+            src=local_dest,
+            gcs_dest=gcs_dest,
+            dataset_name=c.DATASET_NAME,
+            table_name=None,
+            remove_src=True,
+            dry_run=DRY_RUN)
+
+
+    # 4. report on errors
+    runner.print_errors(errors)
+    print('\n' * 2)
