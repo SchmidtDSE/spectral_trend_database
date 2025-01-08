@@ -66,7 +66,7 @@ def append_ldjson(file_path: str, data: dict):
 
 def post_process_row(row: dict, data_vars: list[str]) -> dict:
     row[c.DATE_COLUMN] = utils.cast_duck_array(row[c.DATE_COLUMN])
-    for var in data_vars + [c.COORD_COLUMN]:
+    for var in data_vars + ['date']:
         row[var] = list(row[var])
     return row
 
