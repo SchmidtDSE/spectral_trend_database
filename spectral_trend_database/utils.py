@@ -5,11 +5,14 @@ License:
 """
 from typing import Any, Union, Optional, Callable, Iterable, Sequence, Literal
 from pathlib import Path
+import re
 from copy import deepcopy
+from zipfile import ZipFile
 import json
 import pandas as pd
 import numpy as np
 import xarray as xr
+import requests
 import dask.array
 from scipy import stats  # type: ignore[import-untyped]
 import yaml
@@ -112,6 +115,51 @@ def dataframe_to_ldjson(
             Path(dest).parent.mkdir(parents=True, exist_ok=True)
         df.to_json(dest, orient='records', lines=True, mode=mode)
     return dest
+
+
+def download_and_extract_zip(
+        url: str,
+        path: Optional[str] = None,
+        root_folder: Optional[str] = None,
+        overwrite: bool = False,
+        remove_zip: bool = True) -> None:
+    """ dowloand and extract zip files
+
+    Args:
+        url (str): source url
+        path (Optional[str] = None): dest-path of zip file. if None extract from url
+        root_folder (Optional[str] = None): folder to prepend <path>
+        overwrite (bool = False): if True overwrite existing data. Otherwise silently end
+        remove_zip (bool = True): if True delete zip file after extraction
+
+    Returns:
+        None
+    """
+    if path is None:
+        path = Path(url).name
+    if root_folder:
+        path = f'{root_folder}/{path}'
+    dest_dir = re.sub('\.zip$', '', path)
+    if overwrite or (not Path(dest_dir).is_dir()):
+        Path(dest_dir).mkdir(parents=True, exist_ok=True)
+        msg = f'downloading from src {url}'
+        message(msg, 'utils', 'download_and_extract_zip')
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            with open(path, "wb") as f:
+                f.write(resp.content)
+        else:
+            err = (
+                f'ERROR download_and_extract_zip: '
+                f'failed to download file [status-code: {resp.status_code}]')
+            raise IOError(err)
+        with ZipFile(path, 'r') as zip:
+            msg = f'download_and_extract_zip: extracting file to "{dest_dir}"'
+            message(msg, 'utils', 'download_and_extract_zip')
+            zip.extractall(dest_dir)
+        if remove_zip:
+            Path(path).unlink()
+
 
 #
 # CORE

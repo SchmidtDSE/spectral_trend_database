@@ -172,7 +172,11 @@ df = df.sort_values(['year', 'sample_id'])
 
 
 # 7. extract samples and merge political data
-_us_gdf = gpd.read_file(paths.local(c.SRC_LOCAL_US_COUNTIES_SHP))
+_political_path = paths.local(c.SRC_LOCAL_US_COUNTIES_SHP)
+utils.download_and_extract_zip(
+	url=c.US_BOUNDARIES_URL,
+	root_folder=Path(_political_path).parent)
+_us_gdf = gpd.read_file(_political_path)
 _us_gdf = _us_gdf.to_crs(epsg=4326)
 samples_df = df.drop_duplicates(subset=['sample_id'])
 samples_df = samples_df[SAMPLE_COLS].sort_values('sample_id')
