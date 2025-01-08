@@ -28,14 +28,6 @@ EXT = 'json'
 #
 # HELPERS
 #
-def get_data_vars(data: types.DICTABLE) -> list[str]:
-    """ get data_var names from data """
-    return [
-        column for column in data.keys()
-        if column not in
-        c.META_COLUMNS + [c.COORD_COLUMN]]
-
-
 def post_process_row(row: dict, list_vars: list[str]) -> dict:
     row[c.DATE_COLUMN] = list(utils.cast_duck_array(row[c.DATE_COLUMN]))
     for key in list_vars:
