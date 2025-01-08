@@ -143,11 +143,6 @@ def table_name_and_paths(
     return table_name, local_dest, gcs_dest
 
 
-def make_directories(*paths):
-    for p in paths:
-        Path(p).parent.mkdir(parents=True, exist_ok=True)
-
-
 def print_errors(errors: list[str]):
     errors = [e for e in errors if e]
     if errors:
