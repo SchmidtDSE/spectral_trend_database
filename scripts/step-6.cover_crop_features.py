@@ -136,7 +136,7 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
 
-    # 4. save data (local, gcs, bq)
+    # 4. save data (gcs, bq)
     runner.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
