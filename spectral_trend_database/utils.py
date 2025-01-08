@@ -247,6 +247,43 @@ def xr_to_row(
     return data
 
 
+def xr_to_dict(
+        ds: xr.Dataset,
+        coord: str = 'date',
+        as_list: bool = True,
+        keep_attrs: bool = True) -> Union[list, dict]:
+    """ dictionary from xr.dataset
+
+    Args:
+        ds (xr.Dataset): data
+        coord (str = 'date'): coord-name
+        as_list (bool = True):
+            if true return list of dicts (equivalent to pandas 'records')
+            else return dict of list/array values
+        keep_attrs (bool = True):
+            if true add <ds.attrs> to returned data
+
+    Returns:
+        dataset values and attributes as dict of lists or
+        list of dicts
+    """
+    coords = ds[coord].values
+    data_var_names = list(ds.data_vars)
+    attrs = ds.attrs
+    values = [coords] + [ds[n].data for n in data_var_names]
+    if as_list:
+        data = [
+            {k: v for k, v in zip(data_var_names, a)}
+            for a in np.array(values).T]
+        if keep_attrs and attrs:
+            data = [{**attrs, **d} for d in data]
+    else:
+        data = {k: v for k, v in zip(data_var_names, values)}
+        if keep_attrs and attrs:
+            data = {**attrs, **data}
+    return data
+
+
 def xr_coord_name(
         data: types.XR,
         data_var: Optional[str] = None) -> str:
