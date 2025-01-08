@@ -38,7 +38,7 @@ from spectral_trend_database import runner
 #
 # CONSTANTS
 #
-YEARS = range(2006, 2011 + 1)
+YEARS = range(2004, 2011 + 1)
 DRY_RUN = False
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_sequential
@@ -87,16 +87,14 @@ print('=' * 100)
 
 for year in YEARS:
     print(f'\n- year: {year}')
-    # 1. process paths
+    # 1. process paths/dates
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
         c.MACD_FOLDER,
         table_name=c.MACD_TABLE_NAME,
         year=year)
     start = dt_parse(f'{year-1}-{c.OFF_SEASON_START_YYMM}')
     end = dt_parse(f'{year}-{c.OFF_SEASON_START_YYMM}')
-    print(table_name)
-    print(local_dest)
-    print(gcs_dest)
+    utils.make_parent_directories(local_dest)
 
 
     # 2. query data
@@ -134,7 +132,11 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
 
-    # 4. save data (gcs, bq)
+    # 4. report on errors
+    runner.print_errors(errors)
+
+
+    # 5. save data (gcs, bq)
     runner.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
@@ -142,8 +144,3 @@ for year in YEARS:
         table_name=table_name,
         remove_src=True,
         dry_run=DRY_RUN)
-
-
-    # 5. report on errors
-    runner.print_errors(errors)
-    print('\n' * 2)

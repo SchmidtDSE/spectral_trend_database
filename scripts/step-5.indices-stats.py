@@ -108,21 +108,19 @@ for year in YEARS:
     growing_year_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_START_YYMM)
     off_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_END_YYMM)
     grow_ident = period_ident(c.GROWING_SEASON_START_YYMM, c.GROWING_SEASON_END_YYMM)
-
     table_name, local_dest, gcs_dest = runner.table_name_and_paths(
         c.INDICES_STATS_FOLDER,
         growing_year_ident,
         table_name=c.INDICES_STATS_TABLE_NAME,
         year=year)
-
     local_dest_off = re.sub(growing_year_ident, off_ident, local_dest)
     gcs_dest_off = re.sub(growing_year_ident, off_ident, gcs_dest)
     table_name_off = f'{table_name}_OFF_SEASON'
     local_dest_grow = re.sub(growing_year_ident, grow_ident, local_dest)
     gcs_dest_grow = re.sub(growing_year_ident, grow_ident, gcs_dest)
     table_name_grow = f'{table_name}_GROWING_SEASON'
+    utils.make_parent_directories(local_dest, local_dest_off, local_dest_grow)
 
-    utils.make_directories(local_dest, local_dest_off, local_dest_grow)
 
     # 2. query data
     print('- run query:')

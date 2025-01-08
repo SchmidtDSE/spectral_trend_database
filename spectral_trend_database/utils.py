@@ -59,7 +59,7 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
         return obj
 
 
-def make_directories(*paths):
+def make_parent_directories(*paths):
     for p in paths:
         Path(p).parent.mkdir(parents=True, exist_ok=True)
 
