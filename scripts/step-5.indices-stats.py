@@ -79,7 +79,7 @@ def append_row(sample_id: str, year: int, ds: xr.Dataset, dest: str):
         data.update({
             k: float(ds.data_vars[k].values)
             for k in ds.data_vars})
-        utils.append_ldjson(file_path=dest, data=data)
+        utils.append_ldjson(dest, data=data)
 
 
 def period_ident(start_mmdd, end_mmdd):
@@ -122,8 +122,7 @@ for year in YEARS:
     gcs_dest_grow = re.sub(growing_year_ident, grow_ident, gcs_dest)
     table_name_grow = f'{table_name}_GROWING_SEASON'
 
-    runner.make_directories(local_dest, local_dest_off, local_dest_grow)
-
+    utils.make_directories(local_dest, local_dest_off, local_dest_grow)
 
     # 2. query data
     print('- run query:')
@@ -155,7 +154,11 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
 
-    # 4. save data (gcs, bq]
+    # 4. report on errors
+    runner.print_errors(errors)
+
+
+    # 5. save data (gcs, bq]
     runner.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
@@ -177,8 +180,3 @@ for year in YEARS:
         table_name=table_name_grow,
         remove_src=True,
         dry_run=DRY_RUN)
-
-
-    # 5. report on errors
-    runner.print_errors(errors)
-    print('\n' * 2)
