@@ -79,7 +79,9 @@ def dataframe_to_ldjson(
         dest: str,
         date_column: Optional[str] = 'date',
         dry_run: bool = False,
-        create_dirs: bool = True) -> Union[str, None]:
+        create_dirs: bool = True,
+        noisy: bool = True,
+        mode: Literal['w', 'a'] = 'w') -> Union[str, None]:
     """ save dataframe locally as line-deliminated JSON
 
     Args:
@@ -100,13 +102,15 @@ def dataframe_to_ldjson(
         except:
             pass
     if dry_run:
-        print('- dry_run [local]:', dest)
+        if noisy:
+            print('- dry_run [local]:', dest)
         dest = None
     else:
-        print('- local:', dest)
+        if noisy:
+            print('- local:', dest)
         if create_dirs:
             Path(dest).parent.mkdir(parents=True, exist_ok=True)
-        df.to_json(dest, orient='records', lines=True)
+        df.to_json(dest, orient='records', lines=True, mode=mode)
     return dest
 
 #
