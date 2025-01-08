@@ -85,7 +85,7 @@ for year in YEARS:
         table_name=c.RAW_INDICES_TABLE_NAME,
         year=year)
 
-    # load data
+    # 2. load data
     src_uri = paths.gcs(
         c.RAW_LANDSAT_FOLDER,
         f'{c.RAW_LANDSAT_FILENAME}-{year}',
@@ -94,7 +94,7 @@ for year in YEARS:
     df = pd.read_json(src_uri, lines=True)
     print('- src shape:', df.shape)
 
-    # process data
+    # 3. run
     df = process_raw_indices_for_year(
         df,
         index_config=index_config,
