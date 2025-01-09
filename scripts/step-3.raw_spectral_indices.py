@@ -49,19 +49,10 @@ DRY_RUN = False
 #
 def process_raw_indices_for_year(
         df: pd.DataFrame,
-        index_config: dict[str, Union[str, dict]],
-        year: int,
-        query_name: str = c.RAW_LANDSAT_QUERY,
-        table_name: Optional[str] = None) -> None:
+        index_config: dict[str, Union[str, dict]]) -> None:
     indices = index_config.get('indices', index_config)
     assert isinstance(indices, dict)
-    if not table_name:
-        assert isinstance(index_config['name'], str)
-        table_name = index_config['name']
-    assert isinstance(table_name, str)
-    print('- compute raw indices')
     df = spectral.add_index_arrays(df, indices=indices)
-    print('- order columns')
     _data_cols = [n for n in df.columns if n not in HEADER_COLS]
     _data_cols.sort()
     return df[HEADER_COLS + _data_cols]
@@ -77,6 +68,7 @@ index_config = spectral.index_config(
 print('\ncompute raw indices:')
 pprint(index_config['indices'], indent=4, width=100)
 print('-' * 50)
+
 for year in YEARS:
     print(f'\n- year: {year}')
     # 1. process paths
@@ -97,8 +89,7 @@ for year in YEARS:
     # 3. run
     df = process_raw_indices_for_year(
         df,
-        index_config=index_config,
-        year=year)
+        index_config=index_config)
 
     # save data
     local_dest = utils.dataframe_to_ldjson(

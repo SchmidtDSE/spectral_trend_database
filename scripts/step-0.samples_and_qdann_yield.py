@@ -172,7 +172,7 @@ df = df.sort_values(['year', 'sample_id'])
 
 
 # 7. extract samples and merge political data
-_political_path = paths.local(c.SRC_LOCAL_US_COUNTIES_SHP)
+_political_path = paths.local(c.US_BOUNDARIES_SHP)
 utils.download_and_extract_zip(
 	url=c.US_BOUNDARIES_URL,
 	root_folder=Path(_political_path).parent)
@@ -205,7 +205,7 @@ runner.save_to_gcp(
 yield_df = df[YIELD_DATA_COLS].sort_values(['year', 'sample_id'])
 table_name, local_dest, gcs_dest = runner.table_name_and_paths(
     c.QDANN_YIELD_FOLDER,
-    table_name=c.QDANN_YIELD_TABLENAME)
+    table_name=c.QDANN_YIELD_TABLE_NAME)
 local_dest = utils.dataframe_to_ldjson(
         yield_df,
         dest=local_dest,

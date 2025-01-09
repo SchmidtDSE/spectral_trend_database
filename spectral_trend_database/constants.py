@@ -21,16 +21,6 @@ DATETIME_MS = 'datetime64[ms]'
 
 
 #
-# SOURCE URLS
-#
-# ----
-# us-boundaries-reference:
-# https://catalog.data.gov/dataset/2023-cartographic-boundary-file-shp-county-and-equivalent-for-united-states-1-500000
-# ----
-US_BOUNDARIES_URL = 'https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_county_500k.zip'
-
-
-#
 # PATHS/PROJECT
 #
 PROJECT_DIR = Path(__file__).resolve().parent.parent

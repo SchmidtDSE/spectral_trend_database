@@ -19,63 +19,76 @@
 #
 # REQUIRED KEYS:
 #
-# - ROOT_DIR
-# - LOCAL_DATA_DIR
-# - GCS_BUCKET
-# - GCS_ROOT_FOLDER
-# - UNIQUE_GEOHASH
-# - MIN_REQUIRED_YEARS
-# - SEARCH
-# - SRC_GCS_BIOMASS_YIELD
-# - SRC_LOCAL_US_COUNTIES_SHP
-# - DEST_NAME
-# - DEST_LOCAL_FOLDER
-# - DEST_GCS_FOLDER
-#
 # ---------------------------------------------------------
 
-# general
+
+#
+# LOCAL
+#
 ROOT_DIR: /UPDATE-ME/to/root/dir/of/project_folder
-LOCAL_DATA_DIR: data/v1
+LOCAL_DATA_DIR: data/v1/DEV_ASROWS/qdann
+
+
+#
+# GCP
+#
+GCP_PROJECT: dse-regenag
 GCS_BUCKET: agriculture_monitoring
-GCS_ROOT_FOLDER: spectral_trend_database/v1
-RAW_LOCAL_FOLDER: raw/biomass_landsat
-RAW_GCS_FOLDER: raw/biomass_landsat
-DEST_LOCAL_FOLDER: processed/biomass_landsat
+GCS_ROOT_FOLDER: spectral_trend_database/v1/DEV_ASROWS/qdann
 DEST_GCS_FOLDER: processed/biomass_landsat
-
-
-# step-0.export_landsat_yield_data
-RAW_BASE_NAME: biomass_yield.2000-2022
-
-
-# step-1.preprocess_raw_data
-UNIQUE_GEOHASH: geohash_7
-MIN_REQUIRED_YEARS: 6
-SEARCH: b0-20\d{2}\.json$
-
-SRC_GCS_BIOMASS_YIELD: raw/biomass_landsat
-SRC_LOCAL_US_COUNTIES_SHP: src/cb_2023_us_county_500k
-DEST_BIOMASS_YIELD_NAME: biomass_yield.2000-2022.b0.json
-
-# step-2/3 bigquery_tables
-DATASET_NAME: BiomassTrends
+DATASET_NAME: BiomassYieldTrendsDEVASROWS
 LOCATION: US
-RAW_INDICES_FOLDER: raw_indices
-RAW_LANDSAT_QUERY: raw_landsat
 
-# step-4: smoothing
-MASK_EQ: ndvi > 0
+
+#
+# US BOUNDARIES
+# ----
+# us-boundaries-reference:
+# https://catalog.data.gov/dataset/2023-cartographic-boundary-file-shp-county-and-equivalent-for-united-states-1-500000
+# ----
+US_BOUNDARIES_URL: https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_county_500k.zip
+US_BOUNDARIES_SHP: src/cb_2023_us_county_500k
+
+
+#
+# FOLDERS/FILES/TABLES
+#
+RAW_GCS_FOLDER: raw/biomass_landsat
+RAW_LANDSAT_FILENAME: landsat
+RAW_LANDSAT_FOLDER: landsat_raw_masked
+QDANN_YIELD_TABLE_NAME: qdann_yield
+QDANN_YIELD_FOLDER: qdann_yield
+CROP_TYPE_TABLE_NAME: cdl_crop_type
+CROP_TYPE_FOLDER: crop_type
+SAMPLE_POINTS_TABLE_NAME: sample_points
+YIELD_TABLE_NAME: qdann_yield
+RAW_INDICES_TABLE_NAME: raw_indices_v1
+RAW_INDICES_FOLDER: raw_indices
+SMOOTHED_INDICES_TABLE_NAME: smoothed_indices_v1
+SMOOTHED_INDICES_FOLDER: smoothed_indices
+INDICES_STATS_TABLE_NAME: indices_stats_v1
+INDICES_STATS_FOLDER: indices_stats
+MACD_TABLE_NAME: macd_indices_v1
+MACD_FOLDER: macd
+
+
+#
+# DATES
+#
+OFF_SEASON_START_YYMM: 12-01
+OFF_SEASON_END_YYMM: 03-15
+GROWING_SEASON_START_YYMM: 04-15
+GROWING_SEASON_END_YYMM: 11-01
+
+
+#
+# CONFIG INTS
+#
+MAX_PROCESSES: 15
+YIELD_BUFFER_RADIUS: 60
+LANDSAT_BUFFER_RADIUS: 60
+UNIQUE_H3: 7
+MIN_REQUIRED_YEARS: 6
 SG_CONFIG:
   polyorder: 3
   window_length: 60
-COORD_COLUMN: date
-META_COLUMNS:
-  - sample_id
-  - year
-RAW_INDEX_TABLE_NAME: raw_indices_v1
-SMOOTHED_INDICES_TABLE_NAME: smoothed_indices_v1
-SMOOTHED_INDICES_FOLDER: smoothed_indices
-
-
-
