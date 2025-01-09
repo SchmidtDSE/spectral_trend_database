@@ -36,8 +36,9 @@ from spectral_trend_database import runner
 #
 # CONSTANTS
 #
-YEARS = range(2006, 2011 + 1)
-DRY_RUN = False
+YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
+LIMIT = 3
+
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_with_threadpool
 

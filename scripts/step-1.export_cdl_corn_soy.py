@@ -42,21 +42,21 @@ from spectral_trend_database import utils
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
+YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
+LIMIT = 3
+
 CS_VALUES = [1, 5]
 CORN_VALUE = 0
 SOY_VALUE = 1
 OTHER_VALUE = 2
 REMAP_CS_VALUES = [CORN_VALUE, SOY_VALUE]
+MAX_PROCESSES = 4 # low for read-requests
+MAP_METHOD = mproc.map_with_threadpool
+
 SRC_PATH = paths.gcs(
     c.RAW_GCS_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
-YEARS = range(2000, 2022 + 1)
-LIMIT = None
-YEARS = range(2004, 2011 + 1)
-LIMIT = 10
-MAX_PROCESSES = 4 # low for read-requests
-MAP_METHOD = mproc.map_with_threadpool
 
 
 #

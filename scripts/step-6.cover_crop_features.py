@@ -38,14 +38,14 @@ from spectral_trend_database import runner
 #
 # CONSTANTS
 #
-YEARS = range(2004, 2011 + 1)
-DRY_RUN = False
+YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
+LIMIT = 3
+
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_sequential
 # MAP_METHOD = mproc.map_with_threadpool
 SRC_INDICES = ['ndvi', 'evi', 'evi2']
 COLUMNS =  ['date', 'sample_id'] + SRC_INDICES
-YYYY_MM_DD_FMT = '%Y-%m-%d'
 GROWING_YEAR_BUFFER = timedelta(days=20)
 
 
@@ -65,7 +65,7 @@ def process_rows(
         ds = smoothing.macd_processor(ds, spans=[5, 10, 5])
         ds = ds.sel(date=slice(start_date, end_date))
         data = ds.to_dataframe().reset_index(drop=False)
-        data['date'] = data.date.apply(lambda d: d.strftime(YYYY_MM_DD_FMT))
+        data['date'] = data.date.apply(lambda d: d.strftime(c.YYYY_MM_DD_FMT))
         data = data.to_dict('records')
         utils.append_ldjson(
             local_dest,
@@ -104,10 +104,10 @@ for year in YEARS:
         table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
     qc.select(*COLUMNS)
     qc.where(
-        date=(start - GROWING_YEAR_BUFFER).strftime(YYYY_MM_DD_FMT),
+        date=(start - GROWING_YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT),
         date_op='>=')
     qc.where(
-        date=(end + GROWING_YEAR_BUFFER).strftime(YYYY_MM_DD_FMT),
+        date=(end + GROWING_YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT),
         date_op='<')
     data = query.run(
         sql=qc.sql(),
@@ -124,8 +124,8 @@ for year in YEARS:
             data[data.sample_id==s],
             sample_id=s,
             year=year,
-            start_date=start.strftime(YYYY_MM_DD_FMT),
-            end_date=end.strftime(YYYY_MM_DD_FMT),
+            start_date=start.strftime(c.YYYY_MM_DD_FMT),
+            end_date=end.strftime(c.YYYY_MM_DD_FMT),
             local_dest=local_dest,
             data_vars=data_vars),
         sample_ids,

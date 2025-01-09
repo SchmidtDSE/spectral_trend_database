@@ -52,10 +52,9 @@ warnings.filterwarnings(
 # CONFIG
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
-YEARS = range(2000, 2022 + 1)
-LIMIT = None
-YEARS = range(2004, 2011 + 1)
-LIMIT = 10
+YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
+LIMIT = 3
+
 MAX_PROCESSES = 6
 MAX_ERR = 1
 
@@ -63,7 +62,6 @@ MAX_ERR = 1
 #
 # CONSTANTS
 #
-JAN1_TMPL = '{}-01-01'
 SRC_PATH = gcs_dest = paths.gcs(
     c.RAW_GCS_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
@@ -79,8 +77,8 @@ MAP_METHOD = mproc.map_with_threadpool
 # METHODS
 #
 def get_mean_pixel_values(row: pd.Series, year=int) -> xr.Dataset:
-    start_date = JAN1_TMPL.format(year)
-    end_date = JAN1_TMPL.format(year+1)
+    start_date = c.JAN1_TMPL.format(year)
+    end_date = c.JAN1_TMPL.format(year+1)
     geom = ee.Geometry.Point([row['lon'], row['lat']])
     geom = geom.buffer(c.LANDSAT_BUFFER_RADIUS, MAX_ERR)
     data_filter = ee.Filter.And(

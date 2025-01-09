@@ -40,7 +40,8 @@ PROTECTED_KEYS = [
     'INFO_TYPES',
     'SAFE_NAN_VALUE',
     'DATETIME_NS',
-    'DATETIME_MS']
+    'DATETIME_MS',
+    'YYYY_MM_DD_FMT']
 
 
 #

@@ -39,7 +39,9 @@ from spectral_trend_database.gee import landsat
 #
 # CONSTANTS
 #
-YEARS = range(2004, 2011 + 1) #  TODO LIM HACK
+YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
+LIMIT = 3
+
 HEADER_COLS = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
 DRY_RUN = False
 
@@ -68,6 +70,7 @@ index_config = spectral.index_config(
 print('\ncompute raw indices:')
 pprint(index_config['indices'], indent=4, width=100)
 print('-' * 50)
+
 
 for year in YEARS:
     print(f'\n- year: {year}')

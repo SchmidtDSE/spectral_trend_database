@@ -45,9 +45,10 @@ import mproc
 #
 # CONSTANTS
 #
-YEARS = range(2004, 2011 + 1)
 DRY_RUN = False
-TABLE_NAME = c.SMOOTHED_INDICES_TABLE_NAME.upper()
+YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
+LIMIT = 3
+
 MAP_METHOD = mproc.map_with_threadpool
 # MAP_METHOD = mproc.map_sequential
 YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH * 2)
@@ -81,7 +82,7 @@ def process_smoothing(
         rows = rows[rows.ndvi>0]
         ds = rows.set_index('date').to_xarray()
         ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
-        ds = ds.sel(dict(date=slice(f'{year}-01-01', f'{year}-12-31')))
+        ds = ds.sel(dict(date=slice(c.JAN1_TMPL.format(year), c.DEC31_TMPL.format(year))))
         rows = ds.to_dataframe().reset_index(drop=False)
         rows['sample_id'] = sample_id
         rows['year'] = year
@@ -114,8 +115,8 @@ for year in YEARS:
 
     # 2. query data
     jan1 = datetime(year=year, month=1, day=1)
-    start = (jan1 - YEAR_BUFFER).strftime('%Y-%m-%d')
-    end = (jan1 + YEAR_DELTA  + YEAR_BUFFER).strftime('%Y-%m-%d')
+    start = (jan1 - YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT)
+    end = (jan1 + YEAR_DELTA  + YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT)
     qc = query.QueryConstructor(
             c.RAW_INDICES_TABLE_NAME,
             table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')

@@ -18,6 +18,9 @@ INFO_TYPES = ['info', 'warning', 'error']
 SAFE_NAN_VALUE = -99999
 DATETIME_NS = 'datetime64[ns]'
 DATETIME_MS = 'datetime64[ms]'
+YYYY_MM_DD_FMT = '%Y-%m-%d'
+JAN1_TMPL = '{}-01-01'
+DEC31_TMPL = '{}-12-31'
 
 
 #
