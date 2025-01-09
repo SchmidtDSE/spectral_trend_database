@@ -190,14 +190,14 @@ table_name, local_dest, gcs_dest = runner.table_name_and_paths(
 local_dest = utils.dataframe_to_ldjson(
         samples_df,
         dest=local_dest,
-        dry_run=c.c.DRY_RUN)
+        dry_run=c.DRY_RUN)
 runner.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
         dataset_name=c.DATASET_NAME,
         table_name=table_name,
         remove_src=True,
-        dry_run=c.c.DRY_RUN)
+        dry_run=c.DRY_RUN)
 
 
 # 9. save yield data
@@ -208,11 +208,11 @@ table_name, local_dest, gcs_dest = runner.table_name_and_paths(
 local_dest = utils.dataframe_to_ldjson(
         yield_df,
         dest=local_dest,
-        dry_run=c.c.DRY_RUN)
+        dry_run=c.DRY_RUN)
 runner.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
         dataset_name=c.DATASET_NAME,
         table_name=table_name,
         remove_src=True,
-        dry_run=c.c.DRY_RUN)
+        dry_run=c.DRY_RUN)
