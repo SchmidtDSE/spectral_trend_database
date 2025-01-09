@@ -37,7 +37,7 @@ from spectral_trend_database import runner
 # CONSTANTS
 #
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = 3
+LIMIT = None
 DRY_RUN = False
 
 IDENT_COLS = ['sample_id', 'year', 'date']

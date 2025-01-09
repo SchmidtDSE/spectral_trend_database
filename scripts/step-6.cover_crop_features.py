@@ -39,12 +39,12 @@ from spectral_trend_database import runner
 # CONSTANTS
 #
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = 3
+LIMIT = None
 DRY_RUN = False
 
 IDENT_COLS = ['sample_id', 'year', 'date']
-MAP_METHOD = mproc.map_sequential
-# MAP_METHOD = mproc.map_with_threadpool
+# MAP_METHOD = mproc.map_sequential
+MAP_METHOD = mproc.map_with_threadpool
 SRC_INDICES = ['ndvi', 'evi', 'evi2']
 COLUMNS =  ['date', 'sample_id'] + SRC_INDICES
 GROWING_YEAR_BUFFER = timedelta(days=20)

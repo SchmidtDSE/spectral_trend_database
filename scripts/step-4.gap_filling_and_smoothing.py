@@ -47,7 +47,7 @@ import mproc
 #
 DRY_RUN = False
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = 3
+LIMIT = None
 
 MAP_METHOD = mproc.map_with_threadpool
 # MAP_METHOD = mproc.map_sequential

@@ -53,7 +53,7 @@ warnings.filterwarnings(
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = 3
+LIMIT = None
 
 MAX_PROCESSES = 6
 MAX_ERR = 1

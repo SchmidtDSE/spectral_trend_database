@@ -43,7 +43,7 @@ from spectral_trend_database import utils
 #
 DRY_RUN = False  # TODO: CONFIG OR CML ARG
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = 3
+LIMIT = None
 
 CS_VALUES = [1, 5]
 CORN_VALUE = 0
