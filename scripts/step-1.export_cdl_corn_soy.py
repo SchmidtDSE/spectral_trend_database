@@ -41,9 +41,7 @@ from spectral_trend_database import utils
 #
 # CONFIG
 #
-DRY_RUN = False  # TODO: CONFIG OR CML ARG
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = None
 
 CS_VALUES = [1, 5]
 CORN_VALUE = 0
@@ -67,7 +65,7 @@ CDL = ee.ImageCollection("USDA/NASS/CDL")
 
 # TODO QUERY DB?
 SAMPLES = pd.read_json(SRC_PATH, lines=True)
-SAMPLES = SAMPLES.to_dict('records')[:LIMIT]
+SAMPLES = SAMPLES.to_dict('records')[:c.LIMIT]
 
 
 #
@@ -119,12 +117,12 @@ for year in YEARS:
     local_dest = utils.dataframe_to_ldjson(
             crop_data,
             dest=local_dest,
-            dry_run=DRY_RUN)
+            dry_run=c.DRY_RUN)
     runner.save_to_gcp(
             src=local_dest,
             gcs_dest=gcs_dest,
             dataset_name=c.DATASET_NAME,
             table_name=table_name,
             remove_src=False,
-            dry_run=DRY_RUN)
+            dry_run=c.DRY_RUN)
 

@@ -37,9 +37,6 @@ from spectral_trend_database import runner
 # CONSTANTS
 #
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = None
-DRY_RUN = False
-
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_with_threadpool
 
@@ -74,7 +71,7 @@ def process_annual_data(
 
 
 def append_row(sample_id: str, year: int, ds: xr.Dataset, dest: str):
-    if DRY_RUN:
+    if c.DRY_RUN:
         print('- dry_run [local]:', dest)
     else:
         data = dict(sample_id=sample_id, year=year)
@@ -152,18 +149,18 @@ for year in YEARS:
         dataset_name=c.DATASET_NAME,
         table_name=table_name,
         remove_src=True,
-        dry_run=DRY_RUN)
+        dry_run=c.DRY_RUN)
     runner.save_to_gcp(
         src=local_dest_off,
         gcs_dest=gcs_dest_off,
         dataset_name=c.DATASET_NAME,
         table_name=table_name_off,
         remove_src=True,
-        dry_run=DRY_RUN)
+        dry_run=c.DRY_RUN)
     runner.save_to_gcp(
         src=local_dest_grow,
         gcs_dest=gcs_dest_grow,
         dataset_name=c.DATASET_NAME,
         table_name=table_name_grow,
         remove_src=True,
-        dry_run=DRY_RUN)
+        dry_run=c.DRY_RUN)

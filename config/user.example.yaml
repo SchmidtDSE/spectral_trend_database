@@ -17,10 +17,14 @@
 #     any of those constants need to be overwritten.
 #   - IMPORTANT NOTE: `config/user.yaml` will not be tracked by git.yaml
 #
-# REQUIRED KEYS:
-#
 # ---------------------------------------------------------
 
+
+#
+# RUN
+#
+DRY_RUN: false
+LIMIT: null
 
 #
 # LOCAL

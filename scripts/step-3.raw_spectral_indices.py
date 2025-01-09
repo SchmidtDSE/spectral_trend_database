@@ -40,10 +40,7 @@ from spectral_trend_database.gee import landsat
 # CONSTANTS
 #
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = None
-
 HEADER_COLS = ['sample_id', 'year', 'date'] + landsat.HARMONIZED_BANDS
-DRY_RUN = False
 
 
 #
@@ -98,11 +95,11 @@ for year in YEARS:
     local_dest = utils.dataframe_to_ldjson(
             df,
             dest=local_dest,
-            dry_run=DRY_RUN)
+            dry_run=c.DRY_RUN)
     runner.save_to_gcp(
             src=local_dest,
             gcs_dest=gcs_dest,
             dataset_name=c.DATASET_NAME,
             table_name=table_name,
             remove_src=True,
-            dry_run=DRY_RUN)
+            dry_run=c.DRY_RUN)

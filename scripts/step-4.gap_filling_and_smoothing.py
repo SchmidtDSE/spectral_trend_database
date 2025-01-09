@@ -45,10 +45,7 @@ import mproc
 #
 # CONSTANTS
 #
-DRY_RUN = False
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = None
-
 MAP_METHOD = mproc.map_with_threadpool
 # MAP_METHOD = mproc.map_sequential
 YEAR_BUFFER = relativedelta(days=smoothing.DEFAULT_SG_WINDOW_LENGTH * 2)
@@ -149,4 +146,4 @@ for year in YEARS:
             dataset_name=c.DATASET_NAME,
             table_name=table_name,
             remove_src=False,
-            dry_run=DRY_RUN)
+            dry_run=c.DRY_RUN)

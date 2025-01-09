@@ -51,10 +51,7 @@ warnings.filterwarnings(
 #
 # CONFIG
 #
-DRY_RUN = False  # TODO: CONFIG OR CML ARG
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
-LIMIT = None
-
 MAX_PROCESSES = 6
 MAX_ERR = 1
 
@@ -142,8 +139,8 @@ print('load data:')
 print('-', SRC_PATH)
 df = pd.read_json(SRC_PATH, lines=True)
 print('- shape:', df.shape)
-if LIMIT:
-    df = df.sample(LIMIT)
+if c.LIMIT:
+    df = df.sample(c.LIMIT)
     print('- limit shape:', df.shape)
 data = df.to_dict('records')
 
@@ -180,4 +177,4 @@ for year in YEARS:
             dataset_name=c.DATASET_NAME,
             table_name=None,
             remove_src=True,
-            dry_run=DRY_RUN)
+            dry_run=c.DRY_RUN)
