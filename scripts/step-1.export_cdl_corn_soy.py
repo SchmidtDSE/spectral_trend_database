@@ -63,6 +63,9 @@ SRC_PATH = paths.gcs(
 # CONSTANTS/DATA
 #
 CDL = ee.ImageCollection("USDA/NASS/CDL")
+
+
+# TODO QUERY DB?
 SAMPLES = pd.read_json(SRC_PATH, lines=True)
 SAMPLES = SAMPLES.to_dict('records')[:LIMIT]
 

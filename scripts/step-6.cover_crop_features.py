@@ -40,6 +40,7 @@ from spectral_trend_database import runner
 #
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
 LIMIT = 3
+DRY_RUN = False
 
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_sequential

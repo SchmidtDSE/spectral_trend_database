@@ -38,6 +38,7 @@ from spectral_trend_database import runner
 #
 YEARS = range(c.YEARS[0], c.YEARS[1] + 1)
 LIMIT = 3
+DRY_RUN = False
 
 IDENT_COLS = ['sample_id', 'year', 'date']
 MAP_METHOD = mproc.map_with_threadpool
@@ -87,22 +88,9 @@ def period_ident(start_mmdd, end_mmdd):
     return re.sub('-', '', '_'.join([start_mmdd, end_mmdd]))
 
 
-def append_name(path, *args: str, ext='json', sep='_', remove='-'):
-    if remove:
-        args = [re.sub(remove,'', a) for a in args]
-    if ext:
-        return re.sub(f'{ext}$', f'{sep.join(args)}.{ext}', path)
-    else:
-        args = [path] + list(args)
-        return sep.join(args)
-
-
-
 #
 # RUN
 #
-print('\n' * 2)
-print('=' * 100)
 for year in YEARS:
     print(f'\n- year: {year}')
     # 1. process paths
