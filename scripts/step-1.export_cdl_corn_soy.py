@@ -123,6 +123,6 @@ for year in YEARS:
             gcs_dest=gcs_dest,
             dataset_name=c.DATASET_NAME,
             table_name=table_name,
-            remove_src=False,
+            remove_src=True,
             dry_run=c.DRY_RUN)
 
