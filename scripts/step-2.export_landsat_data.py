@@ -75,7 +75,7 @@ MAP_METHOD = mproc.map_with_threadpool
 #
 def get_mean_pixel_values(row: pd.Series, year=int) -> xr.Dataset:
     start_date = c.JAN1_TMPL.format(year)
-    end_date = c.JAN1_TMPL.format(year+1)
+    end_date = c.JAN1_TMPL.format(year + 1)
     geom = ee.Geometry.Point([row['lon'], row['lat']])
     geom = geom.buffer(c.LANDSAT_BUFFER_RADIUS, MAX_ERR)
     data_filter = ee.Filter.And(
@@ -113,9 +113,9 @@ def process_mean_pixel_rows(
             noisy=False)
     except Exception as e:
         return dict(
-                sample_id=sample_id,
-                year=year,
-                error=str(e))
+            sample_id=sample_id,
+            year=year,
+            error=str(e))
 
 
 def filter_missing_and_cloud_data(df):
@@ -157,7 +157,6 @@ for year in YEARS:
         file_name=c.RAW_LANDSAT_FILENAME,
         year=year)
 
-
     # 2. run
     errors = MAP_METHOD(
         lambda r: process_mean_pixel_rows(r, year=year, dest=local_dest),
@@ -165,16 +164,14 @@ for year in YEARS:
         max_processes=MAX_PROCESSES)
     runner.print_errors(errors)
 
-
     # 3. report on errors
     runner.print_errors(errors)
 
-
     # 4. save data (gcs, bq)
     runner.save_to_gcp(
-            src=local_dest,
-            gcs_dest=gcs_dest,
-            dataset_name=c.DATASET_NAME,
-            table_name=None,
-            remove_src=True,
-            dry_run=c.DRY_RUN)
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=None,
+        remove_src=True,
+        dry_run=c.DRY_RUN)

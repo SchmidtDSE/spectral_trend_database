@@ -76,7 +76,7 @@ def process_smoothing(
         dest: str) -> Union[str, None]:
     try:
         rows = rows[DS_COLUMNS].copy()
-        rows = rows[rows.ndvi>0]
+        rows = rows[rows.ndvi > 0]
         ds = rows.set_index('date').to_xarray()
         ds = smoothing.savitzky_golay_processor(ds, **c.SG_CONFIG)
         ds = ds.sel(dict(date=slice(c.JAN1_TMPL.format(year), c.DEC31_TMPL.format(year))))
@@ -91,9 +91,9 @@ def process_smoothing(
             noisy=False)
     except Exception as e:
         return dict(
-                sample_id=sample_id,
-                year=year,
-                error=str(e))
+            sample_id=sample_id,
+            year=year,
+            error=str(e))
 
 
 #
@@ -109,41 +109,37 @@ for year in YEARS:
         table_name=c.SMOOTHED_INDICES_TABLE_NAME,
         year=year)
 
-
     # 2. query data
     jan1 = datetime(year=year, month=1, day=1)
     start = (jan1 - YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT)
-    end = (jan1 + YEAR_DELTA  + YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT)
+    end = (jan1 + YEAR_DELTA + YEAR_BUFFER).strftime(c.YYYY_MM_DD_FMT)
     qc = query.QueryConstructor(
-            c.RAW_INDICES_TABLE_NAME,
-            table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
+        c.RAW_INDICES_TABLE_NAME,
+        table_prefix=f'{c.GCP_PROJECT}.{c.DATASET_NAME}')
     qc.where(date=start, date_op='>=')
     qc.where(date=end, date_op='<=')
     qc.append('ORDER BY date ASC')
     data = query.run(sql=qc.sql())
     sample_ids = data.sample_id.unique()
 
-
     # 3. run
     errors = MAP_METHOD(
         lambda s: process_smoothing(
-            data[data.sample_id==s],
+            data[data.sample_id == s],
             sample_id=s,
             year=year,
             dest=local_dest),
         sample_ids,
         max_processes=c.MAX_PROCESSES)
 
-
     # 4. report on errors
     runner.print_errors(errors)
 
-
     # 5. save data (gcs, bq)
     runner.save_to_gcp(
-            src=local_dest,
-            gcs_dest=gcs_dest,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name,
-            remove_src=True,
-            dry_run=c.DRY_RUN)
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=c.DRY_RUN)

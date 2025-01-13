@@ -43,7 +43,7 @@ IDENT_COLS = ['sample_id', 'year', 'date']
 # MAP_METHOD = mproc.map_sequential
 MAP_METHOD = mproc.map_with_threadpool
 SRC_INDICES = ['ndvi', 'evi', 'evi2']
-COLUMNS =  ['date', 'sample_id'] + SRC_INDICES
+COLUMNS = ['date', 'sample_id'] + SRC_INDICES
 GROWING_YEAR_BUFFER = timedelta(days=20)
 
 
@@ -75,6 +75,7 @@ def process_rows(
     except Exception as e:
         return dict(sample_id=sample_id, year=year, error=str(e))
 
+
 #
 # RUN
 #
@@ -93,7 +94,6 @@ for year in YEARS:
     start = dt_parse(f'{year-1}-{c.OFF_SEASON_START_YYMM}')
     end = dt_parse(f'{year}-{c.OFF_SEASON_START_YYMM}')
     utils.make_parent_directories(local_dest)
-
 
     # 2. query data
     print('- run query:')
@@ -114,12 +114,11 @@ for year in YEARS:
     data = data.sort_values('date')
     sample_ids = data.sample_id.unique()
 
-
     # 3. run
     data_vars = [n for n in data.columns if n not in IDENT_COLS]
     errors = MAP_METHOD(
         lambda s: process_rows(
-            data[data.sample_id==s],
+            data[data.sample_id == s],
             sample_id=s,
             year=year,
             start_date=start.strftime(c.YYYY_MM_DD_FMT),
@@ -129,10 +128,8 @@ for year in YEARS:
         sample_ids,
         max_processes=c.MAX_PROCESSES)
 
-
     # 4. report on errors
     runner.print_errors(errors)
-
 
     # 5. save data (gcs, bq)
     runner.save_to_gcp(
