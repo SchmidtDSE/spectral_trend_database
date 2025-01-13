@@ -225,14 +225,17 @@ class QueryConstructor(object):
         self._uppercase_table = uppercase_table
         self._table = self._table_name(table)
 
+
     def reset(self) -> None:
         """ resets instance """
         self._sql: Optional[str] = None
         self._select_list: list = []
         self._join_list: list = []
         self._where_list: list = []
+        self._order_cols: list = []
         self._append_list: list = []
         self._limit: Optional[int] = None
+
 
     def select(self, *columns: str, table: Optional[str] = None, **columns_as) -> None:
         """ add select columns
@@ -330,6 +333,22 @@ class QueryConstructor(object):
                 'table': table,
                 'value': self._sql_query_value(v, op=op),
                 'operator': op})
+
+
+    def order(self, *columns: str, asc: bool = True) -> None:
+        """ order by columns
+        This has been included to allow users to add explicit SQL statements which
+        may not be possible with current API.
+
+        Args:
+
+            *columns (str):
+                columns to order by
+            asc (bool = True):
+                if true order ascending otherwise descending
+        """
+        self._order_cols.append([list(columns), asc])
+
 
     def append(self, *values: str) -> None:
         """ append strings seperated by a space to end of sql statement
@@ -435,6 +454,15 @@ class QueryConstructor(object):
             sql_statement += ' WHERE ' + self._where
         if self._append_list:
             sql_statement += ' ' + ' '.join(self._append_list)
+        if self._order_cols:
+            _statements = []
+            for cols_asc in self._order_cols:
+                if cols_asc[1]:
+                    _order = 'ASC'
+                else:
+                    _order = 'DESC'
+                _statements.append(f' {_order}, '.join(cols_asc[0]) + f' {_order}')
+            sql_statement += ' ORDER BY ' + ', '.join(_statements)
         if self._limit:
             sql_statement += f' LIMIT {self._limit}'
         return sql_statement
