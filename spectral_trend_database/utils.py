@@ -145,7 +145,7 @@ def download_and_extract_zip(
         path = Path(url).name
     if root_folder:
         path = f'{root_folder}/{path}'
-    dest_dir = re.sub('\.zip$', '', path)
+    dest_dir = re.sub(r'\.zip$', '', path)
     if overwrite or (not Path(dest_dir).is_dir()):
         Path(dest_dir).mkdir(parents=True, exist_ok=True)
         msg = f'downloading from src {url}'
