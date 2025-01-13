@@ -563,7 +563,9 @@ def macd_processor(
         macd_div_values = macd_values - ewm_c
         results.append(ewm_c)
         results.append(macd_div_values)
-    results = [utils.npxr_rename(r, v, action='suffix') for (r, v) in zip(results, MACD_DATA_VAR_NAMES)]
+    results = [
+        utils.npxr_rename(r, v, action='suffix')
+        for (r, v) in zip(results, MACD_DATA_VAR_NAMES)]
     if result_only:
         return results[-1]
     else:

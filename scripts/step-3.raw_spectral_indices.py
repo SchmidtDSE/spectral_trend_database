@@ -57,7 +57,6 @@ def process_raw_indices_for_year(
     return df[HEADER_COLS + _data_cols]
 
 
-
 #
 # RUN
 #
@@ -93,13 +92,13 @@ for year in YEARS:
 
     # save data
     local_dest = utils.dataframe_to_ldjson(
-            df,
-            dest=local_dest,
-            dry_run=c.DRY_RUN)
+        df,
+        dest=local_dest,
+        dry_run=c.DRY_RUN)
     runner.save_to_gcp(
-            src=local_dest,
-            gcs_dest=gcs_dest,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name,
-            remove_src=True,
-            dry_run=c.DRY_RUN)
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=c.DRY_RUN)

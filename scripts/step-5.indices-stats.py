@@ -107,7 +107,6 @@ for year in YEARS:
     table_name_grow = f'{table_name}_GROWING_SEASON'
     utils.make_parent_directories(local_dest, local_dest_off, local_dest_grow)
 
-
     # 2. query data
     print('- run query:')
     qc = query.QueryConstructor(
@@ -122,12 +121,11 @@ for year in YEARS:
     data = data.sort_values('date')
     sample_ids = data.sample_id.unique()
 
-
     # 3. run
     data_vars = [n for n in data.columns if n not in IDENT_COLS]
     errors = MAP_METHOD(
         lambda s: process_annual_data(
-            data[data.sample_id==s],
+            data[data.sample_id == s],
             sample_id=s,
             year=year,
             local_dest=local_dest,
@@ -137,10 +135,8 @@ for year in YEARS:
         sample_ids,
         max_processes=c.MAX_PROCESSES)
 
-
     # 4. report on errors
     runner.print_errors(errors)
-
 
     # 5. save data (gcs, bq]
     runner.save_to_gcp(

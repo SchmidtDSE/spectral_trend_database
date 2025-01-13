@@ -48,7 +48,7 @@ CORN_VALUE = 0
 SOY_VALUE = 1
 OTHER_VALUE = 2
 REMAP_CS_VALUES = [CORN_VALUE, SOY_VALUE]
-MAX_PROCESSES = 4 # low for read-requests
+MAX_PROCESSES = 4  # low for read-requests
 MAP_METHOD = mproc.map_with_threadpool
 
 SRC_PATH = paths.gcs(
@@ -72,15 +72,15 @@ SAMPLES = SAMPLES.to_dict('records')[:c.LIMIT]
 # METHODS
 #
 def cdl_for_year(year):
-  year = ee.Number(year).toInt()
-  start = ee.Date.fromYMD(year, 1, 1)
-  end = start.advance(1, 'year')
-  data_filter = ee.Filter.date(start, end)
-  cdl_year = CDL.filter(data_filter).first()
-  return cdl_year.remap(
-      CS_VALUES,
-      REMAP_CS_VALUES,
-      OTHER_VALUE).toInt()
+    year = ee.Number(year).toInt()
+    start = ee.Date.fromYMD(year, 1, 1)
+    end = start.advance(1, 'year')
+    data_filter = ee.Filter.date(start, end)
+    cdl_year = CDL.filter(data_filter).first()
+    return cdl_year.remap(
+        CS_VALUES,
+        REMAP_CS_VALUES,
+        OTHER_VALUE).toInt()
 
 
 #
@@ -96,10 +96,8 @@ for year in YEARS:
         table_name=c.CROP_TYPE_TABLE_NAME,
         year=year)
 
-
     # 2. get data for year
     cdl = cdl_for_year(year)
-
 
     # 3. run
     crop_data = MAP_METHOD(
@@ -112,17 +110,15 @@ for year in YEARS:
     crop_data = pd.DataFrame(crop_data).sort_values(['year', 'sample_id'])
     print(f'exporting yield data [{crop_data.shape}]:')
 
-
     # 4. save data (local, gcs, bq)
     local_dest = utils.dataframe_to_ldjson(
-            crop_data,
-            dest=local_dest,
-            dry_run=c.DRY_RUN)
+        crop_data,
+        dest=local_dest,
+        dry_run=c.DRY_RUN)
     runner.save_to_gcp(
-            src=local_dest,
-            gcs_dest=gcs_dest,
-            dataset_name=c.DATASET_NAME,
-            table_name=table_name,
-            remove_src=False,
-            dry_run=c.DRY_RUN)
-
+        src=local_dest,
+        gcs_dest=gcs_dest,
+        dataset_name=c.DATASET_NAME,
+        table_name=table_name,
+        remove_src=True,
+        dry_run=c.DRY_RUN)
