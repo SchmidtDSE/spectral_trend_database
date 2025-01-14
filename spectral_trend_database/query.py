@@ -366,7 +366,7 @@ class QueryConstructor(object):
                 key: values_str,
                 f'{key}_op': 'IN'})
 
-    def order(self, *columns: str, asc: bool = True) -> None:
+    def orderby(self, *columns: str, table: Optional[str] = None, asc: bool = True) -> None:
         """ order by columns
         This has been included to allow users to add explicit SQL statements which
         may not be possible with current API.
@@ -378,7 +378,7 @@ class QueryConstructor(object):
             asc (bool = True):
                 if true order ascending otherwise descending
         """
-        self._order_cols.append([list(columns), asc])
+        self._order_cols.append([list(columns), self._table_name(table), asc])
 
     def append(self, *values: str) -> None:
         """ append strings seperated by a space to end of sql statement
@@ -486,12 +486,13 @@ class QueryConstructor(object):
             sql_statement += ' ' + ' '.join(self._append_list)
         if self._order_cols:
             _statements = []
-            for cols_asc in self._order_cols:
-                if cols_asc[1]:
+            for cols_tbl_asc in self._order_cols:
+                cnames = [f'{cols_tbl_asc[1]}.{n}' for n in cols_tbl_asc[0]]
+                if cols_tbl_asc[2]:
                     _order = 'ASC'
                 else:
                     _order = 'DESC'
-                _statements.append(f' {_order}, '.join(cols_asc[0]) + f' {_order}')
+                _statements.append(f' {_order}, '.join(cnames) + f' {_order}')
             sql_statement += ' ORDER BY ' + ', '.join(_statements)
         if self._limit:
             sql_statement += f' LIMIT {self._limit}'
