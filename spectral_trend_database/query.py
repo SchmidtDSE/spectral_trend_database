@@ -225,7 +225,6 @@ class QueryConstructor(object):
         self._uppercase_table = uppercase_table
         self._table = self._table_name(table)
 
-
     def reset(self) -> None:
         """ resets instance """
         self._sql: Optional[str] = None
@@ -235,7 +234,6 @@ class QueryConstructor(object):
         self._order_cols: list = []
         self._append_list: list = []
         self._limit: Optional[int] = None
-
 
     def select(self, *columns: str, table: Optional[str] = None, **columns_as) -> None:
         """ add select columns
@@ -334,6 +332,39 @@ class QueryConstructor(object):
                 'value': self._sql_query_value(v, op=op),
                 'operator': op})
 
+    def where_in(self,
+            table: Optional[str] = None,
+            quote_escape: bool = True,
+            **kwargs: Union[Sequence]) -> None:
+        """ convinece wrapper for `.where()`, when construncting `WHERE ... IN` statements
+
+        Sets where statement through key value pairs.
+
+        Args:
+
+            table (str): table name used in where statement
+            quote_escape (bool = True): if False do not put qoutes around values
+            **kwargs (Union[List]):
+                key value-list pairs for where-in statement
+                ie:
+                    * year=[2002, 2004, 2006] gives
+
+                        WHERE year IN ('2002', '2004', '2006')
+
+                    * if quote_escape=False it gives
+
+                        WHERE year IN (2002, 2004, 2006)
+        """
+        for key, values in kwargs.items():
+            if quote_escape:
+                values = [f"'{v}'" for v in values]
+            else:
+                values = [str(v) for v in values]
+            values_str = f'({", ".join(values)})'
+            self.where(**{
+                'table': table,
+                key: values_str,
+                f'{key}_op': 'IN'})
 
     def order(self, *columns: str, asc: bool = True) -> None:
         """ order by columns
@@ -348,7 +379,6 @@ class QueryConstructor(object):
                 if true order ascending otherwise descending
         """
         self._order_cols.append([list(columns), asc])
-
 
     def append(self, *values: str) -> None:
         """ append strings seperated by a space to end of sql statement
