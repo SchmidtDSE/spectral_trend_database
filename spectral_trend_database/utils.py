@@ -178,7 +178,7 @@ def list_prefixes(src: list[str], prefixes: list[str]):
 #
 # PD/XR/NP
 #
-def row_to_xr(
+def array_row_to_xr(
         row: Union[pd.Series, dict],
         coord: str,
         data_vars: Optional[list[str]] = None,
@@ -223,7 +223,7 @@ def row_to_xr(
     return xr.Dataset(data_vars=data_var_dict, coords={coord: (coord, coord_array)}, attrs=attrs)
 
 
-def rows_to_xr(
+def array_rows_to_xr(
         rows: pd.DataFrame,
         coord: str,
         attr_cols: list = [],
@@ -270,6 +270,40 @@ def rows_to_xr(
     ds = xr.concat(datasets, dim=coord)
     if attrs:
         ds.attrs = attrs
+    return ds
+
+
+def rows_to_xr(
+        rows: pd.DataFrame,
+        coord: Optional[str] = 'date',
+        attr_cols: list = [],
+        datetime_index: bool = True,
+        **sel_kwargs: dict[str, Any]) -> xr.Dataset:
+    """
+    Generate a xr.dataset from dataframe
+
+    Args:
+
+        rows (pd.DataFrame): data to convert to xarray dataset
+        coord (str): coordinate row
+        attr_cols (list = []): columns to use for attrs with shared values across rows
+        list_attrs (list = []): columns to use for attrs that become list of row values
+        sel (Optional[Union[Callable, dict]] = None):
+            dict or method that takes the row (**and sel_kwargs) and returns a dict
+            to be used as `ds.sel` kwargs.
+        **sel_kwargs (dict[str, Any]):
+            if <sel> above is callable, <sel> is called with
+            the row along with these kwargs: ie `sel(row, **sel_kwargs)`
+
+    Returns:
+
+        rows data as xr.Dataset
+    """
+    xr_cols = [n for n in rows.columns if n not in attr_cols]
+    ds = rows[xr_cols].set_index(coord).to_xarray()
+    ds.attrs = rows[attr_cols].iloc[0].to_dict()
+    if datetime_index:
+        ds[coord] = pd.to_datetime(ds[coord])
     return ds
 
 
