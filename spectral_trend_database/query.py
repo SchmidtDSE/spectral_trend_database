@@ -414,6 +414,7 @@ class QueryConstructor(object):
             force (bool=False): if true (re)construct sql statement even if it already exists
 
         Returns:
+
             (str) SQL statement
         """
         if force or (not self._sql):
