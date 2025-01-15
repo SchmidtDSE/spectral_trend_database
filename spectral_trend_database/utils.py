@@ -663,7 +663,7 @@ def npxr_rename(
     return data
 
 
-def nan_to_safe_nan(values: Union[list, np.ndarray]) -> np.ndarray:
+def nan_to_safe_nan(values: Union[list, np.ndarray]) -> Union[Sequence[float], float]:
     """ replace nan values with a "safe" bigquery value
 
     BigQuery was not working with mixed none/float array valued columns.
@@ -673,7 +673,10 @@ def nan_to_safe_nan(values: Union[list, np.ndarray]) -> np.ndarray:
     """
     values = np.array(values).astype(float)
     values[np.isnan(values)] = constants.SAFE_NAN_VALUE
-    return values
+    if values.ndim:
+        return list(values)
+    else:
+        return float(values)
 
 
 def safe_nan_to_nan(values: Union[list, np.ndarray]) -> np.ndarray:
