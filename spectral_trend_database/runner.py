@@ -138,9 +138,21 @@ def table_name_and_paths(
 def print_errors(errors: list[str]):
     errors = [e for e in errors if e]
     if errors:
-        print(f'ERRORS [{len(errors)}]:')
-        errors = pd.DataFrame(errors)
-        display(errors.groupby('error').size())
+        df = pd.DataFrame(errors)
+        try:
+            _df = df[~df.error.isna()]
+            if _df.shape[0]:
+                print(f'ERRORS [{_df.shape[0]}]:')
+                display(_df.groupby('error').size())
+        except:
+            pass
+        try:
+            _df = df[~df.warning.isna()]
+            if _df.shape[0]:
+                print(f'WARNING [{_df.shape[0]}]:')
+                display(_df.groupby('warning').size())
+        except:
+            pass
 
 
 def save_to_gcp(

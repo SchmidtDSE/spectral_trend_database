@@ -20,7 +20,9 @@ License:
     BSD, see LICENSE.md
 """
 from typing import Callable, Union, Optional, Literal, TypeAlias, Sequence, Any
+import warnings
 import re
+import numpy as np
 import pandas as pd
 import xarray as xr
 import mproc
@@ -60,25 +62,46 @@ def process_annual_data(
         ds_grow = ds.sel(dict(date=slice(
             f'{year-1}-{c.GROWING_SEASON_START_YYMM}',
             f'{year}-{c.GROWING_SEASON_END_YYMM}')))
-        stats_ds = utils.xr_stats(ds, data_vars=data_vars)
-        stats_off_ds = utils.xr_stats(ds_off, data_vars=data_vars)
-        stats_grow_ds = utils.xr_stats(ds_grow, data_vars=data_vars)
-        append_row(sample_id, year, stats_ds, local_dest)
-        append_row(sample_id, year, stats_off_ds, local_dest_off)
-        append_row(sample_id, year, stats_grow_ds, local_dest_grow)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try:
+                stats_ds = utils.xr_stats(ds, data_vars=data_vars)
+                stats_off_ds = utils.xr_stats(ds_off, data_vars=data_vars)
+                stats_grow_ds = utils.xr_stats(ds_grow, data_vars=data_vars)
+                append_row(sample_id, year, stats_ds, local_dest)
+                append_row(sample_id, year, stats_off_ds, local_dest_off)
+                append_row(sample_id, year, stats_grow_ds, local_dest_grow)
+            except Warning as w:
+                return dict(sample_id=sample_id, year=year, warning=str(w), error=None)
     except Exception as e:
-        return dict(sample_id=sample_id, year=year, error=str(e))
+        return dict(sample_id=sample_id, year=year, warning=None, error=str(e))
 
 
-def append_row(sample_id: str, year: int, ds: xr.Dataset, dest: str):
+def append_row(
+        sample_id: str,
+        year: int,
+        ds: xr.Dataset,
+        dest: str,
+        skip_na: Union[bool, Sequence[str]] = True,
+        raise_warning: bool = True) -> None:
     if c.DRY_RUN:
         print('- dry_run [local]:', dest)
     else:
         data = dict(sample_id=sample_id, year=year)
-        data.update({
-            k: float(ds.data_vars[k].values)
-            for k in ds.data_vars})
-        utils.append_ldjson(dest, data=data)
+        append = True
+        if skip_na:
+            if not isinstance(skip_na, list):
+                skip_na = [k for k in ds.data_vars if k not in IDENT_COLS]
+            test = np.array([ds.data_vars[k].values for k in skip_na])
+            if np.isnan(test).all():
+                append = False
+                if raise_warning:
+                    raise RuntimeWarning('append_row: empty row encountered.')
+        if append:
+            data.update({
+                k: float(ds.data_vars[k].values)
+                for k in ds.data_vars})
+            utils.append_ldjson(dest, data=data)
 
 
 def period_ident(start_mmdd, end_mmdd):
