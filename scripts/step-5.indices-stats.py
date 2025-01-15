@@ -93,7 +93,7 @@ def append_row(
             if not isinstance(skip_na, list):
                 skip_na = [k for k in ds.data_vars if k not in IDENT_COLS]
             test = np.array([ds.data_vars[k].values for k in skip_na])
-            if np.isnan(test).all():
+            if np.isnan(test).any():
                 append = False
                 if raise_warning:
                     raise RuntimeWarning('append_row: empty row encountered.')
