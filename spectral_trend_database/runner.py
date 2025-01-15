@@ -156,7 +156,7 @@ def print_errors(errors: list[str]):
 
 
 def save_to_gcp(
-        src: Optional[str],
+        src: str,
         gcs_dest: Optional[str],
         dataset_name: Optional[str],
         table_name: Optional[str],
@@ -166,7 +166,6 @@ def save_to_gcp(
         noisy: bool = NOISY,
         dry_run: bool = False) -> None:
     if gcs_dest:
-        assert isinstance(src, str)
         assert isinstance(gcs_dest, str)
         if dry_run:
             if noisy:
