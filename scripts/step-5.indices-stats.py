@@ -82,26 +82,17 @@ def append_row(
         year: int,
         ds: xr.Dataset,
         dest: str,
-        skip_na: Union[bool, Sequence[str]] = True,
-        raise_warning: bool = True) -> None:
+        replace_na: bool = True) -> None:
     if c.DRY_RUN:
         print('- dry_run [local]:', dest)
     else:
         data = dict(sample_id=sample_id, year=year)
-        append = True
-        if skip_na:
-            if not isinstance(skip_na, list):
-                skip_na = [k for k in ds.data_vars if k not in IDENT_COLS]
-            test = np.array([ds.data_vars[k].values for k in skip_na])
-            if np.isnan(test).any():
-                append = False
-                if raise_warning:
-                    raise RuntimeWarning('append_row: empty row encountered.')
-        if append:
-            data.update({
-                k: float(ds.data_vars[k].values)
-                for k in ds.data_vars})
-            utils.append_ldjson(dest, data=data)
+        dvars = list(ds.data_vars)
+        values_list = [ds.data_vars[k].values for k in dvars]
+        if replace_na:
+            values_list = [utils.nan_to_safe_nan(v) for v in values_list]
+        data.update({k: v for k, v in zip(dvars, values_list)})
+        utils.append_ldjson(dest, data=data)
 
 
 def period_ident(start_mmdd, end_mmdd):
