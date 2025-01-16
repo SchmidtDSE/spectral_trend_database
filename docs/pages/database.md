@@ -67,7 +67,7 @@ CDL derived crop-type (corn, soy, NA, other) for year.
 
 | Column(s) | Description |
 | ---: | :---- |
-|  `sample_id` | (key-column) 11-character geohash. specifies location down to submeter precision |
+|  `sample_id` | (key-column) 11-character geohash. specifies location down to about 15 cm |
 | `year` | year of yield |
 | `crop_type` | one of corn, soy, other, na |
 | `crop_label` | integer crop identifier (corn: 0, soy: 1, other: 2, na: 3) |
@@ -82,7 +82,7 @@ Modeled yield data from 2008 to Present using [QDANN](https://gee-community-cata
 
 | Column(s) | Description |
 | ---: | :---- |
-|  `sample_id` | (key-column) 11-character geohash. specifies location down to submeter precision |
+|  `sample_id` | (key-column) 11-character geohash. specifies location down to about 15 cm |
 | `year` | year of yield |
 | `biomass` | modeled biomass yield |
 
