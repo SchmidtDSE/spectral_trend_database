@@ -52,7 +52,7 @@ MAX_PROCESSES = 4  # low for read-requests
 MAP_METHOD = mproc.map_with_threadpool
 
 SRC_PATH = paths.gcs(
-    c.RAW_GCS_FOLDER,
+    c.SAMPLES_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
 

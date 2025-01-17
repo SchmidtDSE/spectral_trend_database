@@ -54,14 +54,14 @@ US_BOUNDARIES_SHP: src/cb_2023_us_county_500k
 #
 # FOLDERS/FILES/TABLES
 #
-RAW_GCS_FOLDER: raw/biomass_landsat
+SAMPLES_FOLDER: samples
+SAMPLE_POINTS_TABLE_NAME: sample_points
 RAW_LANDSAT_FILENAME: landsat
 RAW_LANDSAT_FOLDER: landsat_raw_masked
 QDANN_YIELD_TABLE_NAME: qdann_yield
 QDANN_YIELD_FOLDER: qdann_yield
 CROP_TYPE_TABLE_NAME: cdl_crop_type
 CROP_TYPE_FOLDER: crop_type
-SAMPLE_POINTS_TABLE_NAME: sample_points
 YIELD_TABLE_NAME: qdann_yield
 RAW_INDICES_TABLE_NAME: raw_indices_v1
 RAW_INDICES_FOLDER: raw_indices

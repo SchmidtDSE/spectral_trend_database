@@ -180,7 +180,7 @@ print(f'- samples shape:', samples_df.shape)
 
 # 8. save samples data
 table_name, local_dest, gcs_dest = runner.table_name_and_paths(
-    c.RAW_GCS_FOLDER,
+    c.SAMPLES_FOLDER,
     table_name=c.SAMPLE_POINTS_TABLE_NAME)
 local_dest = utils.dataframe_to_ldjson(
     samples_df,

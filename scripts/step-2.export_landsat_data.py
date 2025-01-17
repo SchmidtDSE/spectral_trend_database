@@ -60,7 +60,7 @@ MAX_ERR = 1
 # CONSTANTS
 #
 SRC_PATH = gcs_dest = paths.gcs(
-    c.RAW_GCS_FOLDER,
+    c.SAMPLES_FOLDER,
     c.SAMPLE_POINTS_TABLE_NAME,
     ext='json')
 
