@@ -85,8 +85,8 @@ Modeled yield data from 2008 to Present using [QDANN](https://gee-community-cata
 |  `sample_id` | (key-column) 11-character geohash. specifies location down to about 15 cm |
 | `year` | year of yield |
 | `biomass` | modeled biomass yield |
-| `qdann_crop_type` | QDANN derived crop-type: one of corn, soy, other, na |
-| `qdann_crop_label` | QDANN derived crop-label: integer crop identifier (corn: 0, soy: 1, other: 2, na: 3) |
+| `qdann_crop_type` | QDANN derived crop-type: one of corn or soy |
+| `qdann_crop_label` | QDANN derived crop-label: integer crop identifier (corn: 0, soy: 1 ) |
 
 ---
 
