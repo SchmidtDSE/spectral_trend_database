@@ -59,47 +59,29 @@ warnings.filterwarnings(
 
 
 #
-# CONFIG
-#
-H3_RESOLUTIONS = [4, 5, 7, 9, 11]
-
-
-#
 # CONSTANTS
 #
-# SRC_PATH_BASE = f'{c.URL_PREFIX}agriculture_monitoring/CDL/lobell/QDANN'
-SRC_PATH_BASE = f'{c.URL_PREFIX}agriculture_monitoring/spectral_trend_database/v1/meta/yield/qdann'
+CROP_TYPES = ['corn', 'soy']
 LL = ['lon', 'lat']
 YIELD_DATA_COLS = ['sample_id', 'year', 'biomass', 'nb_years']
-SAMPLE_COLS = [
-    'sample_id',
-    'lon',
-    'lat']
-SAMPLE_COLS += [f'h3_{r}' for r in H3_RESOLUTIONS]
+SAMPLE_COLS = ['sample_id', 'lon', 'lat'] + [f'h3_{r}' for r in c.H3_RESOLUTIONS]
 
 
 #
 # METHODS
 #
 def path_for_crop_type(crop_type):
-    path = SRC_PATH_BASE
+    path = f'{c.URL_PREFIX}{c.GCS_BUCKET}/{c.GCS_RAW_SAMPLES_DIR}'
     if c.YIELD_BUFFER_RADIUS:
         path += f'/{crop_type}_biomass_2008-2022-b{c.YIELD_BUFFER_RADIUS}-mean.csv'
     else:
         path += f'/{crop_type}_biomass_2008-2022.csv'
-    print(f'- {crop_type} path:', path)
+    print(f'- {crop_type}-path:', path)
     return path
 
 
-def load_data():
-    dfs = []
-    for n in ['corn', 'soy']:
-        df = pd.read_csv(path_for_crop_type(n))
-        df['crop_type'] = n
-        print(f'- {n}-shape:', df.shape)
-        dfs.append(df)
-    df = pd.concat(dfs)
-    return df.drop_duplicates()
+def load_data(*crop_types):
+    return pd.concat([pd.read_csv(path_for_crop_type(n)) for n in crop_types])
 
 
 def get_geohash(row: pd.Series, precision: int) -> str:
@@ -142,8 +124,10 @@ def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_politic
 #
 print('load data:')
 # 1. Load Sample Yield data
-df = load_data()
+df = load_data(*CROP_TYPES)
 print('- data shape:', df.shape)
+is_unique = (df.shape[0] == df.drop_duplicates(['lon', 'lat', 'year']).shape[0])
+print(f'- unique by year and location: {is_unique}')
 
 
 # 2. Add sample_id (geohash-11)
@@ -152,7 +136,7 @@ print(f'- sample_id shape:', df.shape)
 
 
 # 3. add h3
-for res in H3_RESOLUTIONS:
+for res in c.H3_RESOLUTIONS:
     df[f'h3_{res}'] = df.apply(lambda r: get_h3(r, res), axis=1)
 print(f'- h3 shape:', df.shape)
 
