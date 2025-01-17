@@ -22,7 +22,7 @@ We then used these sample points to extract yield values based on [QDANN](https:
 
 Having selected data sample points and extracted yield data, we then built a pipeline (see these [scripts](https://github.com/SchmidtDSE/spectral_trend_database/scripts)) to process the data and create a database ([Google Big Query Dataset](https://cloud.google.com/bigquery/docs)) containing daily-smoothed-values for 36 spectral indices, along with additional indices and annual aggregation statistics.
 
-The resulting database is described in the [docs](/docs/pages/database.html).
+The resulting database is described in the [docs](/spectral_trend_database/docs/pages/database.html).
 
 The most interesting steps in the data processing are: gap-filling and smoothing, and the computation of moving average convergence divergence (divergence) indices.
 
