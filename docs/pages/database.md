@@ -3,7 +3,7 @@
 
 > CHANGE NOTICE: We are still working on operationalization. The database currently only goes through 2001
 
-The _Spectral Trend Database_ tracks over 14 thousand points in the mid-western United States from 2000 to present. Below we have a detailed description of each of the tables. The database lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser (see these [examples](/spectral_trend_database/examples)).
+The _Spectral Trend Database_ tracks over 14 thousand points in the mid-western United States from 2000 to present. Below we have a detailed description of each of the tables. The database lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser (see these [examples](https://schmidtdse.github.io/spectral_trend_database/examples)).
 
 ---
 
@@ -69,8 +69,8 @@ CDL derived crop-type (corn, soy, NA, other) for year.
 | ---: | :---- |
 |  `sample_id` | (key-column) 11-character geohash. specifies location down to about 15 cm |
 | `year` | year of yield |
-| `crop_type` | one of corn, soy, other, na |
-| `crop_label` | integer crop identifier (corn: 0, soy: 1, other: 2, na: 3) |
+| `crop_type` | CDL derived crop-type: one of corn, soy, other, na |
+| `crop_label` | CDL derived crop-label: integer crop identifier (corn: 0, soy: 1, other: 2, na: 3) |
 
 ---
 
@@ -85,6 +85,8 @@ Modeled yield data from 2008 to Present using [QDANN](https://gee-community-cata
 |  `sample_id` | (key-column) 11-character geohash. specifies location down to about 15 cm |
 | `year` | year of yield |
 | `biomass` | modeled biomass yield |
+| `qdann_crop_type` | QDANN derived crop-type: one of corn, soy, other, na |
+| `qdann_crop_label` | QDANN derived crop-label: integer crop identifier (corn: 0, soy: 1, other: 2, na: 3) |
 
 ---
 
