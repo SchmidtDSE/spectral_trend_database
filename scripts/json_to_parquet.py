@@ -11,8 +11,8 @@ from spectral_trend_database import runner
 #
 # CONFIG
 #
-GCS_DB_JSON = 'agriculture_monitoring/spectral_trend_database/v1/qdann'
-GCS_DB_PARQ = 'agriculture_monitoring/spectral_trend_database/v1/parquet/qdann'
+GCS_DB_JSON = f'{c.GCS_BUCKET}/{c.GCS_ROOT_FOLDER}'
+GCS_DB_PARQ = f'{c.GCS_BUCKET}/{c.GCS_PARQUET_FOLDER}'
 DRY_RUN = c.DRY_RUN
 
 
@@ -69,16 +69,18 @@ def process_folder(folder, process_subfolders=True):
 #
 # RUN
 #
+print()
 print('saving json to parquet:')
+print()
 print(f'- src: gs://{GCS_DB_JSON}')
 print(f'- dest: gs://{GCS_DB_PARQ}')
 FOLDERS = gcp.gcs_list_folders(GCS_DB_JSON)
 FOLDERS = sorted(FOLDERS)
 print('- source directories:')
 pprint(FOLDERS)
-for f in FOLDERS:
+for i, f in enumerate(FOLDERS):
     print('\n' * 2)
     print('--' * 50)
-    print(f)
+    print(f'[{i}]', f)
     print('--' * 50)
     process_folder(f)
