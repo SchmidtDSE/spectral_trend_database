@@ -139,7 +139,7 @@ def gcs_list_folders(
     path_count = path.count('/')
     blobs = client.list_blobs(bucket, prefix=path)
     folders = list(set(
-        '/'.join(b.name.split('/')[:path_count+2])
+        '/'.join(b.name.split('/')[:path_count + 2])
         for b in blobs
         if b.name.count('/') > path_count + 1))
     if search:
