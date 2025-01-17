@@ -10,12 +10,15 @@ affiliations:
 steps:
 
     1. Load Sample Yield data
-    2. Add sample_id (geohash)
-    3. Add H3 columns
+    2. Add sample_id (geohash-11)
+    3. add h3
     4. Requrie unique lon-lat per h3-(c.UNIQUE_H3)
     5. require `c.MIN_REQUIRED_YEARS` per h3-5
-    6. save sample data
-    7. save yield data
+    6. sort data
+    7. extract samples and merge political data
+    8. save samples data
+    9. collect and rename yield data
+    10. save yield data
 
 outputs:
 
@@ -63,8 +66,15 @@ warnings.filterwarnings(
 #
 CROP_TYPES = ['corn', 'soy']
 LL = ['lon', 'lat']
-YIELD_DATA_COLS = ['sample_id', 'year', 'biomass', 'nb_years']
 SAMPLE_COLS = ['sample_id', 'lon', 'lat'] + [f'h3_{r}' for r in c.H3_RESOLUTIONS]
+YIELD_DATA_COLS = [
+    'sample_id',
+    'year',
+    'biomass',
+    'nb_years',
+    'crop_type',
+    'crop_label']
+YIELD_RENAME = dict(crop_type='qdann_crop_type', crop_label='qdann_crop_label')
 
 
 #
@@ -185,8 +195,13 @@ runner.save_to_gcp(
     dry_run=c.DRY_RUN)
 
 
-# 9. save yield data
+# 9. collect and rename yield data
 yield_df = df[YIELD_DATA_COLS].sort_values(['year', 'sample_id'])
+yield_df = yield_df.rename(columns=YIELD_RENAME)
+print(f'- yield shape:', yield_df.shape)
+
+
+# 10. save yield data
 table_name, local_dest, gcs_dest = runner.table_name_and_paths(
     c.QDANN_YIELD_FOLDER,
     table_name=c.QDANN_YIELD_TABLE_NAME)
