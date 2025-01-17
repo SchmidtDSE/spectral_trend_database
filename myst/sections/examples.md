@@ -19,7 +19,7 @@ Here is the same query using [query.QueryConstructor](/docs/spectral_trend_datab
 :::{embed} #nb.example_query_stdb_basic
 :::
 
-The real benefit, however, is in constructing SQL queries with multiple `JOIN` and `WHERE` statements. Here is a more complicated request collecting spectral index data from 2012-2015 for a subset of sample_ids:
+The real benefit, however, is in constructing SQL queries with multiple `JOIN` and `WHERE` statements. Here is a more complicated request collecting spectral index data from 2010-2013 for a subset of sample_ids:
 
 :::{embed} #nb.example_query_stdb_advanced
 :::
@@ -31,12 +31,12 @@ The real benefit, however, is in constructing SQL queries with multiple `JOIN` a
 
 Using the [utils](/docs/spectral_trend_database/spectral_trend_database.utils.html) module we can easily turn these rows into xarray-datasets to parse and interact with the data.
 
-:::{embed} #nb.parsing_single_row
+:::{embed} #nb.rows_to_xr
 :::
 
-Similarly we can turn multiple rows into a single dataset. Because rows contain overlapping dates we'll also need to filter the dates using the `filter_dates` method below:
+And then filter by dates
 
-:::{embed} #nb.parsing_multiple_rows
+:::{embed} #nb.filter_by_dates
 :::
 
 ---
