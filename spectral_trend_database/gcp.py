@@ -136,10 +136,12 @@ def gcs_list_folders(
     if client is None:
         client = storage.Client(project=project)
     bucket, path = process_gcs_path(path, *args, bucket=bucket)
+    path_count = path.count('/')
     blobs = client.list_blobs(bucket, prefix=path)
-    folders = set(
-        '/'.join(b.name.split('/')[:path.count('/')+2])
-        for b in blobs)
+    folders = list(set(
+        '/'.join(b.name.split('/')[:path_count+2])
+        for b in blobs
+        if b.name.count('/') > path_count + 1))
     if search:
         folders = [p for p in folders if re.search(search, p)]
     if include_bucket:
@@ -151,7 +153,7 @@ def gcs_list_folders(
                 'if `include_gs` is True `include_bucket` must also be True')
             raise ValueError(err)
         folders = [f'gs://{p}' for p in folders]
-    return list(folders)
+    return folders
 
 
 def upload_file(
