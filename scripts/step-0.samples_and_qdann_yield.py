@@ -67,7 +67,8 @@ H3_RESOLUTIONS = [4, 5, 7, 9, 11]
 #
 # CONSTANTS
 #
-SRC_PATH_BASE = f'{c.URL_PREFIX}agriculture_monitoring/CDL/lobell/QDANN/'
+# SRC_PATH_BASE = f'{c.URL_PREFIX}agriculture_monitoring/CDL/lobell/QDANN'
+SRC_PATH_BASE = f'{c.URL_PREFIX}agriculture_monitoring/spectral_trend_database/v1/meta/yield/qdann'
 LL = ['lon', 'lat']
 YIELD_DATA_COLS = ['sample_id', 'year', 'biomass', 'nb_years']
 SAMPLE_COLS = [
@@ -83,9 +84,9 @@ SAMPLE_COLS += [f'h3_{r}' for r in H3_RESOLUTIONS]
 def path_for_crop_type(crop_type):
     path = SRC_PATH_BASE
     if c.YIELD_BUFFER_RADIUS:
-        path += f'{crop_type}_biomass_2008-2022-b{c.YIELD_BUFFER_RADIUS}-mean.csv'
+        path += f'/{crop_type}_biomass_2008-2022-b{c.YIELD_BUFFER_RADIUS}-mean.csv'
     else:
-        path += f'{crop_type}_biomass_1999-2022.csv'
+        path += f'/{crop_type}_biomass_2008-2022.csv'
     print(f'- {crop_type} path:', path)
     return path
 
