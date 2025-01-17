@@ -106,6 +106,54 @@ def gcs_list(
     return paths
 
 
+def gcs_list_folders(
+        path: str,
+        *args: str,
+        bucket: Optional[str] = None,
+        search: Optional[str] = None,
+        project: Optional[str] = None,
+        client: Optional[storage.Client] = None,
+        include_bucket: bool = True,
+        include_gs: bool = False) -> list[str]:
+    """ list cloud storage objects
+
+    Args:
+
+        path (str): file-path may or may not include scheme
+        *args (str): ordered additional parts to path (see Usage in `process_gcs_path` above)
+        search (Optional[str] = None): only return folders containing <search>
+        project (Optional[str] = None): gcp project name
+        client Optional[bq.Client] = None):
+            instance of bigquery client
+            if None a new one will be instantiated
+        include_bucket (bool = True): if true prefix with bucket-name
+        include_gs (bool = False): if true prefix with gs://
+
+    Returns:
+
+        list of cloud storage object paths
+    """
+    if client is None:
+        client = storage.Client(project=project)
+    bucket, path = process_gcs_path(path, *args, bucket=bucket)
+    blobs = client.list_blobs(bucket, prefix=path)
+    folders = set(
+        '/'.join(b.name.split('/')[:path.count('/')+2])
+        for b in blobs)
+    if search:
+        folders = [p for p in folders if re.search(search, p)]
+    if include_bucket:
+        folders = [f'{bucket}/{p}' for p in folders]
+    if include_gs:
+        if not include_bucket:
+            err = (
+                'gcp.gcs_list_folders: '
+                'if `include_gs` is True `include_bucket` must also be True')
+            raise ValueError(err)
+        folders = [f'gs://{p}' for p in folders]
+    return list(folders)
+
+
 def upload_file(
         src: str,
         path: str,
