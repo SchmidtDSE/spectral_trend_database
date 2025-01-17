@@ -68,7 +68,6 @@ def process_folder(
                 df.to_parquet(local_dest, partition_cols=['year'])
                 for p in Path(local_dest).glob('*/*'):
                     _dest = f'{gcs_dest}/{p.parent.name}/{p.name}'
-                    print('\t- gcs:', _dest)
                     runner.save_to_gcp(
                         src=p,
                         gcs_dest=_dest,
@@ -78,7 +77,6 @@ def process_folder(
                         dry_run=DRY_RUN)
             else:
                 df.to_parquet(local_dest)
-                print('- gcs:', gcs_dest)
                 runner.save_to_gcp(
                     src=local_dest,
                     gcs_dest=gcs_dest,
