@@ -70,7 +70,6 @@ def index_arrays(
 
         (list[np.ndarray]) of spectral index values
     """
-    from IPython.display import display
     ds = utils.row_to_xr(row, coord=coord, data_vars=bands)
     index_datasets = ds.eval(list(indices.values()))  # type: ignore[arg-type]
     index_arrays = [v.data for v in index_datasets]  # type: ignore[attr-defined]
