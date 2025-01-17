@@ -456,7 +456,8 @@ class QueryConstructor(object):
     def _table_name(self, table):
         if table:
             if self._uppercase_table:
-                table = table.upper()
+                parts = table.split('.')
+                table = '.'.join(parts[:-1]+[parts[-1].upper()])
             if self._table_prefix and ('.' not in table):
                 table = f'{self._table_prefix}.{table}'
         else:
