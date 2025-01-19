@@ -132,7 +132,7 @@ FOLDERS = gcp.gcs_list_folders(GCS_DB_JSON)
 FOLDERS = sorted(FOLDERS)
 print('- source directories:')
 pprint(FOLDERS)
-for i, f in enumerate(FOLDERS[-2:]):
+for i, f in enumerate(FOLDERS):
     print('\n' * 2)
     print('--' * 50)
     print(f'[{i}]', f)
