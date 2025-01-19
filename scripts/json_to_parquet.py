@@ -41,6 +41,12 @@ DRY_RUN = c.DRY_RUN
 
 
 #
+# CONSTANTS
+#
+RGX_YYYYJ = r'-(19|20)([89]|[0-3])[0-9].json$'
+
+
+#
 # METHODS
 #
 def process_folder(
@@ -54,36 +60,64 @@ def process_folder(
         else:
             print('[WARNING] subfolders not being processed:', subfolders)
     else:
-        files = gcp.gcs_list(folder)
         gcs_dest = f"{re.sub(f'^{GCS_DB_JSON}', GCS_DB_PARQ, folder)}.parquet"
         local_dest = paths.local(gcs_dest)
+        files = gcp.gcs_list(folder)
+        nb_files = len(files)
         if DRY_RUN:
-            print('- (dry_run) local:', local_dest)
-            print('- (dry_run) gcs:', gcs_dest)
+            print(f'- (dry_run) local [{nb_files}]:', local_dest)
+            print(f'- (dry_run) gcs [{nb_files}]:', gcs_dest)
         else:
             Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
-            df = pd.concat([pd.read_json(f, lines=True) for f in files])
-            print('- shape:', df.shape)
-            if 'year' in df.columns:
-                df.to_parquet(local_dest, partition_cols=['year'])
-                for p in Path(local_dest).glob('*/*'):
-                    _dest = f'{gcs_dest}/{p.parent.name}/{p.name}'
-                    runner.save_to_gcp(
-                        src=p,
-                        gcs_dest=_dest,
-                        table_name=None,
-                        dataset_name=None,
-                        remove_src=True,
-                        dry_run=DRY_RUN)
+            if are_yyyy_partitioned(files):
+                for file in files:
+                    df = pd.read_json(file, lines=True)
+                    print('- shape:', df.shape)
+                    df.to_parquet(local_dest, partition_cols=['year'])
+                    for path in Path(local_dest).glob('*/*'):
+                        _dest = f'{gcs_dest}/{path.parent.name}/{path.name}'
+                        runner.save_to_gcp(
+                            src=path,
+                            gcs_dest=_dest,
+                            table_name=None,
+                            dataset_name=None,
+                            remove_src=True,
+                            dry_run=DRY_RUN)
             else:
-                df.to_parquet(local_dest)
-                runner.save_to_gcp(
-                    src=local_dest,
-                    gcs_dest=gcs_dest,
-                    table_name=None,
-                    dataset_name=None,
-                    remove_src=True,
-                    dry_run=DRY_RUN)
+                if nb_files == 1:
+                    df = pd.read_json(files[0], lines=True)
+                    print('- shape:', df.shape)
+                    df.to_parquet(local_dest)
+                    runner.save_to_gcp(
+                        src=local_dest,
+                        gcs_dest=gcs_dest,
+                        table_name=None,
+                            dataset_name=None,
+                            remove_src=True,
+                            dry_run=DRY_RUN)
+                else:
+                    err = (
+                        'if non-partitioned only 1 file may exist, '
+                        f'found {nb_files}:\n'
+                        f'{files}')
+                    raise ValueError(err)
+
+
+def are_yyyy_partitioned(files):
+    nb_files = len(files)
+    searches = [re.search(RGX_YYYYJ, f) is not None for f in files]
+    if nb_files == 1:
+        return searches[0]
+    else:
+        yyyy_searches = [True for v in searches if v]
+        nb_yyyy = len(yyyy_searches)
+        if nb_yyyy:
+            if nb_yyyy==nb_files:
+                return True
+            else:
+                raise ValueError('recieved mixed yyyy/not-yyyy files')
+        else:
+            return False
 
 
 #
@@ -98,7 +132,7 @@ FOLDERS = gcp.gcs_list_folders(GCS_DB_JSON)
 FOLDERS = sorted(FOLDERS)
 print('- source directories:')
 pprint(FOLDERS)
-for i, f in enumerate(FOLDERS):
+for i, f in enumerate(FOLDERS[-2:]):
     print('\n' * 2)
     print('--' * 50)
     print(f'[{i}]', f)
