@@ -43,6 +43,8 @@ dependencies:
   - altair-all
   - vega_datasets
   # -------------------
+  - duckdb
+  - ibis-duckdb
   - xarray-datatree
   - zarr
   # experimental vis
