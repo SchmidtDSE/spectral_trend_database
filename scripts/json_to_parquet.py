@@ -146,6 +146,6 @@ pprint(FOLDERS[START_INDEX:])
 for i, f in enumerate(FOLDERS[START_INDEX:]):
     print('\n' * 2)
     print('--' * 50)
-    print(f'[{i+START}]', f)
+    print(f'[{i + START_INDEX}]', f)
     print('--' * 50)
     process_folder(f)
