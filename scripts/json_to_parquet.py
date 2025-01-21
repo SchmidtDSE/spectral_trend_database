@@ -37,6 +37,7 @@ from spectral_trend_database import runner
 #
 GCS_DB_JSON = f'{c.GCS_BUCKET}/{c.GCS_ROOT_FOLDER}'
 GCS_DB_PARQ = f'{c.GCS_BUCKET}/{c.GCS_PARQUET_FOLDER}'
+START_INDEX = 0
 DRY_RUN = c.DRY_RUN
 
 
@@ -49,6 +50,31 @@ RGX_YYYYJ = r'-(19|20)([89]|[0-3])[0-9].json$'
 #
 # METHODS
 #
+def save_as_parquet(df, local_dest, gcs_dest, partitioned=False):
+    if partitioned:
+        print('- shape[partitioned]:', df.shape)
+        df.to_parquet(local_dest, partition_cols=['year'])
+        for path in Path(local_dest).glob('*/*'):
+            _dest = f'{gcs_dest}/{path.parent.name}/{path.name}'
+            runner.save_to_gcp(
+                src=path,
+                gcs_dest=_dest,
+                table_name=None,
+                dataset_name=None,
+                remove_src=True,
+                dry_run=DRY_RUN)
+    else:
+        print('- shape:', df.shape)
+        df.to_parquet(local_dest)
+        runner.save_to_gcp(
+            src=local_dest,
+            gcs_dest=gcs_dest,
+            table_name=None,
+            dataset_name=None,
+            remove_src=True,
+            dry_run=DRY_RUN)
+
+
 def process_folder(
         folder,
         process_subfolders=True):
@@ -68,39 +94,24 @@ def process_folder(
             print(f'- (dry_run) local [{nb_files}]:', local_dest)
             print(f'- (dry_run) gcs [{nb_files}]:', gcs_dest)
         else:
-            Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
-            if are_yyyy_partitioned(files):
+            if nb_files == 1:
+                df = pd.read_json(files[0], lines=True)
+                Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
+                if 'year' in df.columns:
+                    save_as_parquet(df, local_dest, gcs_dest, partitioned=True)
+                else:
+                    save_as_parquet(df, local_dest, gcs_dest, partitioned=False)
+            elif are_yyyy_partitioned(files):
+                Path(local_dest).parent.mkdir(parents=True, exist_ok=True)
                 for file in files:
                     df = pd.read_json(file, lines=True)
-                    print('- shape:', df.shape)
-                    df.to_parquet(local_dest, partition_cols=['year'])
-                    for path in Path(local_dest).glob('*/*'):
-                        _dest = f'{gcs_dest}/{path.parent.name}/{path.name}'
-                        runner.save_to_gcp(
-                            src=path,
-                            gcs_dest=_dest,
-                            table_name=None,
-                            dataset_name=None,
-                            remove_src=True,
-                            dry_run=DRY_RUN)
+                    save_as_parquet(df, local_dest, gcs_dest, partitioned=True)
             else:
-                if nb_files == 1:
-                    df = pd.read_json(files[0], lines=True)
-                    print('- shape:', df.shape)
-                    df.to_parquet(local_dest)
-                    runner.save_to_gcp(
-                        src=local_dest,
-                        gcs_dest=gcs_dest,
-                        table_name=None,
-                            dataset_name=None,
-                            remove_src=True,
-                            dry_run=DRY_RUN)
-                else:
-                    err = (
-                        'if non-partitioned only 1 file may exist, '
-                        f'found {nb_files}:\n'
-                        f'{files}')
-                    raise ValueError(err)
+                err = (
+                    'if non-partitioned only 1 file may exist, '
+                    f'found {nb_files}:\n'
+                    f'{files}')
+                raise ValueError(err)
 
 
 def are_yyyy_partitioned(files):
@@ -112,7 +123,7 @@ def are_yyyy_partitioned(files):
         yyyy_searches = [True for v in searches if v]
         nb_yyyy = len(yyyy_searches)
         if nb_yyyy:
-            if nb_yyyy==nb_files:
+            if nb_yyyy == nb_files:
                 return True
             else:
                 raise ValueError('recieved mixed yyyy/not-yyyy files')
@@ -131,10 +142,10 @@ print(f'- dest: gs://{GCS_DB_PARQ}')
 FOLDERS = gcp.gcs_list_folders(GCS_DB_JSON)
 FOLDERS = sorted(FOLDERS)
 print('- source directories:')
-pprint(FOLDERS)
-for i, f in enumerate(FOLDERS):
+pprint(FOLDERS[START_INDEX:])
+for i, f in enumerate(FOLDERS[START_INDEX:]):
     print('\n' * 2)
     print('--' * 50)
-    print(f'[{i}]', f)
+    print(f'[{i+START}]', f)
     print('--' * 50)
     process_folder(f)
