@@ -21,6 +21,7 @@ band descriptions:
         SR_B5    0.851-0.879 μm    (nir)
         SR_B6    1.566-1.651 μm    (swir1)
         SR_B7    2.107-2.294 μm    (swir2)
+        ST_B10   (surface-temp K)  (temp)
 
     landsat 5/7:
         SR_B1    0.45-0.52 μm    (blue)
@@ -44,6 +45,8 @@ NOMINAL_SCALE = 30
 GRID_DEGREE_SIZE = 0.0439453125
 LSAT_SCALE_FACTOR = 0.0000275
 LSAT_OFFSET = -0.2
+LSAT_ST_SCALE_FACTOR = 0.00341802
+LSAT_ST_OFFSET = 149
 TRANSFORM = [GRID_DEGREE_SIZE, 0, 0, 0, -GRID_DEGREE_SIZE, 0]
 MASK_VALUE = 2.1474836e9
 QA_BANDS = ['QA_PIXEL', 'QA_RADSAT']
@@ -56,7 +59,8 @@ L8_BANDS = [
     'SR_B4',
     'SR_B5',
     'SR_B6',
-    'SR_B7'
+    'SR_B7',
+    'ST_B10'
 ]
 L57_BANDS = [
     'SR_B1',
@@ -64,7 +68,8 @@ L57_BANDS = [
     'SR_B3',
     'SR_B4',
     'SR_B5',
-    'SR_B7'
+    'SR_B7',
+    'ST_B6'
 ]
 HARMONIZED_BANDS = [
     'blue',
@@ -72,8 +77,12 @@ HARMONIZED_BANDS = [
     'red',
     'nir',
     'swir1',
-    'swir2'
+    'swir2',
+    'st'
 ]
+SPECTRAL_BANDS = HARMONIZED_BANDS[:-1]
+TEMPERATURE_BANDS = HARMONIZED_BANDS[-1:]
+
 MISSIONS: dict[int, dict] = {
     8: {
         'id': L8_SR_ID,
@@ -116,7 +125,14 @@ def cloud_masked_rescaled_image(
     qa_mask = _im.select('QA_PIXEL').bitwiseAnd(0b11111).eq(0)
     saturation_mask = _im.select('QA_RADSAT').eq(0)
     _im = _im.updateMask(qa_mask).updateMask(saturation_mask)
-    _im = _im.select(bands).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET)
+    _spec_band_names = [b for b in bands if b in SPECTRAL_BANDS]
+    _temp_band_names = [b for b in bands if b in TEMPERATURE_BANDS]
+    _bands = []
+    if _spec_band_names:
+        _bands.append(_im.select(_spec_band_names).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET))
+    if _temp_band_names:
+        _bands.append(_im.select(_temp_band_names).multiply(LSAT_ST_SCALE_FACTOR).add(LSAT_ST_OFFSET))
+    _im = ee.Image(_bands)
     if mission:
         _im = _im.set('mission', mission)
     _im = _im.set('system:time_start', im.date().millis())
