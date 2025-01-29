@@ -108,11 +108,15 @@ MISSIONS: dict[int, dict] = {
 def cloud_masked_rescaled_image(
         im: ee.Image,
         bands: list[str] = HARMONIZED_BANDS,
+        positive_optical_mask: bool = True,
         mission: Optional[int] = None) -> ee.Image:
     """ cloud mask/rescaled landsat image
     Args:
         im (ee.Image): landsat image
         bands (list[str]): optical bands to be kept
+        positive_optical_mask (bool = True):
+            if true masks out pixels where any of the optical bands lte 0.
+            ignored if there are no spectral bands in <bands>
         mission (Optional[int]):
             one of 8, 7, 5 (see `MISSIONS` dict above)
             if exists adds `mission` property to ee.image
@@ -126,13 +130,17 @@ def cloud_masked_rescaled_image(
     saturation_mask = _im.select('QA_RADSAT').eq(0)
     _im = _im.updateMask(qa_mask).updateMask(saturation_mask)
     _spec_band_names = [b for b in bands if b in SPECTRAL_BANDS]
-    _temp_band_names = [b for b in bands if b in TEMPERATURE_BANDS]
+    _therm_band_names = [b for b in bands if b in TEMPERATURE_BANDS]
     _bands = []
     if _spec_band_names:
-        _bands.append(_im.select(_spec_band_names).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET))
-    if _temp_band_names:
-        _bands.append(_im.select(_temp_band_names).multiply(LSAT_ST_SCALE_FACTOR).add(LSAT_ST_OFFSET))
+        _optical_bands = _im.select(_spec_band_names).multiply(LSAT_SCALE_FACTOR).add(LSAT_OFFSET)
+        _bands.append(_optical_bands)
+    if _therm_band_names:
+        _therm_bands =  _im.select(_therm_band_names).multiply(LSAT_ST_SCALE_FACTOR).add(LSAT_ST_OFFSET)
+        _bands.append(_therm_bands)
     _im = ee.Image(_bands)
+    if _spec_band_names and positive_optical_mask:
+        _im = _im.updateMask(_optical_bands.reduce(ee.Reducer.min()).gt(0))
     if mission:
         _im = _im.set('mission', mission)
     _im = _im.set('system:time_start', im.date().millis())
