@@ -276,6 +276,7 @@ def array_rows_to_xr(
 def rows_to_xr(
         rows: pd.DataFrame,
         coord: Optional[str] = 'date',
+        cols: list = [],
         attr_cols: list = [],
         list_cols: list = [],
         list_distinct_cols: list = [],
@@ -287,6 +288,9 @@ def rows_to_xr(
 
         rows (pd.DataFrame): data to convert to xarray dataset
         coord (str): coordinate row
+        cols (list = []):
+            list of columns to use for data_vars. if empty all columns not in
+            list_cols or attr_cols will be used.
         attr_cols (list = []): columns to use for attrs with shared values across rows
         list_cols (list = []): columns to use for attrs that become list of row values
         list_distinct_cols (list = []):
@@ -297,8 +301,11 @@ def rows_to_xr(
 
         rows data as xr.Dataset
     """
-    xr_cols = [n for n in rows.columns if n not in attr_cols + list_cols]
-    ds = rows[xr_cols].set_index(coord).to_xarray()
+    if not cols:
+        cols = [n for n in rows.columns if n not in attr_cols + list_cols]
+    if coord not in cols:
+        cols = [coord] + cols
+    ds = rows[cols].set_index(coord).to_xarray()
     attrs = rows[attr_cols].iloc[0].to_dict()
     if list_cols:
         if list_distinct_cols:
