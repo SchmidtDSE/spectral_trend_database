@@ -67,6 +67,7 @@ pixi init . --format pyproject
 pixi add python=3.11
 # 3. add packages (note this will use pixi magic to determine/fix package version ranges)
 pixi add $(cat package_names.txt)
+pixi add --pypi $(cat pypi_package_names.txt)
 ```
 
 

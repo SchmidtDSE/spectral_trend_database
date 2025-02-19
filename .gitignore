@@ -62,3 +62,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# pixi environments
+.pixi
+*.egg-info

@@ -43,7 +43,4 @@ ipywidgets
 jupyter-dash
 types-requests
 xee
-python-geohash - pypi
-build - pypi
-mproc - pypi
-furo - pypi
+furo
