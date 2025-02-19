@@ -21,7 +21,7 @@ USAGE:
 License:
     BSD, see LICENSE.md
 """
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from types import ModuleType
 from collections import UserDict
 from pathlib import Path
@@ -56,16 +56,14 @@ class ConfigHandler(UserDict):
             protected_keys: Optional[list[str]] = PROTECTED_KEYS) -> None:
         self.constants = constants
         self.config = utils.read_yaml(path, safe=True) or {}
-        if protected_keys:
-            for key in protected_keys:
-                config_keys = self.config.keys()
-                if key in config_keys:
-                    error = utils.message(
-                        _PROTECTED_ERROR.format(key),
-                        'config',
-                        level=None,
-                        return_str=True)
-                    raise ValueError(error)
+        self.protected_keys = protected_keys
+        self._check_protected_keys()
+
+    def update(self, config: [str, dict]) -> None:
+        if isinstance(config, str):
+            config = utils.read_yaml(path, safe=True)
+        self.config.update(config)
+        self._check_protected_keys()
 
     def get(self, key: str, default: Any = None):
         value = self.config.get(key, _NOT_FOUND)
@@ -89,6 +87,21 @@ class ConfigHandler(UserDict):
 
     def __getattr__(self, key):
         return self.__getitem__(key)
+
+    #
+    # PRIVATE
+    #
+    def _check_protected_keys(self):
+        if self.protected_keys:
+            for key in self.protected_keys:
+                config_keys = self.config.keys()
+                if key in config_keys:
+                    error = utils.message(
+                        _PROTECTED_ERROR.format(key),
+                        'config',
+                        level=None,
+                        return_str=True)
+                    raise ValueError(error)
 
 
 config = ConfigHandler(constants.USER_CONFIG_PATH)
