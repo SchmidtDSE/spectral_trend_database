@@ -28,44 +28,47 @@ The _Spectral Trend Database_ lives on [Google Big Query](https://cloud.google.c
 |  [INDICES_STATS_V1_GROWING_SEASON](https://schmidtdse.github.io/spectral_trend_database/docs/pages/database.html#indices_stats) | sample_id, year | True | False | same as `INDICES_STATS_V1` but restricted to the "growing season" |
 |  [INDICES_STATS_V1_OFF_SEASON](https://schmidtdse.github.io/spectral_trend_database/docs/pages/database.html#indices_stats) | sample_id, year | True | False | same as `INDICES_STATS_V1` but restricted to the "off season"|
 
+
 ---
 
-## QUICK SETUP
+## INSTALL/REQUIREMENTS
 
-<!-- start_setup -->
 1. Clone Repo
 
 ```bash
 git clone https://github.com/SchmidtDSE/spectral_trend_database.git
 ```
-2. Install Requirements
+
+2. Requirements
+
+Requirements are managed through a [Pixi](https://pixi.sh/latest) "project" (similar to a conda environment). After pixi is installed use `pixi run <cmd>` to ensure the correct project is being used. For example,
 
 ```bash
-cd spectral_trend_database
-mamba env create -f conda-env.yaml
-conda activate stdb
+# lauch jupyter
+pixi run jupyter lab .
+
+# run a script
+pixi run python scripts/hello_world.py
 ```
 
-3. Install `spectral_trend_database` module
+The first time `pixi run` is executed the project will be installed (note this means the first run will be a bit slower). Any changes to the project will be updated on the subsequent `pixi run`.  It is unnecessary, but you can run `pixi install` after changes - this will update your local environment, so that it does not need to be updated on the next `pixi run`.
+
+Note, the repo's `pyproject.toml`, and `pixi.lock` files ensure `pixi run` will just work. No need to recreate an environment. Additionally, the `pyproject.toml` file includes `fire_risk = { path = ".", editable = true }`. This line is equivalent to `pip install -e .`, so there is no need to pip install this module.
+
+The project was initially created using a `package_names.txt` and the following steps. Note that this should **NOT** be re-run as it will create a new project (potentially changing package versions).
 
 ```bash
-pip install -e .
+#
+# IMPORTANT: Do NOT run this unless you explicity want to create a new pixi project
+#
+# 1. initialize pixi project (in this case the pyproject.toml file had already existed)
+pixi init . --format pyproject
+# 2. add specified python version
+pixi add python=3.11
+# 3. add packages (note this will use pixi magic to determine/fix package version ranges)
+pixi add $(cat package_names.txt)
 ```
-<!-- end_setup -->
 
----
-
-## REQUIREMENTS
-
-Requirements are managed through a conda yaml [file](./conda-env.yaml). To create/update the `ENV_NAME` environment:
-
-```bash
-# create
-mamba env create -f conda-env.yaml
-
-# update
-mamba env update -f conda-env.yaml --prune
-```
 
 ---
 

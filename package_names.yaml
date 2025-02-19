@@ -1,0 +1,49 @@
+pycodestyle
+mypy
+pandas-stubs
+types-PyYAML
+ipykernel
+jupyterlab
+numpy
+pandas
+scipy
+xarray
+dask
+h3-py
+matplotlib
+seaborn
+click
+pytables
+pandas-gbq
+gcsfs
+geojson
+shapely
+geopandas
+affine
+rasterio
+rioxarray
+earthengine-api
+twine
+sphinx
+sphinx-autodoc2
+mystmd
+myst-parser
+jupyterlab-myst
+altair-all
+vega_datasets
+duckdb
+ibis-duckdb
+xarray-datatree
+zarr
+hvplot
+bokeh
+shiny
+plotly
+ipywidgets
+jupyter-dash
+types-requests
+xee
+python-geohash - pypi
+build - pypi
+mproc - pypi
+furo - pypi
