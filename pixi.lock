@@ -6377,7 +6377,7 @@ packages:
 - pypi: .
   name: spectral-trend-database
   version: 0.0.1
-  sha256: 1a22162fce81b04a6699771802994707dd48d0b0fb5727240face700d18eb655
+  sha256: 0c142cc21381784157b88f48b319b89d9d0a2941694212d8a5875001c950fc4b
   requires_dist:
   - python-geohash>=0.8.5,<0.9
   - build>=1.2.2.post1,<2

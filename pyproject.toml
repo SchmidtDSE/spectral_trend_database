@@ -8,6 +8,9 @@ version = "0.0.1"
 readme = "README.md"
 dependencies = [ "python-geohash>=0.8.5,<0.9", "build>=1.2.2.post1,<2", "mproc>=0.0.0.4,<0.0.0.5"]
 
+[project.scripts]
+stdb = "spectral_trend_database:cli.cli"
+
 [tool.setuptools]
 packages = [
 	"spectral_trend_database",
