@@ -28,8 +28,6 @@ pixi run job --a
 ```
 
 """
-_current_working_dir = Path.cwd()
-print(_current_working_dir)
 #
 # CONSTANTS
 #
@@ -132,7 +130,7 @@ def _process_path(path):
     if not re.search(YAML_REGEX, path):
         path = f'{path}.{YAML_EXT}'
     if path[0] not in FULL_PATH_PREFIXES:
-        path = f'{_current_working_dir}/{path}'
+        path = f'{Path.cwd()}/{path}'
     return path
 
 def _process_config(config):
