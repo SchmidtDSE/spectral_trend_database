@@ -6,26 +6,33 @@ import click
 from spectral_trend_database import utils
 from spectral_trend_database.config import ConfigHandler
 """
-```bash
-# stdb_config should live in directory
-# or could be passed with flag `stdb job -c path/to/config.yaml -i 1`
-# should the job name/indices be flags or just args
-# run named job
-pixi run stdb job -n my_job_step2
-
-# run the second job
-pixi run stdb job -i 1
-
-# run jobs 1, 2 and 3
-pixi run stdb job -r 1,3
-
-# run all jobs in order
-pixi run stdb job --a
-
-# we should probably create a "job" task
-pixi run job -r 1,3
-pixi run job --a
+```yaml
+# stdb_config.py
+root_dir: /users/repo/root/dir
+config_folder: if/exists/append/config/paths/below
+user_config: path/to/user_config.yaml
+indices_config: path/to/spectral_index_config.yaml
+job_folder: jobs/
+jobs:
+    - name: my_job_step1
+      file: my_job_step1.py
+      config:
+        var1: 1
+        var2: 123
+    # if config is string import from file
+    - name: my_job_step2
+      file: my_job_step2.py
+      config: job2.yaml
+    # no config is required
+    - name: config_not_required_step3
+      file: my_job_step3.py
+    # jobs without `file` run pre-defined jobs from stdb
+    - name: step-0.samples_and_qdann_yield
 ```
+
+
+
+
 
 """
 #
@@ -45,6 +52,18 @@ FALSEY: list[str] = ['None', 'none', 'null', 'false', 'False', '0']
 _NOT_FOUND: str = '_NOT_FOUND'
 DEFAULT_CONFIG = 'stdb.config.yaml'
 
+
+class JobRunner(object):
+
+    def __init__(self, jobs):
+        self.jobs = jobs
+        self.timer = utils.Timer()
+
+    def run(self):
+        print('start:', self.timer.start())
+        for job in self.jobs:
+            print(job['name'], self.timer.state())
+        print('complete:', self.timer.stop())
 
 
 #
@@ -81,8 +100,9 @@ def job(
         run_all=run_all)
     kwargs = _ctx_args(ctx.args)
     config = _process_config(config)
-    pprint(kwargs)
-    pprint(config)
+    jobs = _get_jobs(config, name, index, index_range, run_all)
+    runner = JobRunner(jobs)
+    runner.run()
 
 
 
@@ -132,6 +152,23 @@ def _process_path(path):
     if path[0] not in FULL_PATH_PREFIXES:
         path = f'{Path.cwd()}/{path}'
     return path
+
+def _get_jobs(config, name, index, index_range, run_all):
+    jobs = config['jobs']
+    if name:
+        jobs = [next(j for j in jobs if j.get(name))]
+    elif index:
+        jobs = jobs[index:index+1]
+    elif index_range:
+        i, j = [int(v.strip())-1 for v in index_range.split(',')]
+        jobs = jobs[i:j+1]
+    elif not run_all:
+        err = (
+            'spectral_trend_database.cli._get_jobs: '
+            'must pass one of [name, index, index_range, run_all]'
+        )
+        raise ValueError(err)
+    return jobs
 
 def _process_config(config):
     if config in FALSEY:

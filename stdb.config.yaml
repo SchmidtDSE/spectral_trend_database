@@ -1,0 +1,20 @@
+root_dir: /users/repo/root/dir
+config_folder: if/exists/append/config/paths/below
+user_config: path/to/user_config.yaml
+indices_config: path/to/spectral_index_config.yaml
+job_folder: jobs/
+jobs:
+    - name: my_job_step1
+      file: my_job_step1.py
+      config:
+        var1: 1
+        var2: 123
+    # if config is string import from file
+    - name: my_job_step2
+      file: my_job_step2.py
+      config: job2.yaml
+    # no config is required
+    - name: config_not_required_step3
+      file: my_job_step3.py
+    # jobs without `file` run pre-defined jobs from stdb
+    - name: step-0.samples_and_qdann_yield
