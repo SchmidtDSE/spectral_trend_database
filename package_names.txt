@@ -44,3 +44,5 @@ jupyter-dash
 types-requests
 xee
 furo
+google-cloud-bigquery
+google-cloud-storage

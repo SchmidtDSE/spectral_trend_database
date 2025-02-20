@@ -56,6 +56,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/backports.tarfile-1.2.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/beautifulsoup4-4.13.3-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/bidict-0.23.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/bigquery-magics-0.6.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/bleach-6.2.0-pyh29332c3_4.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/bleach-with-css-6.2.0-h82add2a_4.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/blinker-1.9.0-pyhff2d567_0.conda
@@ -142,6 +143,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/google-auth-2.38.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/google-auth-httplib2-0.2.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/google-auth-oauthlib-1.2.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/google-cloud-bigquery-3.29.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/google-cloud-bigquery-core-3.29.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/google-cloud-bigquery-storage-2.27.0-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/google-cloud-bigquery-storage-core-2.27.0-pyhd8ed1ab_2.conda
@@ -319,6 +321,10 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/oauthlib-3.2.2-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openjpeg-2.5.3-h8a3d83b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.4.1-h81ee809_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-api-1.16.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-instrumentation-0.48b0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-sdk-1.16.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-semantic-conventions-0.37b0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/orc-2.0.3-h0ff2369_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/orjson-3.10.15-py311h3ff9189_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/overrides-7.7.0-pyhd8ed1ab_1.conda
@@ -1157,6 +1163,27 @@ packages:
   - pkg:pypi/bidict?source=hash-mapping
   size: 31017
   timestamp: 1734272734954
+- conda: https://conda.anaconda.org/conda-forge/noarch/bigquery-magics-0.6.0-pyhd8ed1ab_0.conda
+  sha256: 0347b880322519f425147c21f0befb47a1197b683d3f1ef51c897242a95f6a22
+  md5: a57726aab55211c0b3fea5f1785da4ec
+  depends:
+  - db-dtypes >=0.3.0,<2.0.0dev
+  - google-cloud-bigquery-core >=3.13.0,<4.0.0dev
+  - ipykernel >=5.5.6
+  - ipython >=7.23.1
+  - ipywidgets >=7.7.1
+  - packaging >=20.0.0
+  - pandas >=1.1.0
+  - pyarrow >=3.0.0
+  - pydata-google-auth >=1.5.0
+  - python >=3.9
+  - tqdm >=4.7.4,<5.0.0dev
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/bigquery-magics?source=hash-mapping
+  size: 29419
+  timestamp: 1739481104320
 - conda: https://conda.anaconda.org/conda-forge/noarch/bleach-6.2.0-pyh29332c3_4.conda
   sha256: a05971bb80cca50ce9977aad3f7fc053e54ea7d5321523efc7b9a6e12901d3cd
   md5: f0b4c8e370446ef89797608d60a564b3
@@ -2317,6 +2344,33 @@ packages:
   - pkg:pypi/google-auth-oauthlib?source=hash-mapping
   size: 25474
   timestamp: 1734029033935
+- conda: https://conda.anaconda.org/conda-forge/noarch/google-cloud-bigquery-3.29.0-pyhd8ed1ab_0.conda
+  sha256: 4a4de6dd846f41c7d315ea1316b6ec7977d5ffa629d25866bb156d76c8d070c3
+  md5: 5431648c9352e71c3e64e22b79bf832d
+  depends:
+  - bigquery-magics >=0.1.0
+  - db-dtypes >=0.3.0,<2.0.0dev
+  - geopandas >=0.9.0,<2.0dev
+  - google-cloud-bigquery-core 3.29.0 pyhd8ed1ab_0
+  - google-cloud-bigquery-storage >=2.6.0,<3.0.0dev
+  - grpcio >=1.49.1,<2.0dev
+  - ipykernel >=6.0.0
+  - ipywidgets >=7.7.0
+  - opentelemetry-api >=1.1.0
+  - opentelemetry-instrumentation >=0.20b0
+  - opentelemetry-sdk >=1.1.0
+  - pandas >=1.1.0
+  - proto-plus >=1.22.3,<2.0.0dev
+  - protobuf >=3.20.2,<6.0.0dev,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5
+  - pyarrow >=3.0.0
+  - python >=3.9
+  - shapely >=1.8.4,<3.0.0dev
+  - tqdm >=4.7.4,<=5.0.0dev
+  license: Apache-2.0
+  license_family: Apache
+  purls: []
+  size: 10746
+  timestamp: 1737583583305
 - conda: https://conda.anaconda.org/conda-forge/noarch/google-cloud-bigquery-core-3.29.0-pyhd8ed1ab_0.conda
   sha256: d916da21087d0196ec68b84d33e8b3b29d355b5b6a3555392fe59e862abb7360
   md5: 449d4cf2009b6b831582af2c8c8e4988
@@ -4878,6 +4932,59 @@ packages:
   purls: []
   size: 2934522
   timestamp: 1739301896733
+- conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-api-1.16.0-pyhd8ed1ab_0.conda
+  sha256: be45f7d7f940769ae8f635e33a070f559368e71357907ade630bb7be8ef3f658
+  md5: fed585631136a36d24d4aabcf27fbfed
+  depends:
+  - deprecated >=1.2.6
+  - python >=3.7
+  - setuptools >=16.0
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/opentelemetry-api?source=hash-mapping
+  size: 40106
+  timestamp: 1676680760252
+- conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-instrumentation-0.48b0-pyhd8ed1ab_0.conda
+  sha256: e7466998c0a6e5ecc9b8681312617c5d6d85afe3902a03fa7c755eb1a08c3db8
+  md5: 5cd186b5587efdc79c6b24f06b2b1726
+  depends:
+  - opentelemetry-api ~=1.4
+  - python >=3.7
+  - setuptools >=16.0
+  - wrapt <2.0.0,>=1.0.0
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/opentelemetry-instrumentation?source=hash-mapping
+  size: 30783
+  timestamp: 1724896532781
+- conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-sdk-1.16.0-pyhd8ed1ab_0.conda
+  sha256: 3a117fb181f456b66eb2c13a7f836463092d7c4e9b9eaa1c29fc5063f06a0a8a
+  md5: 42de278a97f49bebb07fb2cb6c05047c
+  depends:
+  - opentelemetry-api 1.16.0
+  - opentelemetry-semantic-conventions 0.37b0
+  - python >=3.7
+  - setuptools >=16.0
+  - typing-extensions >=3.7.4
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/opentelemetry-sdk?source=hash-mapping
+  size: 63413
+  timestamp: 1676709298842
+- conda: https://conda.anaconda.org/conda-forge/noarch/opentelemetry-semantic-conventions-0.37b0-pyhd8ed1ab_0.conda
+  sha256: e2d59febb1c17e62c0842d120df89a8e7c5584883c9f353bbb9128c7fa5ce0f0
+  md5: 4a766d4cf4126dc099fca062ee8ade11
+  depends:
+  - python >=3.7
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/opentelemetry-semantic-conventions?source=hash-mapping
+  size: 28574
+  timestamp: 1676680576375
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/orc-2.0.3-h0ff2369_2.conda
   sha256: cca330695f3bdb8c0e46350c29cd4af3345865544e36f1d7c9ba9190ad22f5f4
   md5: 24b1897c0d24afbb70704ba998793b78
@@ -6377,7 +6484,7 @@ packages:
 - pypi: .
   name: spectral-trend-database
   version: 0.0.1
-  sha256: 0c142cc21381784157b88f48b319b89d9d0a2941694212d8a5875001c950fc4b
+  sha256: dc6f0ac6f03d82c2d40727267d649b33afcdeabf7825153b966b89c332d4660e
   requires_dist:
   - python-geohash>=0.8.5,<0.9
   - build>=1.2.2.post1,<2
