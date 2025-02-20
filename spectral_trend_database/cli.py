@@ -1,6 +1,10 @@
-import click
+from pathlib import Path
 import re
-
+import yaml
+from pprint import pprint
+import click
+from spectral_trend_database import utils
+from spectral_trend_database.config import ConfigHandler
 """
 ```bash
 # stdb_config should live in directory
@@ -24,17 +28,25 @@ pixi run job --a
 ```
 
 """
+_current_working_dir = Path.cwd()
+print(_current_working_dir)
 #
 # CONSTANTS
 #
 DRY_RUN: bool = False
 CTX_SETTINGS: dict = dict(allow_extra_args=True)
-MUTUALLY_EXCLUSIVE_ARGS: dict[str] = [
+MUTUALLY_EXCLUSIVE_ARGS: list[str] = [
     'name',
     'index',
     'index_range',
     'run_all' ]
+FULL_PATH_PREFIXES: list[str] = ['~', '/']
+YAML_REGEX: list[str] = r'\.(yml|yaml)$'
+YAML_EXT: str = 'yaml'
+FALSEY: list[str] = ['None', 'none', 'null', 'false', 'False', '0']
 _NOT_FOUND: str = '_NOT_FOUND'
+DEFAULT_CONFIG = 'stdb.config.yaml'
+
 
 
 #
@@ -51,7 +63,7 @@ def cli(ctx):
 @click.option('-i', '--index', type=int, required=False)
 @click.option('-r', '--range', 'index_range',type=str, required=False)
 @click.option('-a', '--all', 'run_all', is_flag=True, required=False)
-@click.option('-c', '--config', type=int, required=False)
+@click.option('-c', '--config', required=False, default=DEFAULT_CONFIG)
 @click.option('-l', '--limit', type=int, required=False)
 @click.option('--dry_run', type=bool, required=False, default=DRY_RUN)
 @click.pass_context
@@ -64,24 +76,25 @@ def job(
         config,
         limit=None,
         dry_run=DRY_RUN):
-    print('STDB JOB', ctx, name)
     _check_argument_exclusions(
         name=name,
         index=index,
         index_range=index_range,
         run_all=run_all)
-    kwargs = _ctx_args(ctx)
-    print(kwargs)
-    print(index, index_range, run_all, dry_run)
+    kwargs = _ctx_args(ctx.args)
+    config = _process_config(config)
+    pprint(kwargs)
+    pprint(config)
+
 
 
 #
 # HELPERS
 #
-def _ctx_args(ctx):
+def _ctx_args(ctx_args):
     args=[]
     kwargs={}
-    for a in ctx.args:
+    for a in ctx_args:
         if re.search('=',a):
             k,v=a.split('=')
             kwargs[k]=v
@@ -114,6 +127,29 @@ def _check_argument_exclusions(
             f'[{arg_names}]'
         )
         raise ValueError(err)
+
+def _process_path(path):
+    if not re.search(YAML_REGEX, path):
+        path = f'{path}.{YAML_EXT}'
+    if path[0] not in FULL_PATH_PREFIXES:
+        path = f'{_current_working_dir}/{path}'
+    return path
+
+def _process_config(config):
+    if config in FALSEY:
+        config = {}
+    else:
+        path = _process_path(config)
+        if Path(path).is_file():
+            config = utils.read_yaml(path)
+        else:
+            err = (
+                'spectral_trend_database.cli._process_config: '
+                'stdb config file does not exist '
+                f'[{path}]'
+            )
+            raise ValueError(err)
+    return config
 
 
 #
