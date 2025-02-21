@@ -1,14 +1,13 @@
 pycodestyle
 mypy
-pandas-stubs
-types-PyYAML
-ipykernel
-jupyterlab
 numpy
 pandas
 scipy
 xarray
 dask
+pandas-stubs
+ipykernel
+jupyterlab
 h3-py
 matplotlib
 seaborn
@@ -44,5 +43,4 @@ jupyter-dash
 types-requests
 xee
 furo
-google-cloud-bigquery
-google-cloud-storage
+types-pyyaml
