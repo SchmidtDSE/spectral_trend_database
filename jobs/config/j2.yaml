@@ -1,0 +1,8 @@
+bob: 1
+is_cool: false
+boom:
+  - [1, 2, 3]
+  - 3
+  - you:
+      are: 1
+      not: it
