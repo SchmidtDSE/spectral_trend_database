@@ -31,7 +31,9 @@ The _Spectral Trend Database_ lives on [Google Big Query](https://cloud.google.c
 
 ---
 
-## INSTALL/REQUIREMENTS
+## INSTALL
+
+To add to pixi project
 
 1. Clone Repo
 
@@ -39,7 +41,44 @@ The _Spectral Trend Database_ lives on [Google Big Query](https://cloud.google.c
 git clone https://github.com/SchmidtDSE/spectral_trend_database.git
 ```
 
-2. Requirements
+2. Install
+
+If using pixi, update pyproject.toml
+
+```yaml
+[tool.pixi.pypi-dependencies]
+spectral_trend_database = { path = "path/to/spectral_trend_database", editable = false }
+```
+
+Otherwise create an editable install
+
+```bash
+cd spectral_trend_database
+pip install -e .
+```
+
+3. Install H3
+
+H3 does not have a pypi version and was therefore not included in the requirements. You need to install it by hand.
+
+With pixi
+
+```bash
+pixi add h3-py
+```
+
+With conda
+
+```bash
+conda install h3-py
+```
+
+---
+
+## REQUIREMENTS
+
+IMPORTANT NOTE: See note on installing H3 above when using spectral_trend_database. This section is for developing within this codebase, not using spectral_trend_database as a python package.
+
 
 Requirements are managed through a [Pixi](https://pixi.sh/latest) "project" (similar to a conda environment). After pixi is installed use `pixi run <cmd>` to ensure the correct project is being used. For example,
 
