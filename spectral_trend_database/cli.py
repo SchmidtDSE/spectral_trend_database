@@ -60,11 +60,22 @@ class JobRunner(object):
         self.timer = utils.Timer()
 
     def run(self):
-        print('start:', self.timer.start())
+        print('- start:', self.timer.start())
+        print('- run jobs:', [j['name'] for j in self.jobs])
+        print('-' * 100)
         for job in self.jobs:
-            print(job['name'], self.timer.state())
-        print('complete:', self.timer.stop())
+            self.run_job(**job)
+        print('-' * 100)
+        end_time = self.timer.stop()
+        duration = self.timer.delta()
+        print(f'- complete [{duration}]: {end_time}')
 
+    def run_job(self, name, file=None, config=None):
+        print()
+        print(name, self.timer.now())
+        print(file)
+        pprint(config)
+        print()
 
 #
 # CLI INTERFACE

@@ -210,7 +210,7 @@ class Timer(object):
             fmt=self.fmt
         elif fmt in ['ts','timestamp']:
             fmt=self.ts_fmt
-        return datetime.now().strftime(self.ts_fmt)
+        return datetime.now().strftime(fmt)
 
 
 #
