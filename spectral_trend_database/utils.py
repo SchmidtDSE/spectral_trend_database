@@ -27,11 +27,25 @@ from spectral_trend_database import types
 DEFAULT_ACTION: Literal['prefix', 'suffix', 'replace'] = 'replace'
 LIST_LIKE_TYPES: tuple = (list, tuple, np.ndarray, xr.DataArray, pd.Series)
 DATE_FMT: str = '%Y-%m-%d'
-
+FULL_PATH_PREFIXES: list[str] = ['~', '/']
+YAML_REGEX: list[str] = r'\.(yml|yaml)$'
+YAML_EXT: str = 'yaml'
+FALSEY: list[str] = ['None', 'none', 'null', 'false', 'False', '0']
 
 #
 # I/O
 #
+def full_path(path, ext=None, ext_regex=None, full_path_prefixes=FULL_PATH_PREFIXES):
+    if path[0] not in full_path_prefixes:
+        path = f'{Path.cwd()}/{path}'
+    if ext:
+        if not ext_regex:
+            ext_regex = f'.{ext}$'
+        if not re.search(ext_regex, path):
+            path = f'{path}.{ext}'
+    return path
+
+
 def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
     """ Reads (and optionally extracts part of) yaml file
 
@@ -58,6 +72,30 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
         for k in key_path:
             obj = obj[k]
         return obj
+
+
+def process_config(config: Union[str, dict, Literal[None, False]]) -> dict:
+    """
+    TODO: UPDATE DOC-STRING
+    - if falsey config = {}
+    - if string load yaml file
+    - otherwise assume dict
+    return config
+    """
+    if (not config) or (config in FALSEY):
+        config = {}
+    elif isinstance(config, str):
+        path = full_path(config, ext=YAML_EXT, ext_regex=YAML_REGEX)
+        if Path(path).is_file():
+            config = read_yaml(path)
+        else:
+            err = (
+                'spectral_trend_database.utils.process_config: '
+                'config file does not exist '
+                f'[{path}]'
+            )
+            raise ValueError(err)
+    return config
 
 
 def make_parent_directories(*paths):

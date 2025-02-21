@@ -5470,8 +5470,8 @@ packages:
   timestamp: 1693929424267
 - pypi: .
   name: spectral-trend-database
-  version: 0.0.1
-  sha256: 24bafc13406fe60436be9704d742fba666d1c89bcebc0aca6f57aee097244e66
+  version: 0.0.2
+  sha256: b8dd046f26a983dc970cb8cdb9ff45fabc696e1832008db71efb386cb1f3c895
   requires_dist:
   - click
   - numpy

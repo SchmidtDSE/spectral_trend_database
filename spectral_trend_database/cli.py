@@ -45,13 +45,23 @@ MUTUALLY_EXCLUSIVE_ARGS: list[str] = [
     'index',
     'index_range',
     'run_all' ]
-FULL_PATH_PREFIXES: list[str] = ['~', '/']
-YAML_REGEX: list[str] = r'\.(yml|yaml)$'
-YAML_EXT: str = 'yaml'
-FALSEY: list[str] = ['None', 'none', 'null', 'false', 'False', '0']
 _NOT_FOUND: str = '_NOT_FOUND'
 DEFAULT_CONFIG = 'stdb.config.yaml'
 
+
+#----------------------------------------------------
+#
+# DEV: TO BE MOVED TO ITS OWN MODULE
+#
+import importlib.util
+import sys
+
+def import_module(path):
+    spec = importlib.util.spec_from_file_location("module.name", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["module.name"] = module
+    spec.loader.exec_module(module)
+    return module
 
 class JobRunner(object):
 
@@ -59,7 +69,8 @@ class JobRunner(object):
         self.jobs = jobs
         self.timer = utils.Timer()
 
-    def run(self):
+    def run(self, run_config={}):
+        self.run_config = run_config
         print('- start:', self.timer.start())
         print('- run jobs:', [j['name'] for j in self.jobs])
         print('-' * 100)
@@ -70,12 +81,24 @@ class JobRunner(object):
         duration = self.timer.delta()
         print(f'- complete [{duration}]: {end_time}')
 
-    def run_job(self, name, file=None, config=None):
+    def run_job(self, name, file=None, config={}):
         print()
         print(name, self.timer.now())
-        print(file)
-        pprint(config)
+        print('file:', file)
+        if file:
+            path =  utils.full_path(file, ext='py')
+        else:
+            # raise NotImplementedError('TODO: stdb jobs if no file')
+            print('TODO: stdb jobs if no file')
+            return
+        config = utils.process_config(config)
+        job_interface = import_module(path)
+        job_interface.run({**config, **self.run_config})
         print()
+#
+#
+#----------------------------------------------------
+
 
 #
 # CLI INTERFACE
@@ -110,10 +133,10 @@ def job(
         index_range=index_range,
         run_all=run_all)
     kwargs = _ctx_args(ctx.args)
-    config = _process_config(config)
+    config = utils.process_config(config)
     jobs = _get_jobs(config, name, index, index_range, run_all)
     runner = JobRunner(jobs)
-    runner.run()
+    runner.run(kwargs)
 
 
 
@@ -157,12 +180,6 @@ def _check_argument_exclusions(
         )
         raise ValueError(err)
 
-def _process_path(path):
-    if not re.search(YAML_REGEX, path):
-        path = f'{path}.{YAML_EXT}'
-    if path[0] not in FULL_PATH_PREFIXES:
-        path = f'{Path.cwd()}/{path}'
-    return path
 
 def _get_jobs(config, name, index, index_range, run_all):
     jobs = config['jobs']
@@ -180,22 +197,6 @@ def _get_jobs(config, name, index, index_range, run_all):
         )
         raise ValueError(err)
     return jobs
-
-def _process_config(config):
-    if config in FALSEY:
-        config = {}
-    else:
-        path = _process_path(config)
-        if Path(path).is_file():
-            config = utils.read_yaml(path)
-        else:
-            err = (
-                'spectral_trend_database.cli._process_config: '
-                'stdb config file does not exist '
-                f'[{path}]'
-            )
-            raise ValueError(err)
-    return config
 
 
 #
