@@ -70,6 +70,13 @@ pixi add $(cat package_names.txt)
 pixi add --pypi $(cat pypi_package_names.txt)
 ```
 
+Note that pixi is being used to install build/twine are part of the pixi-project so pushing to PYPI requires `pixi run`
+
+```bash
+pixi run python -m build
+pixi run python -m twine upload dist/*
+```
+
 
 ---
 
