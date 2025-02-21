@@ -127,29 +127,33 @@ def job(
         config,
         limit=None,
         dry_run=DRY_RUN):
+    name, run_config = _pocess_name_and_context(name, ctx.args)
     _check_argument_exclusions(
         name=name,
         index=index,
         index_range=index_range,
         run_all=run_all)
-    kwargs = _ctx_args(ctx.args)
     config = utils.process_config(config)
     jobs = _get_jobs(config, name, index, index_range, run_all)
     runner = JobRunner(jobs)
-    runner.run(kwargs)
+    runner.run(run_config)
 
 
 
 #
 # HELPERS
 #
-def _ctx_args(ctx_args):
+def _pocess_name_and_context(name, ctx_args):
     args=[]
-    kwargs={}
+    config={}
+    if name and ('=' in name):
+        k, v = name.split('=')
+        name = None
+        config[k] = v
     for a in ctx_args:
         if re.search('=',a):
             k,v=a.split('=')
-            kwargs[k]=v
+            config[k]=v
         else:
             args.append(a)
     if args:
@@ -158,7 +162,7 @@ def _ctx_args(ctx_args):
             f'additional command line arguments passed [{args}]'
         )
         raise ValueError(err)
-    return kwargs
+    return name, config
 
 def _non_trival_arg(value):
     trivial = (
@@ -184,7 +188,14 @@ def _check_argument_exclusions(
 def _get_jobs(config, name, index, index_range, run_all):
     jobs = config['jobs']
     if name:
-        jobs = [next(j for j in jobs if j.get(name))]
+        job = next((j for j in jobs if j.get('name') == name), False)
+        if not job:
+            err = (
+                'spectral_trend_database.cli._get_jobs: '
+                f'job "{name}" not found in {jobs}'
+            )
+            raise ValueError(err)
+        jobs = [job]
     elif index:
         jobs = jobs[index:index+1]
     elif index_range:
