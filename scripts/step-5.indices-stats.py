@@ -32,7 +32,7 @@ from spectral_trend_database import query
 from spectral_trend_database import paths
 from spectral_trend_database import utils
 from spectral_trend_database import types
-from spectral_trend_database import runner
+from spectral_trend_database import interface
 
 
 #
@@ -108,7 +108,7 @@ for year in YEARS:
     growing_year_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_START_YYMM)
     off_ident = period_ident(c.OFF_SEASON_START_YYMM, c.OFF_SEASON_END_YYMM)
     grow_ident = period_ident(c.GROWING_SEASON_START_YYMM, c.GROWING_SEASON_END_YYMM)
-    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+    table_name, local_dest, gcs_dest = interface.table_name_and_paths(
         c.INDICES_STATS_FOLDER,
         growing_year_ident,
         table_name=c.INDICES_STATS_TABLE_NAME,
@@ -150,24 +150,24 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
     # 4. report on errors
-    runner.print_errors(errors)
+    interface.print_errors(errors)
 
     # 5. save data (gcs, bq]
-    runner.save_to_gcp(
+    interface.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
         dataset_name=c.DATASET_NAME,
         table_name=table_name,
         remove_src=True,
         dry_run=c.DRY_RUN)
-    runner.save_to_gcp(
+    interface.save_to_gcp(
         src=local_dest_off,
         gcs_dest=gcs_dest_off,
         dataset_name=c.DATASET_NAME,
         table_name=table_name_off,
         remove_src=True,
         dry_run=c.DRY_RUN)
-    runner.save_to_gcp(
+    interface.save_to_gcp(
         src=local_dest_grow,
         gcs_dest=gcs_dest_grow,
         dataset_name=c.DATASET_NAME,

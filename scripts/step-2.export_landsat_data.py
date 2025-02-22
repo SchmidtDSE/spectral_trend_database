@@ -38,7 +38,7 @@ import mproc  # type: ignore[import-untyped]
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
-from spectral_trend_database import runner
+from spectral_trend_database import interface
 from spectral_trend_database import utils
 from spectral_trend_database.gee import landsat
 from spectral_trend_database.gee import utils as ee_utils
@@ -152,7 +152,7 @@ print(f'RUNNING LANDSAT EXPORT FOR {YEARS}')
 for year in YEARS:
     print(f'\n- year: {year}')
     # 1. process paths
-    _, local_dest, gcs_dest = runner.table_name_and_paths(
+    _, local_dest, gcs_dest = interface.table_name_and_paths(
         c.RAW_LANDSAT_FOLDER,
         file_name=c.RAW_LANDSAT_FILENAME,
         year=year)
@@ -162,13 +162,13 @@ for year in YEARS:
         lambda r: process_mean_pixel_rows(r, year=year, dest=local_dest),
         data,
         max_processes=MAX_PROCESSES)
-    runner.print_errors(errors)
+    interface.print_errors(errors)
 
     # 3. report on errors
-    runner.print_errors(errors)
+    interface.print_errors(errors)
 
     # 4. save data (gcs, bq)
-    runner.save_to_gcp(
+    interface.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
         dataset_name=c.DATASET_NAME,

@@ -34,7 +34,6 @@ from spectral_trend_database.config import config as c
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
 from spectral_trend_database import interface
-from spectral_trend_database import runner
 from spectral_trend_database import utils
 
 
@@ -91,7 +90,7 @@ print('- nb_samples', len(SAMPLES))
 for year in YEARS:
     print('-', year, '...')
     # 1. process paths
-    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+    table_name, local_dest, gcs_dest = interface.table_name_and_paths(
         c.CROP_TYPE_FOLDER,
         table_name=c.CROP_TYPE_TABLE_NAME,
         year=year)
@@ -115,7 +114,7 @@ for year in YEARS:
         crop_data,
         dest=local_dest,
         dry_run=c.DRY_RUN)
-    runner.save_to_gcp(
+    interface.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
         dataset_name=c.DATASET_NAME,

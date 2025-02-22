@@ -52,7 +52,7 @@ from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
 from spectral_trend_database import utils
-from spectral_trend_database import runner
+from spectral_trend_database import interface
 from spectral_trend_database.gee import landsat
 from spectral_trend_database.gee import utils as ee_utils
 warnings.filterwarnings(
@@ -179,14 +179,14 @@ print(f'- samples shape:', samples_df.shape)
 
 
 # 8. save samples data
-table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+table_name, local_dest, gcs_dest = interface.table_name_and_paths(
     c.SAMPLES_FOLDER,
     table_name=c.SAMPLE_POINTS_TABLE_NAME)
 local_dest = utils.dataframe_to_ldjson(
     samples_df,
     dest=local_dest,
     dry_run=c.DRY_RUN)
-runner.save_to_gcp(
+interface.save_to_gcp(
     src=local_dest,
     gcs_dest=gcs_dest,
     dataset_name=c.DATASET_NAME,
@@ -202,14 +202,14 @@ print(f'- yield shape:', yield_df.shape)
 
 
 # 10. save yield data
-table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+table_name, local_dest, gcs_dest = interface.table_name_and_paths(
     c.QDANN_YIELD_FOLDER,
     table_name=c.QDANN_YIELD_TABLE_NAME)
 local_dest = utils.dataframe_to_ldjson(
     yield_df,
     dest=local_dest,
     dry_run=c.DRY_RUN)
-runner.save_to_gcp(
+interface.save_to_gcp(
     src=local_dest,
     gcs_dest=gcs_dest,
     dataset_name=c.DATASET_NAME,

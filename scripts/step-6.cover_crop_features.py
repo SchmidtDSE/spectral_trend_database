@@ -32,7 +32,7 @@ from spectral_trend_database import smoothing
 from spectral_trend_database import utils
 from spectral_trend_database import paths
 from spectral_trend_database import types
-from spectral_trend_database import runner
+from spectral_trend_database import interface
 
 
 #
@@ -87,7 +87,7 @@ print('=' * 100)
 for year in YEARS:
     print(f'\n- year: {year}')
     # 1. process paths/dates
-    table_name, local_dest, gcs_dest = runner.table_name_and_paths(
+    table_name, local_dest, gcs_dest = interface.table_name_and_paths(
         c.MACD_FOLDER,
         table_name=c.MACD_TABLE_NAME,
         year=year)
@@ -129,10 +129,10 @@ for year in YEARS:
         max_processes=c.MAX_PROCESSES)
 
     # 4. report on errors
-    runner.print_errors(errors)
+    interface.print_errors(errors)
 
     # 5. save data (gcs, bq)
-    runner.save_to_gcp(
+    interface.save_to_gcp(
         src=local_dest,
         gcs_dest=gcs_dest,
         dataset_name=c.DATASET_NAME,

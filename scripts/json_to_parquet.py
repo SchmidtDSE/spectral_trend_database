@@ -29,7 +29,7 @@ import pandas as pd
 from spectral_trend_database.config import config as c
 from spectral_trend_database import gcp
 from spectral_trend_database import paths
-from spectral_trend_database import runner
+from spectral_trend_database import interface
 
 
 #
@@ -56,7 +56,7 @@ def save_as_parquet(df, local_dest, gcs_dest, partitioned=False):
         df.to_parquet(local_dest, partition_cols=['year'])
         for path in Path(local_dest).glob('*/*'):
             _dest = f'{gcs_dest}/{path.parent.name}/{path.name}'
-            runner.save_to_gcp(
+            interface.save_to_gcp(
                 src=path,
                 gcs_dest=_dest,
                 table_name=None,
@@ -66,7 +66,7 @@ def save_as_parquet(df, local_dest, gcs_dest, partitioned=False):
     else:
         print('- shape:', df.shape)
         df.to_parquet(local_dest)
-        runner.save_to_gcp(
+        interface.save_to_gcp(
             src=local_dest,
             gcs_dest=gcs_dest,
             table_name=None,
