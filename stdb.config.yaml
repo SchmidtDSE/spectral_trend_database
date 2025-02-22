@@ -1,4 +1,4 @@
-shared_config: config/user.yaml
+shared_config: jobs/config/shared.yaml
 jobs:
     - name: j1
       file: jobs/modules/j1.py

@@ -14,22 +14,8 @@ from spectral_trend_database import utils
 from spectral_trend_database import paths
 from spectral_trend_database import gcp
 from spectral_trend_database import types
-
 import ee
 ee.Initialize()
-import pandas as pd
-
-
-#
-# CONSTANTS
-#
-
-
-
-#
-# METHODS
-#
-
 
 
 #

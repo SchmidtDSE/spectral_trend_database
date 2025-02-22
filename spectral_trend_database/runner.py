@@ -83,8 +83,9 @@ class JobRunner(object):
     # INTERNAL
     #
     def _select_jobs(self, name, start_index, end_index):
+        jobs = self.jobs
         if name:
-            job = next((j for j in self.jobs if j.get('name') == name), False)
+            job = next((j for j in jobs if j.get('name') == name), False)
             if not job:
                 err = (
                     'spectral_trend_database.JobRunner._select_jobs: '
@@ -97,7 +98,7 @@ class JobRunner(object):
                 end_index = end_index + 1
             else:
                 end_index = None
-            jobs = self.jobs[start_index:end_index]
+            jobs = jobs[start_index:end_index]
         return jobs
 
     def _process_job_config(self, name, job_config):
