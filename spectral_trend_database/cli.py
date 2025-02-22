@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import yaml
+from copy import deepcopy
 from pprint import pprint
 import click
 from spectral_trend_database import utils
@@ -65,16 +66,22 @@ def import_module(path):
 
 class JobRunner(object):
 
-    def __init__(self, jobs):
-        self.jobs = jobs
+    def __init__(self, config):
+        print(1, config)
+        _config = utils.process_config(config)
+        self.config = utils.process_config(_config.get('shared_config', {}))
+        print(2, self.config)
+        self.jobs = _config['jobs']
         self.timer = utils.Timer()
 
-    def run(self, run_config={}):
-        self.run_config = run_config
+
+    def run(self, name=None, start_index=None, end_index=None, run_config={}):
+        self.run_config = utils.process_config(run_config)
+        jobs = self._select_jobs(name, start_index, end_index)
         print('- start:', self.timer.start())
-        print('- run jobs:', [j['name'] for j in self.jobs])
+        print('- run jobs:', [j['name'] for j in jobs])
         print('-' * 100)
-        for job in self.jobs:
+        for job in jobs:
             self.run_job(**job)
         print('-' * 100)
         end_time = self.timer.stop()
@@ -82,19 +89,60 @@ class JobRunner(object):
         print(f'- complete [{duration}]: {end_time}')
 
     def run_job(self, name, file=None, config={}):
+        """
+        -
+        """
         print()
         print(name, self.timer.now())
-        print('file:', file)
+        print(111,config)
+        config = self._process_job_config(name, config)
+        print(222, config)
+        print('-----------')
         if file:
             path =  utils.full_path(file, ext='py')
         else:
             # raise NotImplementedError('TODO: stdb jobs if no file')
             print('TODO: stdb jobs if no file')
             return
-        config = utils.process_config(config)
         job_interface = import_module(path)
-        job_interface.run({**config, **self.run_config})
+        job_interface.run(config)
         print()
+
+
+    #
+    # INTERNAL
+    #
+    def _select_jobs(self, name, start_index, end_index):
+        if name:
+            job = next((j for j in self.jobs if j.get('name') == name), False)
+            if not job:
+                err = (
+                    'spectral_trend_database.JobRunner._select_jobs: '
+                    f'job "{name}" not found in {jobs}'
+                )
+                raise ValueError(err)
+            jobs = [job]
+        elif start_index:
+            if end_index:
+                end_index = end_index + 1
+            else:
+                end_index = None
+            jobs = self.jobs[start_index:end_index]
+        return jobs
+
+
+    def _process_job_config(self, name, job_config):
+        print(1111, name, job_config)
+        config = deepcopy(self.config)
+        print(2222, config)
+        config.update(config.get(name, {}))
+        print(3333, config)
+        config.update(utils.process_config(job_config))
+        print(4444, config)
+        config.update(deepcopy(self.run_config))
+        print(5555, config)
+        return config
+
 #
 #
 #----------------------------------------------------
@@ -133,10 +181,17 @@ def job(
         index=index,
         index_range=index_range,
         run_all=run_all)
-    config = utils.process_config(config)
-    jobs = _get_jobs(config, name, index, index_range, run_all)
-    runner = JobRunner(jobs)
-    runner.run(run_config)
+    name, start_index, end_index = _process_job_options(
+        name=name,
+        index=index,
+        index_range=index_range,
+        run_all=run_all)
+    runner = JobRunner(config)
+    runner.run(
+        name=name,
+        start_index=start_index,
+        end_index=end_index,
+        run_config=run_config)
 
 
 
@@ -164,12 +219,33 @@ def _pocess_name_and_context(name, ctx_args):
         raise ValueError(err)
     return name, config
 
+
+def _process_job_options(name, index, index_range, run_all):
+    if name:
+        return name, None, None
+    elif index:
+        return None, index, None
+    elif index_range:
+        start, end = [int(v.strip())-1 for v in index_range.split(',')]
+        return None, start, end
+    elif not run_all:
+        err = (
+            'spectral_trend_database.cli._process_job_options: '
+            'one of [name, index, index_range, run_all] '
+            'be passed to job'
+        )
+        raise ValueError(err)
+    else:
+        return None, None, None
+
+
 def _non_trival_arg(value):
     trivial = (
         (value == _NOT_FOUND) or
         (value is None) or
         (value is False))
     return not trivial
+
 
 def _check_argument_exclusions(
         mutually_exclusive=MUTUALLY_EXCLUSIVE_ARGS,
@@ -183,31 +259,6 @@ def _check_argument_exclusions(
             f'[{arg_names}]'
         )
         raise ValueError(err)
-
-
-def _get_jobs(config, name, index, index_range, run_all):
-    jobs = config['jobs']
-    if name:
-        job = next((j for j in jobs if j.get('name') == name), False)
-        if not job:
-            err = (
-                'spectral_trend_database.cli._get_jobs: '
-                f'job "{name}" not found in {jobs}'
-            )
-            raise ValueError(err)
-        jobs = [job]
-    elif index:
-        jobs = jobs[index:index+1]
-    elif index_range:
-        i, j = [int(v.strip())-1 for v in index_range.split(',')]
-        jobs = jobs[i:j+1]
-    elif not run_all:
-        err = (
-            'spectral_trend_database.cli._get_jobs: '
-            'must pass one of [name, index, index_range, run_all]'
-        )
-        raise ValueError(err)
-    return jobs
 
 
 #

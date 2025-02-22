@@ -32,20 +32,10 @@ YAML_REGEX: list[str] = r'\.(yml|yaml)$'
 YAML_EXT: str = 'yaml'
 FALSEY: list[str] = ['None', 'none', 'null', 'false', 'False', '0']
 
+
 #
 # I/O
 #
-def full_path(path, ext=None, ext_regex=None, full_path_prefixes=FULL_PATH_PREFIXES):
-    if path[0] not in full_path_prefixes:
-        path = f'{Path.cwd()}/{path}'
-    if ext:
-        if not ext_regex:
-            ext_regex = f'.{ext}$'
-        if not re.search(ext_regex, path):
-            path = f'{path}.{ext}'
-    return path
-
-
 def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
     """ Reads (and optionally extracts part of) yaml file
 
@@ -72,6 +62,21 @@ def read_yaml(path: str, *key_path: str, safe: bool = False) -> Any:
         for k in key_path:
             obj = obj[k]
         return obj
+
+
+def full_path(
+        path,
+        ext=None,
+        ext_regex=None,
+        full_path_prefixes=FULL_PATH_PREFIXES):
+    if path[0] not in full_path_prefixes:
+        path = f'{Path.cwd()}/{path}'
+    if ext:
+        if not ext_regex:
+            ext_regex = f'.{ext}$'
+        if not re.search(ext_regex, path):
+            path = f'{path}.{ext}'
+    return path
 
 
 def process_config(config: Union[str, dict, Literal[None, False]]) -> dict:
