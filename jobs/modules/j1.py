@@ -133,6 +133,7 @@ def merge_county_data(df, us_gdf, rsuffix='political', drop_cols=['index_politic
 # RUN
 #
 def run(config):
+	c.update(config)
 	from pprint import pprint
 	print('load data:')
 	# 1. Load Sample Yield data

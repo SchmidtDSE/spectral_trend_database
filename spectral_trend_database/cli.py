@@ -5,6 +5,7 @@ from copy import deepcopy
 from pprint import pprint
 import click
 from spectral_trend_database import utils
+from spectral_trend_database import runner
 from spectral_trend_database.config import ConfigHandler
 """
 ```yaml
@@ -41,111 +42,14 @@ jobs:
 #
 DRY_RUN: bool = False
 CTX_SETTINGS: dict = dict(allow_extra_args=True)
+DEFAULT_CONFIG = 'stdb.config.yaml'
 MUTUALLY_EXCLUSIVE_ARGS: list[str] = [
     'name',
     'index',
     'index_range',
     'run_all' ]
 _NOT_FOUND: str = '_NOT_FOUND'
-DEFAULT_CONFIG = 'stdb.config.yaml'
 
-
-#----------------------------------------------------
-#
-# DEV: TO BE MOVED TO ITS OWN MODULE
-#
-import importlib.util
-import sys
-
-def import_module(path):
-    spec = importlib.util.spec_from_file_location("module.name", path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["module.name"] = module
-    spec.loader.exec_module(module)
-    return module
-
-class JobRunner(object):
-
-    def __init__(self, config):
-        print(1, config)
-        _config = utils.process_config(config)
-        self.config = utils.process_config(_config.get('shared_config', {}))
-        print(2, self.config)
-        self.jobs = _config['jobs']
-        self.timer = utils.Timer()
-
-
-    def run(self, name=None, start_index=None, end_index=None, run_config={}):
-        self.run_config = utils.process_config(run_config)
-        jobs = self._select_jobs(name, start_index, end_index)
-        print('- start:', self.timer.start())
-        print('- run jobs:', [j['name'] for j in jobs])
-        print('-' * 100)
-        for job in jobs:
-            self.run_job(**job)
-        print('-' * 100)
-        end_time = self.timer.stop()
-        duration = self.timer.delta()
-        print(f'- complete [{duration}]: {end_time}')
-
-    def run_job(self, name, file=None, config={}):
-        """
-        -
-        """
-        print()
-        print(name, self.timer.now())
-        print(111,config)
-        config = self._process_job_config(name, config)
-        print(222, config)
-        print('-----------')
-        if file:
-            path =  utils.full_path(file, ext='py')
-        else:
-            # raise NotImplementedError('TODO: stdb jobs if no file')
-            print('TODO: stdb jobs if no file')
-            return
-        job_interface = import_module(path)
-        job_interface.run(config)
-        print()
-
-
-    #
-    # INTERNAL
-    #
-    def _select_jobs(self, name, start_index, end_index):
-        if name:
-            job = next((j for j in self.jobs if j.get('name') == name), False)
-            if not job:
-                err = (
-                    'spectral_trend_database.JobRunner._select_jobs: '
-                    f'job "{name}" not found in {jobs}'
-                )
-                raise ValueError(err)
-            jobs = [job]
-        elif start_index:
-            if end_index:
-                end_index = end_index + 1
-            else:
-                end_index = None
-            jobs = self.jobs[start_index:end_index]
-        return jobs
-
-
-    def _process_job_config(self, name, job_config):
-        print(1111, name, job_config)
-        config = deepcopy(self.config)
-        print(2222, config)
-        config.update(config.get(name, {}))
-        print(3333, config)
-        config.update(utils.process_config(job_config))
-        print(4444, config)
-        config.update(deepcopy(self.run_config))
-        print(5555, config)
-        return config
-
-#
-#
-#----------------------------------------------------
 
 
 #
@@ -186,8 +90,8 @@ def job(
         index=index,
         index_range=index_range,
         run_all=run_all)
-    runner = JobRunner(config)
-    runner.run(
+    jr = runner.JobRunner(config)
+    jr.run(
         name=name,
         start_index=start_index,
         end_index=end_index,
