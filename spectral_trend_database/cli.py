@@ -1,7 +1,6 @@
 from pathlib import Path
 import re
 import yaml
-from copy import deepcopy
 from pprint import pprint
 import click
 from spectral_trend_database import utils
