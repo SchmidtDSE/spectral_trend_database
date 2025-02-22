@@ -37,9 +37,6 @@ dependencies = [
 	"twine>=6.1.0,<7"
 ]
 
-[project.scripts]
-stdb = "spectral_trend_database:cli.cli"
-
 [tool.setuptools]
 packages = [
 	"spectral_trend_database",
@@ -51,6 +48,7 @@ platforms = ["osx-arm64"]
 
 [tool.pixi.pypi-dependencies]
 spectral_trend_database = { path = ".", editable = true }
+tap = { path = "/Users/brookieguzder-williams/code/dse/trend_analysis_package/repo", editable = true }
 
 [tool.pixi.tasks]
 
