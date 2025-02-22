@@ -12,7 +12,7 @@ health, cover-cropping, and other sustainable agricultural practices.
 
 ## DATABASE DESCRIPTION
 
-The _Spectral Trend Database_ lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data eaiser ([docs](XXX), [example](XXX)). The database tables are listed in the table below.  Detailed descriptions of the indvidual tables can be found in our api-docs ([here](https://schmidtdse.github.io/spectral_trend_database/docs/pages/database.html)).
+The _Spectral Trend Database_ lives on [Google Big Query](https://cloud.google.com/bigquery/docs) and can be accessed directly using big query.  However, we've built a number of python tools to make accessing the data easier ([docs](XXX), [example](XXX)). The database tables are listed in the table below.  Detailed descriptions of the individual tables can be found in our api-docs ([here](https://schmidtdse.github.io/spectral_trend_database/docs/pages/database.html)).
 
 
 | Table | Keys | Dates | Daily | Description |
