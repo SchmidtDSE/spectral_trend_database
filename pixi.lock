@@ -399,7 +399,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/27/08/ab9008c869ad16f158255514e1870156cebf9c2bf0509aadfddeb5dc2183/lz4-4.4.3-cp311-cp311-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/a7/f7/7782a043553ee469c1ff49cfa1cdace2d6bf99a1f333cf38676b3ddf30da/mdit_py_plugins-0.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/23/62/0fe302c6d1be1c777cab0616e6302478251dfbf9055ad426f5d0def75c89/more_itertools-10.6.0-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/8f/c9/8edb3b93cf16eb844c03102f56294f6d76cfd62494549dae6628c3fb967e/mproc-0.0.0.4.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/08/14/e1a98a8ba81312b11d7144d4c5a60d72e92299bf4c567e073399bd688b5b/mproc-0.0.0.5.tar.gz
       - pypi: https://files.pythonhosted.org/packages/42/ae/d3adea9bb4a1342763556078b5765e666f8fdf242e00f3f6657380920972/msgpack-1.1.0-cp311-cp311-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/70/0f/6dc70ddf5d442702ed74f298d69977f904960b82368532c88e854b79f72b/multidict-6.1.0-cp311-cp311-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/5f/df/76d0321c3797b54b60fef9ec3bd6f4cfd124b9e422182156a1dd418722cf/myst_parser-4.0.1-py3-none-any.whl
@@ -448,7 +448,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/6e/a3/5e92dc7e35c08574472bbd9201aabdad03e38d54cc47c421922d219502c6/xarray_datatree-0.0.14-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d6/2b/2ce09940156ed39f3f066c327c8793dcb846321b58badc15e9bc9fa5f0bb/xee-0.0.20-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5a/a1/205ab51e148fdcedad189ca8dd587794c6f119882437d04c33c01a75dece/yarl-1.18.3-cp311-cp311-macosx_11_0_arm64.whl
-      - pypi: https://files.pythonhosted.org/packages/0e/41/36a8b385c1523957f267172151978eb3ed37b53c8dc6db43e4e160d6d8b6/zarr-3.0.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/00/3b/e20bdf84088c11f2c396d034506cbffadd53e024111c1aa4585c2aba1523/zarr-3.0.8-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/80/ab/11a76c1e2126084fde2639514f24e6111b789b0bfa4fc6264a8975c7e1f1/zict-3.0.0-py2.py3-none-any.whl
       - pypi: .
       - pypi: /Users/brookieguzder-williams/code/dse/trend_analysis_package/repo
@@ -4023,10 +4023,10 @@ packages:
   version: 10.6.0
   sha256: 6eb054cb4b6db1473f6e15fcc676a08e4732548acd47c708f0e179c2c7c01e89
   requires_python: '>=3.9'
-- pypi: https://files.pythonhosted.org/packages/8f/c9/8edb3b93cf16eb844c03102f56294f6d76cfd62494549dae6628c3fb967e/mproc-0.0.0.4.tar.gz
+- pypi: https://files.pythonhosted.org/packages/08/14/e1a98a8ba81312b11d7144d4c5a60d72e92299bf4c567e073399bd688b5b/mproc-0.0.0.5.tar.gz
   name: mproc
-  version: 0.0.0.4
-  sha256: 7bcee3c32aefd151f7b8a06d55f8e11bdfdaef9ec76467eaa55839f24607d337
+  version: 0.0.0.5
+  sha256: 6edc219f2db1d61b6d743af17de385a06e120a0d3207d7c5ce3ec0f0a3a3bc62
 - pypi: https://files.pythonhosted.org/packages/42/ae/d3adea9bb4a1342763556078b5765e666f8fdf242e00f3f6657380920972/msgpack-1.1.0-cp311-cp311-macosx_11_0_arm64.whl
   name: msgpack
   version: 1.1.0
@@ -5472,7 +5472,7 @@ packages:
 - pypi: .
   name: spectral-trend-database
   version: 0.0.2
-  sha256: a977ca899a914751980f62bb20acc76f4300912d4afb903ab78f1f4fc428f5b1
+  sha256: ed96ffcf1cf8e40c40a50f9772074ddff853948e6e68f0cc05e77ccf6bb690f2
   requires_dist:
   - click
   - numpy
@@ -5499,7 +5499,7 @@ packages:
   - pandas-stubs>=2.2.3.241126,<3
   - types-requests>=2.32.0.20241016,<3
   - types-pyyaml>=6.0.12.20241230,<7
-  - mproc>=0.0.0.4,<0.0.0.5
+  - mproc>=0.0.0.5,<0.0.1
   - build>=1.2.2.post1,<2
   - twine>=6.1.0,<7
   editable: true
@@ -5717,7 +5717,7 @@ packages:
 - pypi: /Users/brookieguzder-williams/code/dse/trend_analysis_package/repo
   name: tap
   version: 0.0.2
-  sha256: 411e2e63d25b6b7746012d2d6ea9c7757010a5eb37fcf5721fc76adc33345909
+  sha256: 5d59b61969834b42c84c69aca462d7583f73093f702e32bdae32b519d395545e
   requires_dist:
   - click
   - numpy
@@ -5725,13 +5725,13 @@ packages:
   - scipy
   - xarray
   - affine
-  - pandas-gbq>=0.27.0,<0.28
+  - pandas-gbq>=0.27.0,<=0.28
   - geopandas>=1.0.1,<2
   - dask>=2025.2.0,<2026
   - geojson>=3.2.0,<4
   - shapely>=2.0.7,<3
   - xarray-datatree>=0.0.14,<0.0.15
-  - zarr>=3.0.3,<4
+  - zarr>3.0.3,<4
   - earthengine-api>=1.5.3,<2
   - xee>=0.0.20,<0.0.21
   - gcsfs>=2025.2.0,<2026
@@ -5744,7 +5744,7 @@ packages:
   - pandas-stubs>=2.2.3.241126,<3
   - types-requests>=2.32.0.20241016,<3
   - types-pyyaml>=6.0.12.20241230,<7
-  - mproc>=0.0.0.4,<0.0.0.5
+  - mproc>=0.0.0.5,<0.0.1
   - build>=1.2.2.post1,<2
   - twine>=6.1.0,<7
   editable: true
@@ -6241,10 +6241,10 @@ packages:
   - multidict>=4.0
   - propcache>=0.2.0
   requires_python: '>=3.9'
-- pypi: https://files.pythonhosted.org/packages/0e/41/36a8b385c1523957f267172151978eb3ed37b53c8dc6db43e4e160d6d8b6/zarr-3.0.3-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/00/3b/e20bdf84088c11f2c396d034506cbffadd53e024111c1aa4585c2aba1523/zarr-3.0.8-py3-none-any.whl
   name: zarr
-  version: 3.0.3
-  sha256: 273a4de88d03769eb8cca7c7e882d697d7f5c3e40377654eeb49f1c38976808b
+  version: 3.0.8
+  sha256: 7f81e7aec086437d98882aa432209107114bd7f3a9f4958b2af9c6b5928a70a7
   requires_dist:
   - donfig>=0.8
   - numcodecs[crc32c]>=0.14
@@ -6256,7 +6256,7 @@ packages:
   - numpydoc ; extra == 'docs'
   - pydata-sphinx-theme ; extra == 'docs'
   - rich ; extra == 'docs'
-  - s3fs ; extra == 'docs'
+  - s3fs>=2023.10.0 ; extra == 'docs'
   - sphinx-autoapi==3.4.0 ; extra == 'docs'
   - sphinx-autobuild>=2021.3.14 ; extra == 'docs'
   - sphinx-copybutton ; extra == 'docs'
@@ -6269,20 +6269,21 @@ packages:
   - rich ; extra == 'optional'
   - universal-pathlib ; extra == 'optional'
   - fsspec>=2023.10.0 ; extra == 'remote'
-  - botocore ; extra == 'test'
+  - obstore>=0.5.1 ; extra == 'remote'
+  - botocore ; extra == 'remote-tests'
+  - fsspec>=2023.10.0 ; extra == 'remote-tests'
+  - moto[s3,server] ; extra == 'remote-tests'
+  - obstore>=0.5.1 ; extra == 'remote-tests'
+  - requests ; extra == 'remote-tests'
+  - s3fs>=2023.10.0 ; extra == 'remote-tests'
   - coverage ; extra == 'test'
-  - fsspec>=2023.10.0 ; extra == 'test'
   - hypothesis ; extra == 'test'
-  - moto[s3,server] ; extra == 'test'
   - mypy ; extra == 'test'
   - pytest ; extra == 'test'
   - pytest-accept ; extra == 'test'
   - pytest-asyncio ; extra == 'test'
   - pytest-cov ; extra == 'test'
-  - requests ; extra == 'test'
   - rich ; extra == 'test'
-  - s3fs ; extra == 'test'
-  - universal-pathlib ; extra == 'test'
   requires_python: '>=3.11'
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zeromq-4.3.5-hc1bb282_7.conda
   sha256: 9e585569fe2e7d3bea71972cd4b9f06b1a7ab8fa7c5139f92a31cbceecf25a8a
